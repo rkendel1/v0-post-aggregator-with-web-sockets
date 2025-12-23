@@ -52,7 +52,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   // Fetch posts
   useEffect(() => {
-    if (activeFeed === "following" && !selectedFeedId) {
+    // Wait for the user's followed tags to load first
+    if (isFeedLoading) return
+
+    // Handle the "For You" feed separately
+    if (activeFeed === "for-you") {
+      setPosts([])
+      setIsLoadingPosts(false)
+      return
+    }
+
+    // If no feed is selected in the "Following" tab, do nothing
+    if (!selectedFeedId) {
       setPosts([])
       setIsLoadingPosts(false)
       return
@@ -81,22 +92,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         )
         .order("created_at", { ascending: false })
 
-      if (activeFeed === "following") {
-        if (selectedFeedId === "all") {
-          const tagIds = feedTagIds ? feedTagIds.split(",") : []
-          if (tagIds.length > 0) {
-            query.in("show_tag_id", tagIds)
-          } else {
-            setPosts([])
-            setIsLoadingPosts(false)
-            return
-          }
+      if (selectedFeedId === "all") {
+        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        if (tagIds.length > 0) {
+          query.in("show_tag_id", tagIds)
         } else {
-          query.eq("show_tag_id", selectedFeedId)
+          // No tags followed, so no posts to show
+          setPosts([])
+          setIsLoadingPosts(false)
+          return
         }
       } else {
-        // "For You" feed
-        query.limit(50)
+        query.eq("show_tag_id", selectedFeedId)
       }
 
       if (hiddenPostIds.length > 0) {
@@ -112,7 +119,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [activeFeed, selectedFeedId, feedTagIds, supabase, user])
+  }, [activeFeed, selectedFeedId, feedTagIds, supabase, user, isFeedLoading])
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -296,7 +303,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         </header>
 
         <div className="flex-1 overflow-hidden">
-          {activeFeed === "following" && feedTags.length === 0 ? (
+          {activeFeed === "for-you" ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold">Coming Soon!</h2>
+                <p className="text-muted-foreground mt-2">A curated feed of posts is on its way.</p>
+              </div>
+            </div>
+          ) : feedTags.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-muted-foreground mb-2">Your feed is empty.</p>
@@ -305,7 +319,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                 </Button>
               </div>
             </div>
-          ) : selectedFeedId || activeFeed === "for-you" ? (
+          ) : selectedFeedId ? (
             <PostFeed
               posts={posts}
               isLoading={isLoadingPosts}

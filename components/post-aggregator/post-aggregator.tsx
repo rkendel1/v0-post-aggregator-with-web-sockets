@@ -23,6 +23,14 @@ interface PostAggregatorProps {
   initialShowTags: ShowTag[]
 }
 
+const POST_SELECT_QUERY = `
+  *,
+  show_tags (*),
+  sources (*),
+  comment_counts (*),
+  reaction_counts (*, reaction_types (*))
+`
+
 export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
     user,
@@ -92,7 +100,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         // Fetch generic feed for logged-out users
         const { data } = await supabase
           .from("posts")
-          .select("*, show_tags (*), sources (*), comment_counts (*)")
+          .select(POST_SELECT_QUERY)
           .order("created_at", { ascending: false })
           .limit(20)
         if (data) {
@@ -119,7 +127,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       const query = supabase
         .from("posts")
-        .select(`*, show_tags (*), sources (*), comment_counts (*)`)
+        .select(POST_SELECT_QUERY)
         .order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
@@ -162,7 +170,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     const handleInsert = async (payload: any) => {
       const { data } = await supabase
         .from("posts")
-        .select(`*, show_tags (*), sources (*), comment_counts (*)`)
+        .select(POST_SELECT_QUERY)
         .eq("id", payload.new.id)
         .single()
       if (data) setPosts((current) => [data as Post, ...current])

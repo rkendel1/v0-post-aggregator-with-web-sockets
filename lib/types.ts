@@ -29,6 +29,7 @@ export interface Post {
   show_tags?: ShowTag
   sources?: Source
   comment_counts?: CommentCount
+  reaction_counts?: ReactionCount[]
 }
 
 export interface UserSubscription {

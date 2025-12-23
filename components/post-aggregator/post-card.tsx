@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import type { Post } from "@/lib/types"
+import { useState, useEffect } from "react"
+import type { Post, ReactionCount, CommentCount } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,6 +16,7 @@ import { FederatedPostStatus } from "./federated-post-status"
 import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
+import { createClient } from "@/lib/supabase/client"
 
 interface PostCardProps {
   post: Post
@@ -28,14 +29,51 @@ interface PostCardProps {
 
 export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt, onPostUnsaved }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
+  const [reactionCounts, setReactionCounts] = useState<ReactionCount[]>(post.reaction_counts || [])
+  const [commentCount, setCommentCount] = useState<number>(post.comment_counts?.count || 0)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
+  const supabase = createClient()
+
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
   })
 
-  const commentCount = post.comment_counts?.count || 0
   const isAuthor = currentUser?.id === post.user_id
   const isCurrentlyPlaying = currentTrack?.id === post.id && isPlaying
+
+  useEffect(() => {
+    const reactionChannel = supabase
+      .channel(`reaction_counts:post_id=eq.${post.id}`)
+      .on<ReactionCount>(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reaction_counts", filter: `post_id=eq.${post.id}` },
+        async () => {
+          const { data } = await supabase
+            .from("reaction_counts")
+            .select("*, reaction_types(*)")
+            .eq("post_id", post.id)
+          setReactionCounts(data || [])
+        },
+      )
+      .subscribe()
+
+    const commentChannel = supabase
+      .channel(`comment_counts:post_id=eq.${post.id}`)
+      .on<CommentCount>(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comment_counts", filter: `post_id=eq.${post.id}` },
+        (payload) => {
+          const newRecord = payload.new as Partial<CommentCount>
+          setCommentCount(newRecord.count ?? 0)
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(reactionChannel)
+      supabase.removeChannel(commentChannel)
+    }
+  }, [post.id, supabase])
 
   const handleShare = () => {
     const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`
@@ -129,7 +167,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             </Button>
           )}
           <div onClick={(e) => handleInteraction("react to a post", e)}>
-            <ReactionPicker postId={post.id} />
+            <ReactionPicker postId={post.id} reactionCounts={reactionCounts} />
           </div>
           <Button
             variant="ghost"

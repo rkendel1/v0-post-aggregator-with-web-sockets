@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { Comment } from "@/lib/types"
+import type { Comment, ReactionCount } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,93 +22,115 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [replyContent, setReplyContent] = useState("")
   const supabase = createClient()
 
-  // Fetch comments
+  const allCommentIds = useMemo(() => {
+    const ids = new Set<string>()
+    comments.forEach((comment) => {
+      ids.add(comment.id)
+      comment.replies?.forEach((reply) => ids.add(reply.id))
+    })
+    return ids
+  }, [comments])
+
+  const fetchComments = useCallback(async () => {
+    const { data } = await supabase
+      .from("comments")
+      .select(
+        `
+        *,
+        user_profiles (*),
+        reaction_counts (*, reaction_types (*))
+      `,
+      )
+      .eq("post_id", postId)
+      .is("parent_comment_id", null)
+      .order("created_at", { ascending: false })
+
+    if (data) {
+      const commentsWithReplies = await Promise.all(
+        data.map(async (comment) => {
+          const { data: replies } = await supabase
+            .from("comments")
+            .select(
+              `
+              *,
+              user_profiles (*),
+              reaction_counts (*, reaction_types (*))
+            `,
+            )
+            .eq("parent_comment_id", comment.id)
+            .order("created_at", { ascending: true })
+
+          return { ...comment, replies: replies || [] } as Comment
+        }),
+      )
+      setComments(commentsWithReplies)
+    }
+  }, [postId, supabase])
+
   useEffect(() => {
-    const fetchComments = async () => {
+    fetchComments()
+  }, [fetchComments])
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    const handleCommentChanges = async (payload: any) => {
       const { data } = await supabase
         .from("comments")
-        .select(`
-          *,
-          user_profiles (*)
-        `)
-        .eq("post_id", postId)
-        .is("parent_comment_id", null)
-        .order("created_at", { ascending: false })
+        .select(`*, user_profiles (*), reaction_counts (*, reaction_types (*))`)
+        .eq("id", payload.new.id)
+        .single()
+      if (!data) return
 
-      if (data) {
-        // Fetch replies for each comment
-        const commentsWithReplies = await Promise.all(
-          data.map(async (comment) => {
-            const { data: replies } = await supabase
-              .from("comments")
-              .select(`
-                *,
-                user_profiles (*)
-              `)
-              .eq("parent_comment_id", comment.id)
-              .order("created_at", { ascending: true })
-
-            return { ...comment, replies: replies || [] } as Comment
+      const newCommentData = data as Comment
+      if (!newCommentData.parent_comment_id) {
+        setComments((current) => [{ ...newCommentData, replies: [] }, ...current])
+      } else {
+        setComments((current) =>
+          current.map((comment) => {
+            if (comment.id === newCommentData.parent_comment_id) {
+              return {
+                ...comment,
+                replies: [...(comment.replies || []), newCommentData],
+              }
+            }
+            return comment
           }),
         )
-
-        setComments(commentsWithReplies)
       }
     }
 
-    fetchComments()
-  }, [postId, supabase])
-
-  // Subscribe to real-time comment updates
-  useEffect(() => {
-    const channel = supabase
+    const commentsChannel = supabase
       .channel(`comments:post_id=eq.${postId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "comments",
-          filter: `post_id=eq.${postId}`,
-        },
-        async (payload) => {
-          const { data } = await supabase
-            .from("comments")
-            .select(`
-              *,
-              user_profiles (*)
-            `)
-            .eq("id", payload.new.id)
-            .single()
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, (payload) => {
+        if (payload.eventType === "INSERT") {
+          handleCommentChanges(payload)
+        } else {
+          // For updates and deletes, a full refetch is the most reliable way
+          // to handle nested replies and ordering correctly.
+          fetchComments()
+        }
+      })
+      .subscribe()
 
-          if (data) {
-            const newCommentData = data as Comment
-            if (!newCommentData.parent_comment_id) {
-              // Top-level comment
-              setComments((current) => [{ ...newCommentData, replies: [] }, ...current])
-            } else {
-              // Reply to a comment
-              setComments((current) =>
-                current.map((comment) => {
-                  if (comment.id === newCommentData.parent_comment_id) {
-                    return {
-                      ...comment,
-                      replies: [...(comment.replies || []), newCommentData],
-                    }
-                  }
-                  return comment
-                }),
-              )
-            }
+    const reactionsChannel = supabase
+      .channel("public:reaction_counts")
+      .on<ReactionCount>(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reaction_counts" },
+        (payload) => {
+          const newRecord = payload.new as Partial<ReactionCount>
+          if (newRecord.comment_id && allCommentIds.has(newRecord.comment_id)) {
+            fetchComments()
           }
         },
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(commentsChannel)
+      supabase.removeChannel(reactionsChannel)
     }
-  }, [postId, supabase])
+  }, [postId, supabase, fetchComments, allCommentIds])
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return
@@ -200,7 +222,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                 </div>
                 <p className="text-sm leading-relaxed">{comment.content}</p>
                 <div className="flex items-center gap-2">
-                  <ReactionPicker commentId={comment.id} />
+                  <ReactionPicker commentId={comment.id} reactionCounts={comment.reaction_counts} />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -251,7 +273,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                             </span>
                           </div>
                           <p className="text-sm leading-relaxed">{reply.content}</p>
-                          <ReactionPicker commentId={reply.id} />
+                          <ReactionPicker commentId={reply.id} reactionCounts={reply.reaction_counts} />
                         </div>
                       </div>
                     ))}

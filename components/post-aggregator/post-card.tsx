@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import type { Post } from "@/lib/types"
+import { User } from "@supabase/supabase-js"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -12,18 +13,29 @@ import { CommentsSection } from "./comments-section"
 import { ReactionPicker } from "./reaction-picker"
 import { PostFollowButton } from "./post-follow-button"
 import { FederatedPostStatus } from "./federated-post-status"
+import { PostActions } from "./post-actions"
+import toast from "react-hot-toast"
 
 interface PostCardProps {
   post: Post
+  currentUser: User | null
+  onPostDeleted: (postId: string) => void
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, currentUser, onPostDeleted }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
   })
 
   const commentCount = post.comment_counts?.count || 0
+  const isAuthor = currentUser?.id === post.user_id
+
+  const handleShare = () => {
+    const postUrl = `${window.location.origin}/post/${post.id}` // A bit of a mock URL, but good for demonstration
+    navigator.clipboard.writeText(postUrl)
+    toast.success("Post link copied to clipboard!")
+  }
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -42,15 +54,18 @@ export function PostCard({ post }: PostCardProps) {
               </div>
             </div>
           </div>
-          {post.sources && (
-            <Badge variant="outline" className="text-xs">
-              {post.sources.icon} {post.sources.name}
-            </Badge>
-          )}
+          <div className="flex items-center gap-1">
+            {post.sources && (
+              <Badge variant="outline" className="text-xs">
+                {post.sources.icon} {post.sources.name}
+              </Badge>
+            )}
+            {isAuthor && <PostActions post={post} onPostDeleted={onPostDeleted} />}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm leading-relaxed">{post.content}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
         <div className="flex items-center gap-4 pt-2">
           <ReactionPicker postId={post.id} />
@@ -59,7 +74,7 @@ export function PostCard({ post }: PostCardProps) {
             <span className="text-xs">{commentCount}</span>
           </Button>
           <PostFollowButton postId={post.id} />
-          <Button variant="ghost" size="sm" className="gap-2 h-8">
+          <Button variant="ghost" size="sm" className="gap-2 h-8" onClick={handleShare}>
             <Share2 className="h-4 w-4" />
             <span className="text-xs">Share</span>
           </Button>

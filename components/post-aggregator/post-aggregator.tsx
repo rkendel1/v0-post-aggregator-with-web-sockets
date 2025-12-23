@@ -22,6 +22,7 @@ interface PostAggregatorProps {
 
 export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
+    user,
     profile,
     feedTags,
     rssFeeds,
@@ -165,12 +166,28 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "posts",
+          filter: filter,
+        },
+        (payload) => {
+          setPosts((current) => current.filter((post) => post.id !== payload.old.id))
+        },
+      )
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
   }, [selectedFeedId, feedTags, supabase])
+
+  const handlePostDeleted = (postId: string) => {
+    setPosts((current) => current.filter((post) => post.id !== postId))
+  }
 
   if (isFeedLoading) {
     return (
@@ -251,7 +268,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
               </div>
             </div>
           ) : selectedFeedId ? (
-            <PostFeed posts={posts} isLoading={isLoadingPosts} />
+            <PostFeed posts={posts} isLoading={isLoadingPosts} currentUser={user} onPostDeleted={handlePostDeleted} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Select a show tag to see posts</p>

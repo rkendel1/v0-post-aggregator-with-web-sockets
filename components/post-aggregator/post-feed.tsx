@@ -1,6 +1,7 @@
 "use client"
 
 import type { Post } from "@/lib/types"
+import { User } from "@supabase/supabase-js"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PostCard } from "./post-card"
 import { Loader2 } from "lucide-react"
@@ -8,9 +9,11 @@ import { Loader2 } from "lucide-react"
 interface PostFeedProps {
   posts: Post[]
   isLoading: boolean
+  currentUser: User | null
+  onPostDeleted: (postId: string) => void
 }
 
-export function PostFeed({ posts, isLoading }: PostFeedProps) {
+export function PostFeed({ posts, isLoading, currentUser, onPostDeleted }: PostFeedProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -34,7 +37,7 @@ export function PostFeed({ posts, isLoading }: PostFeedProps) {
     <ScrollArea className="h-full">
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} currentUser={currentUser} onPostDeleted={onPostDeleted} />
         ))}
       </div>
     </ScrollArea>

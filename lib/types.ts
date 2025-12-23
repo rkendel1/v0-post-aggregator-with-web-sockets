@@ -22,6 +22,7 @@ export interface Post {
   source_id: string | null
   likes_count: number
   created_at: string
+  user_id: string | null
   show_tags?: ShowTag
   sources?: Source
   comment_counts?: CommentCount

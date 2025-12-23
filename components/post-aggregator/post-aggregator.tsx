@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { CashTag, Post } from "@/lib/types"
-import { CashTagSidebar } from "./cash-tag-sidebar"
+import type { ShowTag, Post } from "@/lib/types"
+import { ShowTagSidebar } from "./show-tag-sidebar"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
 import { Button } from "@/components/ui/button"
@@ -11,11 +11,11 @@ import { PlusCircle, Settings } from "lucide-react"
 import Link from "next/link"
 
 interface PostAggregatorProps {
-  initialCashTags: CashTag[]
+  initialShowTags: ShowTag[]
 }
 
-export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
-  const [selectedTag, setSelectedTag] = useState<CashTag | null>(initialCashTags[0] || null)
+export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
+  const [selectedTag, setSelectedTag] = useState<ShowTag | null>(initialShowTags[0] || null)
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -32,11 +32,11 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
         .from("posts")
         .select(`
           *,
-          cash_tags (*),
+          show_tags (*),
           sources (*),
           comment_counts (*)
         `)
-        .eq("cash_tag_id", selectedTag.id)
+        .eq("show_tag_id", selectedTag.id)
         .order("created_at", { ascending: false })
 
       if (data) {
@@ -53,14 +53,14 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
     if (!selectedTag) return
 
     const channel = supabase
-      .channel(`posts:cash_tag_id=eq.${selectedTag.id}`)
+      .channel(`posts:show_tag_id=eq.${selectedTag.id}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "posts",
-          filter: `cash_tag_id=eq.${selectedTag.id}`,
+          filter: `show_tag_id=eq.${selectedTag.id}`,
         },
         async (payload) => {
           // Fetch the complete post with relations
@@ -68,7 +68,7 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
             .from("posts")
             .select(`
               *,
-              cash_tags (*),
+              show_tags (*),
               sources (*),
               comment_counts (*)
             `)
@@ -86,14 +86,14 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
           event: "UPDATE",
           schema: "public",
           table: "posts",
-          filter: `cash_tag_id=eq.${selectedTag.id}`,
+          filter: `show_tag_id=eq.${selectedTag.id}`,
         },
         async (payload) => {
           const { data } = await supabase
             .from("posts")
             .select(`
               *,
-              cash_tags (*),
+              show_tags (*),
               sources (*),
               comment_counts (*)
             `)
@@ -115,7 +115,7 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <CashTagSidebar cashTags={initialCashTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
+      <ShowTagSidebar showTags={initialShowTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -124,9 +124,9 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
           <div className="flex items-center justify-between p-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                {selectedTag ? `$${selectedTag.tag}` : "Select a tag"}
+                {selectedTag ? `#${selectedTag.tag}` : "Select a tag"}
               </h1>
-              <p className="text-sm text-muted-foreground">{selectedTag?.name || "Choose a cash tag to view posts"}</p>
+              <p className="text-sm text-muted-foreground">{selectedTag?.name || "Choose a show tag to view posts"}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm">
@@ -149,7 +149,7 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
             <PostFeed posts={posts} isLoading={isLoading} />
           ) : (
             <div className="flex items-center justify-center h-full">
-              <p className="text-muted-foreground">Select a cash tag to see posts</p>
+              <p className="text-muted-foreground">Select a show tag to see posts</p>
             </div>
           )}
         </div>
@@ -158,7 +158,7 @@ export function PostAggregator({ initialCashTags }: PostAggregatorProps) {
       {/* Post Composer Modal */}
       {isComposerOpen && selectedTag && (
         <PostComposer
-          cashTag={selectedTag}
+          showTag={selectedTag}
           onClose={() => setIsComposerOpen(false)}
           onPostCreated={(newPost) => {
             setPosts((current) => [newPost, ...current])

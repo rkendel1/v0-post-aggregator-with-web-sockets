@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { CashTag, Post, Source, ConnectedAccount } from "@/lib/types"
+import type { ShowTag, Post, Source, ConnectedAccount } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -16,12 +16,12 @@ import { Loader2, Send } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface PostComposerProps {
-  cashTag: CashTag
+  showTag: ShowTag
   onClose: () => void
   onPostCreated: (post: Post) => void
 }
 
-export function PostComposer({ cashTag, onClose, onPostCreated }: PostComposerProps) {
+export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerProps) {
   const [content, setContent] = useState("")
   const [authorName, setAuthorName] = useState("")
   const [sourceId, setSourceId] = useState<string>("")
@@ -88,14 +88,14 @@ export function PostComposer({ cashTag, onClose, onPostCreated }: PostComposerPr
         .insert({
           content: content.trim(),
           author_name: authorName.trim(),
-          cash_tag_id: cashTag.id,
+          show_tag_id: showTag.id, // Updated column name
           source_id: sourceId || null,
           user_id: user?.id,
           likes_count: 0,
         })
         .select(`
           *,
-          cash_tags (*),
+          show_tags (*),
           sources (*)
         `)
         .single()
@@ -140,7 +140,7 @@ export function PostComposer({ cashTag, onClose, onPostCreated }: PostComposerPr
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create Post for ${cashTag.tag}</DialogTitle>
+          <DialogTitle>Create Post for #{showTag.tag}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -174,7 +174,7 @@ export function PostComposer({ cashTag, onClose, onPostCreated }: PostComposerPr
             <Label htmlFor="content">Content</Label>
             <Textarea
               id="content"
-              placeholder={`What's happening with $${cashTag.tag}?`}
+              placeholder={`What are your thoughts on #${showTag.tag}?`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}

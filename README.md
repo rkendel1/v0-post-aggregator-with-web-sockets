@@ -1,22 +1,22 @@
-# Post Aggregator with $Cash Tags
+# PodBridge – Your podcasts, unified.
 
-A real-time social media aggregator platform that allows users to follow $cash tags (like $AAPL, $BTC) and aggregate posts from multiple social media sources. Built with Next.js, Supabase, and WebSockets for instant updates.
+A real-time podcast aggregator platform that allows users to follow show and episode tags (like #JoeRogan, #JoeRogan:2000) and aggregate posts from multiple podcast platforms and social sources. Built with Next.js, Supabase, and WebSockets for instant updates.
 
 ## Current Features
 
 ### Core Functionality
 
-#### $Cash Tag Communities
-- **Tag-based Feeds**: Dedicated feeds for each $cash tag (stocks, crypto, topics)
-- **Real-time Updates**: WebSocket-powered live post streaming
-- **Tag Following**: Subscribe to specific tags to customize your feed
-- **Tag Discovery**: Browse popular and trending tags in the sidebar
+#### Show Tag Communities
+- **Tag-based Feeds**: Dedicated feeds for each show or episode tag.
+- **Real-time Updates**: WebSocket-powered live post streaming.
+- **Tag Following**: Subscribe to specific tags to customize your feed.
+- **Tag Discovery**: Browse popular and trending tags in the sidebar.
 
 #### Post Aggregation
-- **Multi-source Support**: Aggregate posts from various platforms
-- **Source Management**: Add and manage multiple content sources per tag
-- **Unified Feed**: Single view for all posts across platforms
-- **Post Creation**: Create posts directly within the platform
+- **Multi-source Support**: Aggregate posts from various platforms (Spotify, Apple, YouTube, RSS).
+- **Source Management**: Add and manage multiple content sources per tag.
+- **Unified Feed**: Single view for all posts across platforms.
+- **Post Creation**: Create posts directly within the platform.
 
 ### Social Features
 
@@ -35,14 +35,14 @@ A real-time social media aggregator platform that allows users to follow $cash t
 #### Following System
 - **Follow Users**: Stay updated with specific users' content
 - **Follow Posts**: Get notified of updates to specific posts
-- **Follow Tags**: Subscribe to $cash tag feeds
+- **Follow Tags**: Subscribe to show tag feeds
 - **Follow Management**: Easy follow/unfollow controls
 - **Follower Counts**: See popularity metrics
 
 ### Connected Accounts
 
 #### Platform Integration
-- **Multi-platform Support**: Twitter, Reddit, Mastodon, LinkedIn, Discord, Telegram
+- **Multi-platform Support**: Twitter, Reddit, Mastodon, LinkedIn, Discord, Telegram (representing podcast platforms/social media)
 - **Account Management**: Connect, disconnect, and manage multiple accounts
 - **Active/Inactive Toggle**: Control which accounts to use
 - **OAuth Flow**: Secure authentication with external platforms
@@ -71,19 +71,19 @@ A real-time social media aggregator platform that allows users to follow $cash t
 
 #### Database Schema
 - **Posts**: Core content with user ownership
-- **Cash Tags**: Tag definitions and metadata
+- **Show Tags**: Tag definitions and metadata (formerly Cash Tags)
 - **Comments**: Threaded comment system
 - **Reactions**: User reactions to posts and comments
 - **Following**: User, post, and tag subscriptions
 - **Connected Accounts**: External platform credentials
 - **Federated Posts**: Cross-platform post tracking
-- **Aggregated Posts**: External posts pulled into the platform
+- **Aggregated Posts**: Inbound posts from external platforms
 
 ## Future Improvements
 
 ### Phase 1: Enhanced Aggregation
 - [ ] **Automated Polling**: Background jobs to fetch posts from connected accounts
-- [ ] **API Integration**: Direct API connections to Twitter, Reddit, etc.
+- [ ] **API Integration**: Direct API connections to podcast platforms/social media
 - [ ] **Webhook Support**: Real-time ingestion from supported platforms
 - [ ] **Duplicate Detection**: Smart deduplication of cross-posted content
 - [ ] **Content Filtering**: Spam detection and content moderation tools
@@ -95,7 +95,7 @@ A real-time social media aggregator platform that allows users to follow $cash t
 - [ ] **Draft Management**: Save and edit drafts before publishing
 - [ ] **Post Templates**: Reusable post formats for different platforms
 - [ ] **Character Limits**: Platform-specific validation and truncation
-- [ ] **Hashtag Mapping**: Convert between $cash tags and platform hashtags
+- [ ] **Hashtag Mapping**: Convert between show tags and platform hashtags
 
 ### Phase 3: Analytics & Insights
 - [ ] **Engagement Metrics**: Track views, clicks, and interactions
@@ -137,35 +137,25 @@ A real-time social media aggregator platform that allows users to follow $cash t
 - [ ] **White Label**: Custom branding options
 - [ ] **Enterprise Features**: Team accounts and collaboration tools
 
-## Opportunities
+## Database Overview
 
-### Business Model
-- **Freemium Service**: Basic free tier with premium subscriptions
-- **API Licensing**: Charge for API access and higher rate limits
-- **Data Insights**: Sell aggregated, anonymized trend data
-- **Affiliate Marketing**: Partner with financial platforms
-- **Sponsored Tags**: Premium placement for advertisers
+### Core Tables
+- `posts`: User-generated content with show tag associations
+- `show_tags`: Tag definitions and metadata (formerly cash_tags)
+- `sources`: Content sources for each tag
+- `user_subscriptions`: User subscriptions to specific tags
 
-### Integration Partnerships
-- **Financial Platforms**: Partner with stock trading apps
-- **News Outlets**: Aggregate financial news sources
-- **Social Networks**: Official API partnerships
-- **Analytics Tools**: Integrate with business intelligence platforms
-- **CRM Systems**: Enable social listening for brands
+### Social Tables
+- `comments`: Threaded comments on posts
+- `reactions`: Emoji reactions on posts and comments
+- `post_follows`: Users following specific posts
+- `user_follows`: Users following other users
+- `tag_follows`: Users following show tags
 
-### Use Cases
-- **Investor Communities**: Track market sentiment and discussion
-- **Brand Monitoring**: Companies monitor their $ticker mentions
-- **Influencer Marketing**: Track campaign performance across platforms
-- **Market Research**: Analyze consumer sentiment in real-time
-- **Crisis Management**: Monitor brand reputation and respond quickly
-
-### Competitive Advantages
-- **Real-time Aggregation**: Faster than manual cross-platform checking
-- **Unified Interface**: One dashboard for all platforms
-- **$Cash Tag Focus**: Specialized for financial and topic communities
-- **Federation**: Post once, publish everywhere
-- **Open Architecture**: Extensible to new platforms and features
+### Federation Tables
+- `connected_accounts`: External platform credentials
+- `federated_posts`: Outbound posts to external platforms
+- `aggregated_posts`: Inbound posts from external platforms
 
 ## Technical Stack
 
@@ -203,11 +193,11 @@ A real-time social media aggregator platform that allows users to follow $cash t
 
 ### Key Concepts
 
-#### $Cash Tags
-Tags prefixed with $ (e.g., $AAPL, $BTC, $AI) represent communities or topics. Users can follow tags to see aggregated content.
+#### Show Tags
+Tags prefixed with # (e.g., #JoeRogan, #Episode2000) represent shows, episodes, or topics. Users can follow tags to see aggregated content.
 
 #### Connected Accounts
-Link external social media accounts to aggregate posts and federate content to multiple platforms.
+Link external social media accounts or podcast platforms to aggregate posts and federate content to multiple platforms.
 
 #### Real-time Updates
 All posts, comments, reactions, and follows update instantly across all connected clients via WebSocket subscriptions.
@@ -217,26 +207,6 @@ Posts can be published to multiple platforms with status tracking:
 - **Pending**: Queued for publishing
 - **Published**: Successfully posted
 - **Failed**: Error occurred (with error message)
-
-## Database Overview
-
-### Core Tables
-- `posts`: User-generated content with cash tag associations
-- `cash_tags`: Tag definitions and metadata
-- `sources`: Content sources for each tag
-- `user_subscriptions`: User subscriptions to specific tags
-
-### Social Tables
-- `comments`: Threaded comments on posts
-- `reactions`: Emoji reactions on posts and comments
-- `post_follows`: Users following specific posts
-- `user_follows`: Users following other users
-- `tag_follows`: Users following cash tags
-
-### Federation Tables
-- `connected_accounts`: External platform credentials
-- `federated_posts`: Outbound posts to external platforms
-- `aggregated_posts`: Inbound posts from external platforms
 
 ## Contributing
 

@@ -7,13 +7,13 @@ import { Plus, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TagFollowButtonProps {
-  tagId: string
+  showTagId: string
   variant?: "default" | "outline" | "ghost"
   size?: "default" | "sm" | "lg"
   className?: string
 }
 
-export function TagFollowButton({ tagId, variant = "outline", size = "sm", className }: TagFollowButtonProps) {
+export function TagFollowButton({ showTagId, variant = "outline", size = "sm", className }: TagFollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
@@ -29,14 +29,14 @@ export function TagFollowButton({ tagId, variant = "outline", size = "sm", class
         .from("tag_follows")
         .select("id")
         .eq("user_id", user.id)
-        .eq("cash_tag_id", tagId)
+        .eq("show_tag_id", showTagId)
         .single()
 
       setIsFollowing(!!data)
     }
 
     checkFollowStatus()
-  }, [tagId, supabase])
+  }, [showTagId, supabase])
 
   const handleToggleFollow = async () => {
     const {
@@ -48,7 +48,7 @@ export function TagFollowButton({ tagId, variant = "outline", size = "sm", class
 
     if (isFollowing) {
       // Unfollow
-      const { error } = await supabase.from("tag_follows").delete().eq("user_id", user.id).eq("cash_tag_id", tagId)
+      const { error } = await supabase.from("tag_follows").delete().eq("user_id", user.id).eq("show_tag_id", showTagId)
 
       if (!error) {
         setIsFollowing(false)
@@ -57,7 +57,7 @@ export function TagFollowButton({ tagId, variant = "outline", size = "sm", class
       // Follow
       const { error } = await supabase.from("tag_follows").insert({
         user_id: user.id,
-        cash_tag_id: tagId,
+        show_tag_id: showTagId,
       })
 
       if (!error) {

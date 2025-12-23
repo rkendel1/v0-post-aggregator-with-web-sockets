@@ -1,4 +1,4 @@
-export interface CashTag {
+export interface ShowTag {
   id: string
   tag: string
   name: string
@@ -17,11 +17,11 @@ export interface Post {
   content: string
   author_name: string
   author_avatar: string | null
-  cash_tag_id: string
+  show_tag_id: string
   source_id: string | null
   likes_count: number
   created_at: string
-  cash_tags?: CashTag
+  show_tags?: ShowTag
   sources?: Source
   comment_counts?: CommentCount
 }
@@ -29,16 +29,16 @@ export interface Post {
 export interface UserSubscription {
   id: string
   user_id: string
-  cash_tag_id: string
+  show_tag_id: string
   created_at: string
 }
 
 export interface TagFollow {
   id: string
   user_id: string
-  cash_tag_id: string
+  show_tag_id: string
   created_at: string
-  cash_tags?: CashTag
+  show_tags?: ShowTag
 }
 
 export interface UserProfile {

@@ -73,52 +73,26 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    const handleCommentChanges = async (payload: any) => {
-      const { data } = await supabase
-        .from("comments")
-        .select(`*, user_profiles (*), reaction_counts (*, reaction_types (*))`)
-        .eq("id", payload.new.id)
-        .single()
-      if (!data) return
-
-      const newCommentData = data as Comment
-      if (!newCommentData.parent_comment_id) {
-        setComments((current) => [{ ...newCommentData, replies: [] }, ...current])
-      } else {
-        setComments((current) =>
-          current.map((comment) => {
-            if (comment.id === newCommentData.parent_comment_id) {
-              return {
-                ...comment,
-                replies: [...(comment.replies || []), newCommentData],
-              }
-            }
-            return comment
-          }),
-        )
-      }
-    }
-
     const commentsChannel = supabase
       .channel(`comments:post_id=eq.${postId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, (payload) => {
-        if (payload.eventType === "INSERT") {
-          handleCommentChanges(payload)
-        } else {
-          // For updates and deletes, a full refetch is the most reliable way
-          // to handle nested replies and ordering correctly.
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` },
+        () => {
+          // Refetch all comments on any change to ensure consistency for all clients
           fetchComments()
-        }
-      })
+        },
+      )
       .subscribe()
 
     const reactionsChannel = supabase
-      .channel("public:reaction_counts")
+      .channel(`reactions:post_id=eq.${postId}`)
       .on<ReactionCount>(
         "postgres_changes",
         { event: "*", schema: "public", table: "reaction_counts" },
         (payload) => {
           const newRecord = payload.new as Partial<ReactionCount>
+          // Check if the reaction is for a comment that is currently displayed
           if (newRecord.comment_id && allCommentIds.has(newRecord.comment_id)) {
             fetchComments()
           }

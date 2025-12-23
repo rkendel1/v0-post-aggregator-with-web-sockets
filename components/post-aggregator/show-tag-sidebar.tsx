@@ -4,24 +4,44 @@ import type { ShowTag } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ListPlus, Rss } from "lucide-react"
+import { TrendingUp, ListPlus, Rss, LayoutGrid } from "lucide-react"
 import { Logo } from "@/components/logo"
 
 interface ShowTagSidebarProps {
   feedTags: ShowTag[]
-  selectedTag: ShowTag | null
-  onSelectTag: (tag: ShowTag) => void
+  selectedFeedId: string | "all" | null
+  onSelectFeed: (id: string | "all") => void
   onOpenManager: () => void
   onOpenRssImporter: () => void
 }
 
 export function ShowTagSidebar({
   feedTags,
-  selectedTag,
-  onSelectTag,
+  selectedFeedId,
+  onSelectFeed,
   onOpenManager,
   onOpenRssImporter,
 }: ShowTagSidebarProps) {
+  const groupedTags = feedTags.reduce(
+    (acc, tag) => {
+      const category = tag.category || "Uncategorized"
+      if (!acc[category]) {
+        acc[category] = []
+      }
+      acc[category].push(tag)
+      return acc
+    },
+    {} as Record<string, ShowTag[]>,
+  )
+
+  const categories = Object.keys(groupedTags).sort((a, b) => {
+    if (a === "RSS Imports") return 1
+    if (b === "RSS Imports") return -1
+    if (a === "Uncategorized") return 1
+    if (b === "Uncategorized") return -1
+    return a.localeCompare(b)
+  })
+
   return (
     <div className="w-64 border-r bg-card flex flex-col">
       {/* Logo Header */}
@@ -55,17 +75,43 @@ export function ShowTagSidebar({
               No tags in your feed. Click the icon above to add some!
             </div>
           ) : (
-            feedTags.map((tag) => (
+            <>
               <Button
-                key={tag.id}
-                variant={selectedTag?.id === tag.id ? "secondary" : "ghost"}
-                className={cn("w-full justify-start font-mono", selectedTag?.id === tag.id && "bg-secondary")}
-                onClick={() => onSelectTag(tag)}
+                variant={selectedFeedId === "all" ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => onSelectFeed("all")}
               >
-                <span className="font-bold mr-2">#{tag.tag}</span>
-                <span className="text-xs text-muted-foreground truncate">{tag.name}</span>
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                All Feeds
               </Button>
-            ))
+              <div className="pt-2">
+                {categories.map((category) => (
+                  <div key={category} className="space-y-1">
+                    <h3 className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase">
+                      {category}
+                    </h3>
+                    {groupedTags[category].map((tag) => (
+                      <Button
+                        key={tag.id}
+                        variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full justify-start font-mono h-auto py-1.5",
+                          selectedFeedId === tag.id && "bg-secondary",
+                        )}
+                        onClick={() => onSelectFeed(tag.id)}
+                      >
+                        <div className="flex flex-col items-start">
+                          <span className="font-bold">#{tag.tag}</span>
+                          <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
+                            {tag.name}
+                          </span>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </ScrollArea>

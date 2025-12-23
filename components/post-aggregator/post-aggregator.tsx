@@ -36,7 +36,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     reloadProfile,
   } = useFeedManager(initialShowTags)
 
-  const [selectedTag, setSelectedTag] = useState<ShowTag | null>(null)
+  const [selectedFeedId, setSelectedFeedId] = useState<string | "all" | null>("all")
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isManagerOpen, setIsManagerOpen] = useState(false)
@@ -45,18 +45,9 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   const supabase = createClient()
 
-  // Set initial selected tag when feedTags loads
-  useEffect(() => {
-    if (!selectedTag && feedTags.length > 0) {
-      setSelectedTag(feedTags[0])
-    } else if (feedTags.length === 0) {
-      setSelectedTag(null)
-    }
-  }, [feedTags, selectedTag])
-
   // Fetch posts for selected tag
   useEffect(() => {
-    if (!selectedTag) {
+    if (!selectedFeedId) {
       setPosts([])
       setIsLoadingPosts(false)
       return
@@ -64,7 +55,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
     const fetchPosts = async () => {
       setIsLoadingPosts(true)
-      const { data } = await supabase
+      const query = supabase
         .from("posts")
         .select(
           `
@@ -74,8 +65,22 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           comment_counts (*)
         `,
         )
-        .eq("show_tag_id", selectedTag.id)
         .order("created_at", { ascending: false })
+
+      if (selectedFeedId === "all") {
+        const tagIds = feedTags.map((t) => t.id)
+        if (tagIds.length > 0) {
+          query.in("show_tag_id", tagIds)
+        } else {
+          setPosts([])
+          setIsLoadingPosts(false)
+          return
+        }
+      } else {
+        query.eq("show_tag_id", selectedFeedId)
+      }
+
+      const { data } = await query
 
       if (data) {
         setPosts(data as Post[])
@@ -84,21 +89,29 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [selectedTag, supabase])
+  }, [selectedFeedId, feedTags, supabase])
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!selectedTag) return
+    if (!selectedFeedId) return
+
+    const tagIds = feedTags.map((t) => t.id)
+    if (selectedFeedId === "all" && tagIds.length === 0) {
+      return
+    }
+
+    const filter =
+      selectedFeedId === "all" ? `show_tag_id=in.(${tagIds.join(",")})` : `show_tag_id=eq.${selectedFeedId}`
 
     const channel = supabase
-      .channel(`posts:show_tag_id=eq.${selectedTag.id}`)
+      .channel(`posts:${selectedFeedId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "posts",
-          filter: `show_tag_id=eq.${selectedTag.id}`,
+          filter: filter,
         },
         async (payload) => {
           const { data } = await supabase
@@ -125,7 +138,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           event: "UPDATE",
           schema: "public",
           table: "posts",
-          filter: `show_tag_id=eq.${selectedTag.id}`,
+          filter: filter,
         },
         async (payload) => {
           const { data } = await supabase
@@ -151,7 +164,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedTag, supabase])
+  }, [selectedFeedId, feedTags, supabase])
 
   if (isFeedLoading) {
     return (
@@ -179,13 +192,16 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     )
   }
 
+  const selectedTag =
+    selectedFeedId !== "all" && selectedFeedId !== null ? feedTags.find((t) => t.id === selectedFeedId) : null
+
   return (
     <div className="flex h-screen">
       <Toaster position="bottom-right" />
       <ShowTagSidebar
         feedTags={feedTags}
-        selectedTag={selectedTag}
-        onSelectTag={setSelectedTag}
+        selectedFeedId={selectedFeedId}
+        onSelectFeed={setSelectedFeedId}
         onOpenManager={() => setIsManagerOpen(true)}
         onOpenRssImporter={() => setIsRssModalOpen(true)}
       />
@@ -195,9 +211,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           <div className="flex items-center justify-between p-4">
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                {selectedTag ? `#${selectedTag.tag}` : "Select a tag"}
+                {selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag"}
               </h1>
-              <p className="text-sm text-muted-foreground">{selectedTag?.name || "Choose a show tag to view posts"}</p>
+              <p className="text-sm text-muted-foreground">
+                {selectedFeedId === "all"
+                  ? `Posts from ${feedTags.length} followed tags`
+                  : selectedTag?.name || "Choose a show tag to view posts"}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button asChild variant="outline" size="sm">
@@ -224,7 +244,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                 </Button>
               </div>
             </div>
-          ) : selectedTag ? (
+          ) : selectedFeedId ? (
             <PostFeed posts={posts} isLoading={isLoadingPosts} />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -239,7 +259,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           showTag={selectedTag}
           onClose={() => setIsComposerOpen(false)}
           onPostCreated={(newPost) => {
-            setPosts((current) => [newPost, ...current])
+            // Only add post if it matches the current view
+            if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
+              setPosts((current) => [newPost, ...current])
+            }
             setIsComposerOpen(false)
           }}
         />

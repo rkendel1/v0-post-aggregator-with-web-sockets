@@ -92,7 +92,9 @@ serve(async (req: Request) => {
         const newPosts = feed.items
           .map((item: Item) => {
             const guid = item.guid || item.link
-            if (!guid || existingGuids.has(guid)) return null
+            if (!guid || existingGuids.has(guid) || !item.title) {
+              return null
+            }
             
             return {
               content: item.title,
@@ -103,7 +105,7 @@ serve(async (req: Request) => {
               external_guid: guid,
             }
           })
-          .filter((p): p is NonNullable<typeof p> => p !== null)
+          .filter(Boolean)
 
         if (newPosts.length > 0) {
           const { error: postsError } = await supabase.from('posts').insert(newPosts)

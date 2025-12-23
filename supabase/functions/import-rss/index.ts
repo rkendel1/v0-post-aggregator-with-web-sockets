@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+// @ts-ignore: Deno relative import
 import { verifyJwt } from '../_shared/auth.ts'
 import Parser from 'https://esm.sh/rss-parser@3.13.0'
 
@@ -9,10 +10,12 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 }
 
+// @ts-ignore: Deno global
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+// @ts-ignore: Deno global
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -67,7 +70,9 @@ serve(async (req) => {
 
       } catch (e) {
         console.error(`Error processing URL ${url}:`, e)
-        results.push({ url, status: 'failed', message: e.message })
+        // Safely access error message
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error during feed processing'
+        results.push({ url, status: 'failed', message: errorMessage })
       }
     }
 
@@ -78,7 +83,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Request error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Safely access error message
+    const errorMessage = error instanceof Error ? error.message : 'Unknown request error'
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: corsHeaders,
       status: 500,
     })

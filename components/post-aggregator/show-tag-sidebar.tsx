@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { TrendingUp, ListPlus } from "lucide-react"
+import { Logo } from "@/components/logo"
 
 interface ShowTagSidebarProps {
   feedTags: ShowTag[]
@@ -16,11 +17,17 @@ interface ShowTagSidebarProps {
 export function ShowTagSidebar({ feedTags, selectedTag, onSelectTag, onOpenManager }: ShowTagSidebarProps) {
   return (
     <div className="w-64 border-r bg-card flex flex-col">
+      {/* Logo Header */}
+      <div className="p-4 border-b">
+        <Logo />
+      </div>
+      
+      {/* Feed Management Section */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-foreground">My Feed</h2>
+            <h2 className="font-semibold text-foreground text-sm">My Feed</h2>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={onOpenManager} title="Manage Feed">
             <ListPlus className="h-4 w-4" />

@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
+// @ts-ignore: Deno global
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+// @ts-ignore: Deno global
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
 export async function verifyJwt(req: Request): Promise<{ user_id: string } | null> {

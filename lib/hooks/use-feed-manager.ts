@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { ShowTag, UserProfile } from "@/lib/types"
+import type { ShowTag, UserProfile, TagFollow } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
 
 const ANON_FEED_KEY = 'anon_feed_tags'
@@ -18,6 +18,9 @@ interface FeedManager {
   removeTagFromFeed: (tagId: string) => Promise<void>
   migrateAnonymousFeed: () => Promise<void>
 }
+
+// Helper type guard for nested data structure
+type TagFollowWithTag = TagFollow & { show_tags: ShowTag | null }
 
 export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   const supabase = createClient()
@@ -35,14 +38,17 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       // Authenticated: Load server-side follows
       const { data: follows, error: followError } = await supabase
         .from("tag_follows")
-        .select(`show_tag_id, show_tags (*)`)
+        .select(`*, show_tags (*)`) // <-- FIX 1: Select all columns from tag_follows
         .eq("user_id", currentUser.id)
       
       if (followError) {
         console.error("Error fetching authenticated feed:", followError)
         setFeedTags([])
       } else if (follows) {
-        const tags = follows.map(f => f.show_tags).filter((t): t is ShowTag => !!t)
+        // Correctly map and filter the nested show_tags object
+        const tags = (follows as TagFollowWithTag[])
+          .map(f => f.show_tags)
+          .filter((t): t is ShowTag => !!t)
         setFeedTags(tags)
       }
 
@@ -94,10 +100,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         updateLocalFeed([...currentIds, tagId])
       }
     } else if (user) {
+      // FIX 2: Correct chaining: insert().onConflict().select()
       const { error } = await supabase.from("tag_follows").insert({
         user_id: user.id,
         show_tag_id: tagId,
-      }).onConflict('user_id, show_tag_id').ignore() // Prevent duplicates
+      }).onConflict('user_id, show_tag_id').ignore().select()
       
       if (!error) {
         const tagToAdd = initialShowTags.find(t => t.id === tagId)
@@ -141,8 +148,9 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       show_tag_id: tagId,
     }))
 
+    // FIX 3: Correct chaining: insert().onConflict().select()
     // Insert local tags, ignoring conflicts if the user already followed some tags server-side
-    const { error } = await supabase.from("tag_follows").insert(followsToInsert).onConflict('user_id, show_tag_id').ignore()
+    const { error } = await supabase.from("tag_follows").insert(followsToInsert).onConflict('user_id, show_tag_id').ignore().select()
 
     if (!error) {
       localStorage.removeItem(ANON_FEED_KEY)

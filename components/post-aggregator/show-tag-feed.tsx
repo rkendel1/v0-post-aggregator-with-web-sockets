@@ -41,21 +41,29 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   const officialPosts = useMemo(() => allPosts.filter((p) => p.external_guid !== null), [allPosts])
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchInitialUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
-      if (user) {
-        const { data: profileData } = await supabase.from('user_profiles').select('*').eq('id', user.id).single()
-        setProfile(profileData as UserProfile)
-      }
     }
-    fetchUser()
+    fetchInitialUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
   }, [supabase])
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const { data: profileData } = await supabase.from('user_profiles').select('*').eq('id', user.id).single()
+        setProfile(profileData as UserProfile)
+      } else {
+        setProfile(null)
+      }
+    }
+    fetchProfile()
+  }, [user, supabase])
 
   useEffect(() => {
     const fetchPosts = async () => {

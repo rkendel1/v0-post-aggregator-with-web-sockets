@@ -41,7 +41,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       setIsProfileSetupNeeded(false)
 
       if (currentUser) {
-        // Authenticated (guest or full user): Load server-side data
         const { data: profileData, error: profileError } = await supabase
           .from("user_profiles")
           .select("*")
@@ -49,14 +48,12 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
           .single()
 
         if (profileError && profileError.code !== "PGRST116") {
-          // Ignore "not found" error
           console.error("Error fetching profile:", profileError)
         } else {
           setProfile((profileData as UserProfile) || null)
         }
 
         if (profileData) {
-          // User has a profile, load their follows and RSS feeds
           const [followsResult, rssFeedsResult] = await Promise.all([
             supabase.from("tag_follows").select(`*, show_tags (*)`).eq("user_id", currentUser.id),
             supabase.from("user_rss_feeds").select("*").eq("user_id", currentUser.id).order("title"),
@@ -79,19 +76,15 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
             setRssFeeds(rssFeedsResult.data || [])
           }
 
-          // Check if a full user needs to complete their profile (e.g., after social login)
           if (!currentUser.is_anonymous && !profileData.username) {
             setIsProfileSetupNeeded(true)
           }
         } else {
-          // User exists in auth but has no profile yet. This can happen during signup.
-          // If they are a full user, they need to set up their profile.
           if (!currentUser.is_anonymous) {
             setIsProfileSetupNeeded(true)
           }
         }
       } else {
-        // No user session at all. The app will show a generic feed.
         setProfile(null)
         setFeedTags([])
         setRssFeeds([])
@@ -102,57 +95,28 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   )
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      const currentUser = session?.user ?? null
-      setUser(currentUser)
-      loadDataForUser(currentUser)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
     })
 
-    supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-      setUser(currentUser)
-      loadDataForUser(currentUser)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, loadDataForUser])
+  }, [supabase])
 
-  // Realtime subscription for RSS feeds
   useEffect(() => {
-    if (!user) return
-
-    const channel = supabase
-      .channel(`user_rss_feeds:${user.id}`)
-      .on<UserRssFeed>(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_rss_feeds",
-          filter: `user_id=eq.${user.id}`,
-        },
-        async () => {
-          // Refetch all feeds on any change
-          const { data: updatedFeeds } = await supabase
-            .from("user_rss_feeds")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("title")
-          setRssFeeds(updatedFeeds || [])
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [user, supabase])
+    loadDataForUser(user)
+  }, [user, loadDataForUser])
 
   const reloadProfile = useCallback(async () => {
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser()
+    setUser(currentUser)
     await loadDataForUser(currentUser)
   }, [supabase, loadDataForUser])
 

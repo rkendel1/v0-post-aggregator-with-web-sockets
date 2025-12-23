@@ -11,6 +11,8 @@ import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, Settings, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
+import { Toaster } from "react-hot-toast"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -22,10 +24,12 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     allAvailableTags,
     isLoading: isFeedLoading,
     isAnonymous,
+    isProfileSetupNeeded,
     addTagToFeed,
     removeTagFromFeed,
     migrateAnonymousFeed,
-    addNewAvailableTag, // <-- New function
+    addNewAvailableTag,
+    reloadProfile,
   } = useFeedManager(initialShowTags)
 
   const [selectedTag, setSelectedTag] = useState<ShowTag | null>(null)
@@ -90,7 +94,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           filter: `show_tag_id=eq.${selectedTag.id}`,
         },
         async (payload) => {
-          // Fetch the complete post with relations
           const { data } = await supabase
             .from("posts")
             .select(`
@@ -139,7 +142,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
   }, [selectedTag, supabase])
 
-  // Show loading state if feed is still loading
   if (isFeedLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -148,9 +150,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     )
   }
 
+  if (isProfileSetupNeeded) {
+    return (
+      <>
+        <ProfileSetupModal onSave={reloadProfile} />
+        <Toaster position="bottom-right" />
+      </>
+    )
+  }
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
+      <Toaster position="bottom-right" />
       <ShowTagSidebar
         feedTags={feedTags}
         selectedTag={selectedTag}
@@ -158,9 +169,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         onOpenManager={() => setIsManagerOpen(true)}
       />
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="border-b bg-card">
           <div className="flex items-center justify-between p-4">
             <div>
@@ -184,7 +193,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           </div>
         </header>
 
-        {/* Feed */}
         <div className="flex-1 overflow-hidden">
           {feedTags.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -205,7 +213,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         </div>
       </div>
 
-      {/* Post Composer Modal */}
       {isComposerOpen && selectedTag && (
         <PostComposer
           showTag={selectedTag}
@@ -217,7 +224,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         />
       )}
 
-      {/* Feed Management Modal */}
       {isManagerOpen && (
         <FeedManagementModal
           isOpen={isManagerOpen}
@@ -228,7 +234,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
           migrateAnonymousFeed={migrateAnonymousFeed}
-          addNewAvailableTag={addNewAvailableTag} // <-- Pass new function
+          addNewAvailableTag={addNewAvailableTag}
         />
       )}
     </div>

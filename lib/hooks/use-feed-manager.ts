@@ -14,10 +14,12 @@ interface FeedManager {
   allAvailableTags: ShowTag[]
   isLoading: boolean
   isAnonymous: boolean
+  isProfileSetupNeeded: boolean
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
   migrateAnonymousFeed: () => Promise<void>
-  addNewAvailableTag: (tag: ShowTag) => void // New function
+  addNewAvailableTag: (tag: ShowTag) => void
+  reloadProfile: () => Promise<void>
 }
 
 // Helper type guard for nested data structure
@@ -28,13 +30,15 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [feedTags, setFeedTags] = useState<ShowTag[]>([])
-  const [allAvailableTags, setAllAvailableTags] = useState<ShowTag[]>(initialShowTags) // Manage available tags internally
+  const [allAvailableTags, setAllAvailableTags] = useState<ShowTag[]>(initialShowTags)
   const [isLoading, setIsLoading] = useState(true)
+  const [isProfileSetupNeeded, setIsProfileSetupNeeded] = useState(false)
 
   const isAnonymous = user === null
 
   const loadFeed = useCallback(async (currentUser: User | null) => {
     setIsLoading(true)
+    setIsProfileSetupNeeded(false) // Reset on each load
     
     if (currentUser) {
       // Authenticated: Load server-side follows
@@ -47,7 +51,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         console.error("Error fetching authenticated feed:", followError)
         setFeedTags([])
       } else if (follows) {
-        // Correctly map and filter the nested show_tags object
         const tags = (follows as TagFollowWithTag[])
           .map(f => f.show_tags)
           .filter((t): t is ShowTag => !!t)
@@ -63,6 +66,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       
       setProfile(profileData as UserProfile || null)
 
+      // Check if profile setup is needed
+      if (profileData && !profileData.username) {
+        setIsProfileSetupNeeded(true)
+      }
+
     } else {
       // Anonymous: Load local storage feed
       const localTagIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
@@ -70,23 +78,28 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       setFeedTags(tags)
     }
     setIsLoading(false)
-  }, [supabase, allAvailableTags]) // Dependency updated to use internal state
+  }, [supabase, allAvailableTags])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      // Reload feed whenever auth state changes (e.g., sign in/out)
       loadFeed(currentUser)
     })
 
-    // Initial load
     supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
       setUser(currentUser)
       loadFeed(currentUser)
     })
 
     return () => subscription.unsubscribe()
+  }, [supabase, loadFeed])
+
+  const reloadProfile = useCallback(async () => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (currentUser) {
+      await loadFeed(currentUser)
+    }
   }, [supabase, loadFeed])
 
   const updateLocalFeed = (newTagIds: string[]) => {
@@ -114,7 +127,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         updateLocalFeed([...currentIds, tagId])
       }
     } else if (user) {
-      // FIX: Use type assertion to resolve TS2339 error
       const { error } = await (supabase.from("tag_follows").insert({
         user_id: user.id,
         show_tag_id: tagId,
@@ -159,13 +171,10 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       show_tag_id: tagId,
     }))
 
-    // FIX: Use type assertion to resolve TS2339 error
-    // Insert local tags, ignoring conflicts if the user already followed some tags server-side
     const { error } = await (supabase.from("tag_follows").insert(followsToInsert) as any).onConflict('user_id, show_tag_id').ignore()
 
     if (!error) {
       localStorage.removeItem(ANON_FEED_KEY)
-      // Reload feed from server to confirm migration and clear local state
       await loadFeed(user)
     } else {
       console.error("Migration failed:", error)
@@ -179,9 +188,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     allAvailableTags,
     isLoading,
     isAnonymous,
+    isProfileSetupNeeded,
     addTagToFeed,
     removeTagFromFeed,
     migrateAnonymousFeed,
     addNewAvailableTag,
+    reloadProfile,
   }
 }

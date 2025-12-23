@@ -5,19 +5,17 @@ import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, UserProfile, TagFollow } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
 
-const ANON_FEED_KEY = 'anon_feed_tags'
-
 interface FeedManager {
   user: User | null
   profile: UserProfile | null
   feedTags: ShowTag[]
   allAvailableTags: ShowTag[]
   isLoading: boolean
-  isAnonymous: boolean
+  isGuest: boolean
   isProfileSetupNeeded: boolean
+  isHandleRequired: boolean
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
-  migrateAnonymousFeed: () => Promise<void>
   addNewAvailableTag: (tag: ShowTag) => void
   reloadProfile: () => Promise<void>
 }
@@ -33,80 +31,89 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   const [allAvailableTags, setAllAvailableTags] = useState<ShowTag[]>(initialShowTags)
   const [isLoading, setIsLoading] = useState(true)
   const [isProfileSetupNeeded, setIsProfileSetupNeeded] = useState(false)
+  const [isHandleRequired, setIsHandleRequired] = useState(false)
 
-  const isAnonymous = user === null
+  const isGuest = user?.is_anonymous ?? false
 
-  const loadFeed = useCallback(async (currentUser: User | null) => {
+  const loadDataForUser = useCallback(async (currentUser: User | null) => {
     setIsLoading(true)
-    setIsProfileSetupNeeded(false) // Reset on each load
+    setIsProfileSetupNeeded(false)
+    setIsHandleRequired(false)
     
     if (currentUser) {
-      // Authenticated: Load server-side follows
-      const { data: follows, error: followError } = await supabase
-        .from("tag_follows")
-        .select(`*, show_tags (*)`)
-        .eq("user_id", currentUser.id)
-      
-      if (followError) {
-        console.error("Error fetching authenticated feed:", followError)
-        setFeedTags([])
-      } else if (follows) {
-        const tags = (follows as TagFollowWithTag[])
-          .map(f => f.show_tags)
-          .filter((t): t is ShowTag => !!t)
-        setFeedTags(tags)
-      }
-
-      // Fetch profile
-      const { data: profileData } = await supabase
+      // Authenticated (guest or full user): Load server-side data
+      const { data: profileData, error: profileError } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("id", currentUser.id)
         .single()
-      
-      setProfile(profileData as UserProfile || null)
 
-      // Check if profile setup is needed
-      if (profileData && !profileData.username) {
-        setIsProfileSetupNeeded(true)
+      if (profileError && profileError.code !== 'PGRST116') { // Ignore "not found" error
+        console.error("Error fetching profile:", profileError)
+      } else {
+        setProfile(profileData as UserProfile || null)
       }
 
+      if (profileData) {
+        // User has a profile, load their follows
+        const { data: follows, error: followError } = await supabase
+          .from("tag_follows")
+          .select(`*, show_tags (*)`)
+          .eq("user_id", currentUser.id)
+        
+        if (followError) {
+          console.error("Error fetching feed:", followError)
+          setFeedTags([])
+        } else if (follows) {
+          const tags = (follows as TagFollowWithTag[])
+            .map(f => f.show_tags)
+            .filter((t): t is ShowTag => !!t)
+          setFeedTags(tags)
+        }
+        
+        // Check if a full user needs to complete their profile (e.g., after social login)
+        if (!currentUser.is_anonymous && !profileData.username) {
+          setIsProfileSetupNeeded(true)
+        }
+      } else {
+        // User exists in auth but has no profile yet. This can happen during signup.
+        // If they are a full user, they need to set up their profile.
+        if (!currentUser.is_anonymous) {
+          setIsProfileSetupNeeded(true)
+        }
+      }
     } else {
-      // Anonymous: Load local storage feed
-      const localTagIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
-      const tags = allAvailableTags.filter(tag => localTagIds.includes(tag.id))
-      setFeedTags(tags)
+      // No user session at all, they need to create a handle.
+      setIsHandleRequired(true)
+      setProfile(null)
+      setFeedTags([])
     }
     setIsLoading(false)
-  }, [supabase, allAvailableTags])
+  }, [supabase])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      loadFeed(currentUser)
+      loadDataForUser(currentUser)
     })
 
     supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
       setUser(currentUser)
-      loadFeed(currentUser)
+      loadDataForUser(currentUser)
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, loadFeed])
+  }, [supabase, loadDataForUser])
 
   const reloadProfile = useCallback(async () => {
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (currentUser) {
-      await loadFeed(currentUser)
+      await loadDataForUser(currentUser)
+    } else {
+      setIsHandleRequired(true)
     }
-  }, [supabase, loadFeed])
-
-  const updateLocalFeed = (newTagIds: string[]) => {
-    localStorage.setItem(ANON_FEED_KEY, JSON.stringify(newTagIds))
-    const newTags = allAvailableTags.filter(tag => newTagIds.includes(tag.id))
-    setFeedTags(newTags)
-  }
+  }, [supabase, loadDataForUser])
 
   const addNewAvailableTag = useCallback((tag: ShowTag) => {
     setAllAvailableTags(current => {
@@ -119,65 +126,34 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
 
   const addTagToFeed = async (tagId: string) => {
     const tagToAdd = allAvailableTags.find(t => t.id === tagId)
-    if (!tagToAdd) return
+    if (!tagToAdd || !user) return
 
-    if (isAnonymous) {
-      const currentIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
-      if (!currentIds.includes(tagId)) {
-        updateLocalFeed([...currentIds, tagId])
-      }
-    } else if (user) {
-      const { error } = await (supabase.from("tag_follows").insert({
-        user_id: user.id,
-        show_tag_id: tagId,
-      }) as any).onConflict('user_id, show_tag_id').ignore()
-      
-      if (!error) {
-        setFeedTags(current => {
-          if (!current.some(t => t.id === tagId)) {
-            return [...current, tagToAdd]
-          }
-          return current
-        })
-      }
+    const { error } = await (supabase.from("tag_follows").insert({
+      user_id: user.id,
+      show_tag_id: tagId,
+    }) as any).onConflict('user_id, show_tag_id').ignore()
+    
+    if (!error) {
+      setFeedTags(current => {
+        if (!current.some(t => t.id === tagId)) {
+          return [...current, tagToAdd]
+        }
+        return current
+      })
     }
   }
 
   const removeTagFromFeed = async (tagId: string) => {
-    if (isAnonymous) {
-      const currentIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
-      updateLocalFeed(currentIds.filter(id => id !== tagId))
-    } else if (user) {
-      const { error } = await supabase
-        .from("tag_follows")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("show_tag_id", tagId)
-      
-      if (!error) {
-        setFeedTags(current => current.filter(tag => tag.id !== tagId))
-      }
-    }
-  }
-
-  const migrateAnonymousFeed = async () => {
     if (!user) return
-
-    const localTagIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
-    if (localTagIds.length === 0) return
-
-    const followsToInsert = localTagIds.map(tagId => ({
-      user_id: user.id,
-      show_tag_id: tagId,
-    }))
-
-    const { error } = await (supabase.from("tag_follows").insert(followsToInsert) as any).onConflict('user_id, show_tag_id').ignore()
-
+    
+    const { error } = await supabase
+      .from("tag_follows")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("show_tag_id", tagId)
+    
     if (!error) {
-      localStorage.removeItem(ANON_FEED_KEY)
-      await loadFeed(user)
-    } else {
-      console.error("Migration failed:", error)
+      setFeedTags(current => current.filter(tag => tag.id !== tagId))
     }
   }
 
@@ -187,11 +163,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     feedTags,
     allAvailableTags,
     isLoading,
-    isAnonymous,
+    isGuest,
     isProfileSetupNeeded,
+    isHandleRequired,
     addTagToFeed,
     removeTagFromFeed,
-    migrateAnonymousFeed,
     addNewAvailableTag,
     reloadProfile,
   }

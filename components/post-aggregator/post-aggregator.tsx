@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { PlusCircle, Settings, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
+import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
 import { Toaster } from "react-hot-toast"
 
 interface PostAggregatorProps {
@@ -24,11 +25,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     feedTags,
     allAvailableTags,
     isLoading: isFeedLoading,
-    isAnonymous,
+    isGuest,
     isProfileSetupNeeded,
+    isHandleRequired,
     addTagToFeed,
     removeTagFromFeed,
-    migrateAnonymousFeed,
     addNewAvailableTag,
     reloadProfile,
   } = useFeedManager(initialShowTags)
@@ -151,6 +152,15 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     )
   }
 
+  if (isHandleRequired) {
+    return (
+      <>
+        <GuestHandleModal onSuccess={reloadProfile} />
+        <Toaster position="bottom-right" />
+      </>
+    )
+  }
+
   if (isProfileSetupNeeded) {
     return (
       <>
@@ -231,11 +241,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           onClose={() => setIsManagerOpen(false)}
           feedTags={feedTags}
           allAvailableTags={allAvailableTags}
-          isAnonymous={isAnonymous}
+          isAnonymous={isGuest}
           profile={profile}
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
-          migrateAnonymousFeed={migrateAnonymousFeed}
+          migrateAnonymousFeed={async () => {}} // This is now handled by upgrading the user account
           addNewAvailableTag={addNewAvailableTag}
         />
       )}

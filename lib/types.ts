@@ -24,6 +24,7 @@ export interface Post {
   likes_count: number
   created_at: string
   user_id: string | null
+  external_guid?: string | null
   image_url?: string | null
   external_url?: string | null
   audio_url?: string | null

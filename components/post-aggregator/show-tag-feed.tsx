@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
@@ -29,13 +29,16 @@ const POST_SELECT_QUERY = `
 `
 
 export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
-  const [posts, setPosts] = useState<Post[]>([])
+  const [allPosts, setAllPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [supabase] = useState(() => createClient())
+
+  const platformPosts = useMemo(() => allPosts.filter((p) => p.external_guid === null), [allPosts])
+  const officialPosts = useMemo(() => allPosts.filter((p) => p.external_guid !== null), [allPosts])
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -62,10 +65,10 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
         .select(POST_SELECT_QUERY)
         .eq("show_tag_id", showTag.id)
         .order("created_at", { ascending: false })
-        .limit(50)
+        .limit(100)
       
       if (data) {
-        setPosts(data as Post[])
+        setAllPosts(data as Post[])
       }
       setIsLoadingPosts(false)
     }
@@ -80,7 +83,7 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
         .eq("id", payload.new.id)
         .single()
       if (data) {
-        setPosts((current) => {
+        setAllPosts((current) => {
           if (current.some((post) => post.id === data.id)) {
             return current
           }
@@ -100,12 +103,12 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   }, [showTag.id, supabase])
 
   const handlePostDeleted = (postId: string) => {
-    setPosts((current) => current.filter((post) => post.id !== postId))
+    setAllPosts((current) => current.filter((post) => post.id !== postId))
   }
 
   const handlePostHidden = async (postId: string) => {
     if (!user) return
-    setPosts((current) => current.filter((post) => post.id !== postId))
+    setAllPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")
     await supabase.from("hidden_posts").insert({ user_id: user.id, post_id: postId })
   }
@@ -162,16 +165,27 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
         </div>
       </header>
 
-      <Tabs defaultValue="feed" className="flex-1 flex flex-col overflow-hidden">
+      <Tabs defaultValue="live-feed" className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 pt-4 border-b">
           <TabsList>
-            <TabsTrigger value="feed">Live Feed</TabsTrigger>
+            <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
+            <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
             <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
           </TabsList>
         </div>
-        <TabsContent value="feed" className="flex-1 overflow-hidden">
+        <TabsContent value="live-feed" className="flex-1 overflow-hidden">
           <PostFeed
-            posts={posts}
+            posts={platformPosts}
+            isLoading={isLoadingPosts}
+            currentUser={user}
+            onPostDeleted={handlePostDeleted}
+            onPostHidden={handlePostHidden}
+            onInteractionAttempt={() => { /* Not implemented for this view */ }}
+          />
+        </TabsContent>
+        <TabsContent value="official-feed" className="flex-1 overflow-hidden">
+          <PostFeed
+            posts={officialPosts}
             isLoading={isLoadingPosts}
             currentUser={user}
             onPostDeleted={handlePostDeleted}
@@ -186,7 +200,7 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
 
       {isComposerOpen && user && profile && (
         <PostComposer showTag={showTag} profile={profile} onClose={() => setIsComposerOpen(false)} onPostCreated={(newPost) => {
-          setPosts((current) => [newPost, ...current])
+          setAllPosts((current) => [newPost, ...current])
           setIsComposerOpen(false)
         }} />
       )}

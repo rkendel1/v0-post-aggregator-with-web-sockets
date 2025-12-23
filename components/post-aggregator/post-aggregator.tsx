@@ -9,7 +9,7 @@ import { PostComposer } from "./post-composer"
 import { FeedManagementModal } from "./feed-management-modal"
 import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Settings, Loader2 } from "lucide-react"
+import { PlusCircle, Settings, Loader2, Rss } from "lucide-react"
 import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
@@ -209,6 +209,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const selectedTag =
     selectedFeedId !== "all" && selectedFeedId !== null ? feedTags.find((t) => t.id === selectedFeedId) : null
 
+  const handleCopyRssLink = () => {
+    if (!selectedTag) return
+    const rssUrl = `${window.location.origin}/api/rss/${selectedTag.tag}`
+    navigator.clipboard.writeText(rssUrl)
+    toast.success("RSS feed link copied to clipboard!")
+  }
+
   return (
     <div className="flex h-screen">
       <Toaster position="bottom-right" />
@@ -233,8 +240,15 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         <header className="border-b bg-card p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {!user ? "Welcome" : activeFeed === "following" ? (selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag") : "For You"}
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <span>
+                  {!user ? "Welcome" : activeFeed === "following" ? (selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag") : "For You"}
+                </span>
+                {selectedTag && (
+                  <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+                    <Rss className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                )}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {!user ? "Discover the latest posts from the community" : activeFeed === "following" ? (selectedFeedId === "all" ? `Posts from ${feedTags.length} followed tags` : selectedTag?.name || "Choose a show tag to view posts") : "A curated feed of posts"}

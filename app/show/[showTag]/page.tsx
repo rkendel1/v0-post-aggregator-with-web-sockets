@@ -10,11 +10,25 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
   const supabase = createClient(cookieStore)
   const { showTag: tagSlug } = await params
 
-  const { data: showTag } = await supabase
+  // Step 1: Try for an exact match first (case-insensitive)
+  let { data: showTag } = await supabase
     .from("show_tags")
     .select("*")
     .ilike("tag", tagSlug)
     .single()
+
+  // Step 2: If no exact match, try a fuzzy search
+  if (!showTag) {
+    const { data: fuzzyTags } = await supabase
+      .from("show_tags")
+      .select("*")
+      .ilike("tag", `%${tagSlug}%`)
+      .limit(1) // Just get the first match to avoid ambiguity
+
+    if (fuzzyTags && fuzzyTags.length > 0) {
+      showTag = fuzzyTags[0]
+    }
+  }
 
   if (!showTag) {
     return (

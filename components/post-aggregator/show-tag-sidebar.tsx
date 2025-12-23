@@ -4,8 +4,9 @@ import type { ShowTag } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ListPlus, Rss, LayoutGrid } from "lucide-react"
+import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic } from "lucide-react"
 import { Logo } from "@/components/logo"
+import Link from "next/link"
 
 interface ShowTagSidebarProps {
   feedTags: ShowTag[]
@@ -70,6 +71,13 @@ export function ShowTagSidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
+          <Button asChild variant="ghost" className="w-full justify-start">
+            <Link href="/queue">
+              <ListMusic className="h-4 w-4 mr-2" />
+              My Queue
+            </Link>
+          </Button>
+
           {feedTags.length === 0 ? (
             <div className="p-2 text-center text-xs text-muted-foreground">
               No tags in your feed. Click the icon above to add some!

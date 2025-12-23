@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils"
 interface SavePostButtonProps {
   postId: string
   className?: string
+  onToggle?: (isSaved: boolean) => void
 }
 
-export function SavePostButton({ postId, className }: SavePostButtonProps) {
+export function SavePostButton({ postId, className, onToggle }: SavePostButtonProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
@@ -50,6 +51,7 @@ export function SavePostButton({ postId, className }: SavePostButtonProps) {
 
       if (!error) {
         setIsSaved(false)
+        onToggle?.(false)
       }
     } else {
       // Save
@@ -60,6 +62,7 @@ export function SavePostButton({ postId, className }: SavePostButtonProps) {
 
       if (!error) {
         setIsSaved(true)
+        onToggle?.(true)
       }
     }
 

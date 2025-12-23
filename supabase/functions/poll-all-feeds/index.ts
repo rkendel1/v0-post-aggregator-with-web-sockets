@@ -9,6 +9,10 @@ interface Item {
   creator?: string;
   isoDate?: string;
   contentSnippet?: string;
+  enclosure?: {
+    url?: string;
+    type?: string;
+  };
   itunes?: {
     image?: string;
   };
@@ -115,6 +119,7 @@ serve(async (req: Request) => {
             external_guid: guid,
             external_url: item.link || null,
             image_url: item.itunes?.image || feedImage,
+            audio_url: item.enclosure?.type?.startsWith('audio') ? item.enclosure.url : null,
           }
         })
         .filter(Boolean)

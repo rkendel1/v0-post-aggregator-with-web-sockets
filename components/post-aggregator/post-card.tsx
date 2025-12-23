@@ -23,9 +23,10 @@ interface PostCardProps {
   onPostDeleted: (postId: string) => void
   onPostHidden: (postId: string) => void
   onInteractionAttempt: (message: string) => void
+  onPostUnsaved?: (postId: string) => void
 }
 
-export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt }: PostCardProps) {
+export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt, onPostUnsaved }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
@@ -146,7 +147,14 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             <span className="text-xs">{commentCount}</span>
           </Button>
           <div onClick={(e) => handleInteraction("save this post", e)}>
-            <SavePostButton postId={post.id} />
+            <SavePostButton
+              postId={post.id}
+              onToggle={(isSaved) => {
+                if (!isSaved) {
+                  onPostUnsaved?.(post.id)
+                }
+              }}
+            />
           </div>
           <Button
             variant="ghost"

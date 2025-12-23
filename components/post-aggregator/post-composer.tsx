@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Send } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import toast from "react-hot-toast"
 
 interface PostComposerProps {
   showTag: ShowTag
@@ -77,11 +78,17 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
 
     setIsSubmitting(true)
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
+    if (!user) {
+      toast.error("Please sign in to create a post.")
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
       // Create the post
       const { data, error } = await supabase
         .from("posts")
@@ -90,7 +97,7 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
           author_name: authorName.trim(),
           show_tag_id: showTag.id, // Updated column name
           source_id: sourceId || null,
-          user_id: user?.id,
+          user_id: user.id, // Ensure user ID is used
           likes_count: 0,
         })
         .select(`
@@ -128,9 +135,11 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
 
       if (data) {
         onPostCreated(data as Post)
+        toast.success("Post published successfully!")
       }
     } catch (error) {
       console.error("Error creating post:", error)
+      toast.error(`Failed to create post: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsSubmitting(false)
     }

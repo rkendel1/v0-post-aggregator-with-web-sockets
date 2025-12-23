@@ -111,8 +111,8 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   }
 
   const handleCopyRssLink = () => {
-    // Use the main site URL for the API route, not the subdomain's origin
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://podbridge.app"
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "podbridge.app"
+    const siteUrl = `https://${rootDomain}`
     const rssUrl = `${siteUrl}/api/rss/${showTag.tag.toLowerCase()}`
     navigator.clipboard.writeText(rssUrl)
     toast.success("RSS feed link copied to clipboard!")

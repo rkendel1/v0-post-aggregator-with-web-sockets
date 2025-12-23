@@ -39,7 +39,8 @@ export async function GET(
   }
 
   // 3. Generate the RSS feed
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://podbridge.app"
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "podbridge.app"
+  const siteUrl = `https://${rootDomain}`
   const feed = new RSS({
     title: `#${showTag.tag} - ${showTag.name} on PodBridge`,
     description: `Posts and discussions for the tag #${showTag.tag} on PodBridge.`,

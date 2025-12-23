@@ -52,9 +52,15 @@ export async function GET(
   })
 
   posts?.forEach((post) => {
+    // Clean up content to create a proper title and description
+    const contentWithoutTag = post.content.replace(`#${showTag.tag}`, "").trim()
+    const lines = contentWithoutTag.split('\n')
+    const itemTitle = lines[0] || 'Untitled Post'
+    const itemDescription = lines.slice(1).join('\n').trim() || contentWithoutTag
+
     feed.item({
-      title: post.content.substring(0, 100), // Use a snippet of the content as title
-      description: post.content,
+      title: itemTitle,
+      description: itemDescription,
       url: post.external_url || `${siteUrl}/post/${post.id}`, // Link to external or internal post
       guid: post.id,
       author: post.author_name,

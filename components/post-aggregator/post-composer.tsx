@@ -30,7 +30,7 @@ export function PostComposer({ showTag, profile, onClose, onPostCreated }: PostC
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const fetchData = async () => {

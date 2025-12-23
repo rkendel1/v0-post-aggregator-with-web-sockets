@@ -34,7 +34,7 @@ interface PostActionsProps {
 export function PostActions({ post, isAuthor, onPostDeleted, onPostHidden }: PostActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isAlertOpen, setIsAlertOpen] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const handleDelete = async () => {
     setIsDeleting(true)

@@ -18,7 +18,7 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
   const [reactionTypes, setReactionTypes] = useState<ReactionType[]>([])
   const [userReaction, setUserReaction] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   // Fetch reaction types
   useEffect(() => {
@@ -31,7 +31,7 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
     }
 
     fetchReactionTypes()
-  }, [])
+  }, [supabase])
 
   // Fetch user's current reaction
   useEffect(() => {
@@ -59,7 +59,7 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
     }
 
     fetchUserReaction()
-  }, [postId, commentId])
+  }, [postId, commentId, supabase])
 
   const handleReaction = async (reactionTypeId: string) => {
     const {

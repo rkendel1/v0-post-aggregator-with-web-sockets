@@ -20,7 +20,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const allCommentIds = useMemo(() => {
     const ids = new Set<string>()

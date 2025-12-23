@@ -21,7 +21,7 @@ export function ConnectedAccountsManager({
   const [accounts, setAccounts] = useState(initialAccounts)
   const [isConnecting, setIsConnecting] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const handleConnect = async (platform: Platform) => {
     setIsConnecting(platform.id)

@@ -15,7 +15,7 @@ interface FederatedPostStatusProps {
 export function FederatedPostStatus({ postId }: FederatedPostStatusProps) {
   const [federatedPosts, setFederatedPosts] = useState<FederatedPost[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const fetchFederatedPosts = async () => {

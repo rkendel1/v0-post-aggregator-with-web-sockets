@@ -56,7 +56,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const feedTagIds = useMemo(() => feedTags.map((t) => t.id).join(","), [feedTags])
 

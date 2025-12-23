@@ -24,7 +24,7 @@ interface GuestHandleModalProps {
 
 export function GuestHandleModal({ onSuccess }: GuestHandleModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const form = useForm<HandleFormValues>({
     resolver: zodResolver(handleSchema),

@@ -16,7 +16,7 @@ interface TagFollowButtonProps {
 export function TagFollowButton({ showTagId, variant = "outline", size = "sm", className }: TagFollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -36,7 +36,7 @@ export function TagFollowButton({ showTagId, variant = "outline", size = "sm", c
     }
 
     checkFollowStatus()
-  }, [showTagId])
+  }, [showTagId, supabase])
 
   const handleToggleFollow = async () => {
     const {

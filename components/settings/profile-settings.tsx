@@ -33,7 +33,7 @@ interface ProfileSettingsProps {
 
 export function ProfileSettings({ profile }: ProfileSettingsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const router = useRouter()
 
   const form = useForm<ProfileFormValues>({

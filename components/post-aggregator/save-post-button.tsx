@@ -15,7 +15,7 @@ interface SavePostButtonProps {
 export function SavePostButton({ postId, className, onToggle }: SavePostButtonProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const checkSaveStatus = async () => {
@@ -35,7 +35,7 @@ export function SavePostButton({ postId, className, onToggle }: SavePostButtonPr
     }
 
     checkSaveStatus()
-  }, [postId])
+  }, [postId, supabase])
 
   const handleToggleSave = async () => {
     const {

@@ -29,7 +29,7 @@ interface ProfileSetupModalProps {
 
 export function ProfileSetupModal({ onSave }: ProfileSetupModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),

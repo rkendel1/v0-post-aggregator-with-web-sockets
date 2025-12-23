@@ -27,7 +27,7 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
   const [isImporting, setIsImporting] = useState(false)
   const [refreshingFeedId, setRefreshingFeedId] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     setRssFeeds(initialRssFeeds)

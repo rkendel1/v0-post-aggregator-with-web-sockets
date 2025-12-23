@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Post } from "@/lib/types"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { PostCard } from "@/components/post-aggregator/post-card"
@@ -14,13 +14,13 @@ interface QueueFeedProps {
 export function QueueFeed({ initialPosts }: QueueFeedProps) {
   const [posts, setPosts] = useState(initialPosts)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
-  useState(() => {
+  useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setCurrentUser(user)
     })
-  })
+  }, [supabase])
 
   const handleUnsave = (postId: string) => {
     setPosts((currentPosts) => currentPosts.filter((p) => p.id !== postId))

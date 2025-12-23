@@ -17,7 +17,7 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
   const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
     const checkFollowStatus = async () => {
@@ -39,7 +39,7 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
     }
 
     checkFollowStatus()
-  }, [userId])
+  }, [userId, supabase])
 
   const handleToggleFollow = async () => {
     if (!currentUserId || currentUserId === userId) return

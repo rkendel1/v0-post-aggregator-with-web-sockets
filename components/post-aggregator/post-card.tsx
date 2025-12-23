@@ -32,7 +32,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   const [reactionCounts, setReactionCounts] = useState<ReactionCount[]>(post.reaction_counts || [])
   const [commentCount, setCommentCount] = useState<number>(post.comment_counts?.count || 0)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,

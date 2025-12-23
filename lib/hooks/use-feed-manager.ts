@@ -14,7 +14,6 @@ interface FeedManager {
   isLoading: boolean
   isGuest: boolean
   isProfileSetupNeeded: boolean
-  isHandleRequired: boolean
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
   addNewAvailableTag: (tag: ShowTag) => void
@@ -33,7 +32,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   const [allAvailableTags, setAllAvailableTags] = useState<ShowTag[]>(initialShowTags)
   const [isLoading, setIsLoading] = useState(true)
   const [isProfileSetupNeeded, setIsProfileSetupNeeded] = useState(false)
-  const [isHandleRequired, setIsHandleRequired] = useState(false)
 
   const isGuest = user?.is_anonymous ?? false
 
@@ -41,7 +39,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     async (currentUser: User | null) => {
       setIsLoading(true)
       setIsProfileSetupNeeded(false)
-      setIsHandleRequired(false)
 
       if (currentUser) {
         // Authenticated (guest or full user): Load server-side data
@@ -94,8 +91,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
           }
         }
       } else {
-        // No user session at all, they need to create a handle.
-        setIsHandleRequired(true)
+        // No user session at all. The app will show a generic feed.
         setProfile(null)
         setFeedTags([])
         setRssFeeds([])
@@ -157,11 +153,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser()
-    if (currentUser) {
-      await loadDataForUser(currentUser)
-    } else {
-      setIsHandleRequired(true)
-    }
+    await loadDataForUser(currentUser)
   }, [supabase, loadDataForUser])
 
   const addNewAvailableTag = useCallback((tag: ShowTag) => {
@@ -217,7 +209,6 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     isLoading,
     isGuest,
     isProfileSetupNeeded,
-    isHandleRequired,
     addTagToFeed,
     removeTagFromFeed,
     addNewAvailableTag,

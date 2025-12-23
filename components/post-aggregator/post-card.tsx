@@ -21,9 +21,10 @@ interface PostCardProps {
   currentUser: User | null
   onPostDeleted: (postId: string) => void
   onPostHidden: (postId: string) => void
+  onInteractionAttempt: (message: string) => void
 }
 
-export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: PostCardProps) {
+export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
@@ -36,6 +37,14 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: Pos
     const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`
     navigator.clipboard.writeText(postUrl)
     toast.success("Post link copied to clipboard!")
+  }
+
+  const handleInteraction = (message: string, e: React.MouseEvent) => {
+    if (!currentUser) {
+      e.preventDefault()
+      e.stopPropagation()
+      onInteractionAttempt(message)
+    }
   }
 
   return (
@@ -51,7 +60,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: Pos
               <p className="font-semibold text-sm">{post.author_name}</p>
               <div className="flex items-center gap-2">
                 <p className="text-xs text-muted-foreground">{timeAgo}</p>
-                <FederatedPostStatus postId={post.id} />
+                {currentUser && <FederatedPostStatus postId={post.id} />}
               </div>
             </div>
           </div>
@@ -98,19 +107,42 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: Pos
         </div>
 
         <div className="flex items-center gap-4">
-          <ReactionPicker postId={post.id} />
-          <Button variant="ghost" size="sm" className="gap-2 h-8" onClick={() => setShowComments(!showComments)}>
+          <div onClick={(e) => handleInteraction("react to a post", e)}>
+            <ReactionPicker postId={post.id} />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2 h-8"
+            onClick={(e) => {
+              if (!currentUser) {
+                handleInteraction("comment on a post", e)
+              } else {
+                setShowComments(!showComments)
+              }
+            }}
+          >
             <MessageCircle className="h-4 w-4" />
             <span className="text-xs">{commentCount}</span>
           </Button>
-          <PostFollowButton postId={post.id} />
-          <Button variant="ghost" size="sm" className="gap-2 h-8" onClick={handleShare}>
+          <div onClick={(e) => handleInteraction("save this post", e)}>
+            <PostFollowButton postId={post.id} />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-2 h-8"
+            onClick={() => {
+              // Sharing is a passive action, allow for all users
+              handleShare()
+            }}
+          >
             <Share2 className="h-4 w-4" />
             <span className="text-xs">Share</span>
           </Button>
         </div>
 
-        {showComments && <CommentsSection postId={post.id} />}
+        {showComments && currentUser && <CommentsSection postId={post.id} />}
       </CardContent>
     </Card>
   )

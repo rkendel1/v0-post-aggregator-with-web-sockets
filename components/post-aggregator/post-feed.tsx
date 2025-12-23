@@ -12,9 +12,10 @@ interface PostFeedProps {
   currentUser: User | null
   onPostDeleted: (postId: string) => void
   onPostHidden: (postId: string) => void
+  onInteractionAttempt: (message: string) => void
 }
 
-export function PostFeed({ posts, isLoading, currentUser, onPostDeleted, onPostHidden }: PostFeedProps) {
+export function PostFeed({ posts, isLoading, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt }: PostFeedProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -44,6 +45,7 @@ export function PostFeed({ posts, isLoading, currentUser, onPostDeleted, onPostH
             currentUser={currentUser}
             onPostDeleted={onPostDeleted}
             onPostHidden={onPostHidden}
+            onInteractionAttempt={onInteractionAttempt}
           />
         ))}
       </div>

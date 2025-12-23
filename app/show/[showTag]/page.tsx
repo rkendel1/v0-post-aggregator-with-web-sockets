@@ -4,10 +4,10 @@ import { notFound } from "next/navigation"
 import type { ShowTag } from "@/lib/types"
 import { ShowTagFeed } from "@/components/post-aggregator/show-tag-feed"
 
-export default async function ShowTagPage({ params }: { params: { showTag: string } }) {
+export default async function ShowTagPage({ params }: { params: Promise<{ showTag: string }> }) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-  const tagSlug = params.showTag
+  const { showTag: tagSlug } = await params
 
   const { data: showTag } = await supabase
     .from("show_tags")

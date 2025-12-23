@@ -15,11 +15,11 @@ export async function GET(
     return new NextResponse("Tag parameter is required", { status: 400 })
   }
 
-  // 1. Fetch the show tag details
+  // 1. Fetch the show tag details (case-insensitive)
   const { data: showTag, error: tagError } = await supabase
     .from("show_tags")
     .select("*")
-    .eq("tag", tagSlug)
+    .ilike("tag", tagSlug)
     .single()
 
   if (tagError || !showTag) {
@@ -39,7 +39,7 @@ export async function GET(
   }
 
   // 3. Generate the RSS feed
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://podbridge.app"
   const feed = new RSS({
     title: `#${showTag.tag} - ${showTag.name} on PodBridge`,
     description: `Posts and discussions for the tag #${showTag.tag} on PodBridge.`,

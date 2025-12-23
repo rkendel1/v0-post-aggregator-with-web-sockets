@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagSidebar } from "./show-tag-sidebar"
@@ -46,6 +46,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   const supabase = createClient()
 
+  const feedTagIds = useMemo(() => feedTags.map((t) => t.id).join(","), [feedTags])
+
   // Fetch posts for selected tag
   useEffect(() => {
     if (!selectedFeedId) {
@@ -79,7 +81,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         .order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTags.map((t) => t.id)
+        const tagIds = feedTagIds ? feedTagIds.split(",") : []
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
         } else {
@@ -105,13 +107,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [selectedFeedId, feedTags, supabase, user])
+  }, [selectedFeedId, feedTagIds, supabase, user])
 
   // Subscribe to real-time updates
   useEffect(() => {
     if (!selectedFeedId) return
 
-    const tagIds = feedTags.map((t) => t.id)
+    const tagIds = feedTagIds ? feedTagIds.split(",") : []
     if (selectedFeedId === "all" && tagIds.length === 0) {
       return
     }
@@ -197,7 +199,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedFeedId, feedTags, supabase])
+  }, [selectedFeedId, feedTagIds, supabase])
 
   const handlePostDeleted = (postId: string) => {
     setPosts((current) => current.filter((post) => post.id !== postId))

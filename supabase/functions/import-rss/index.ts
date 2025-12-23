@@ -45,11 +45,18 @@ serve(async (req: Request) => {
 
     for (const url of rssUrls) {
       try {
-        // 1. Fetch and parse the RSS feed to get the title
-        const feed = await parser.parseURL(url)
+        // 1. Fetch the RSS feed content using Deno's native fetch
+        const response = await fetch(url)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`)
+        }
+        const xmlString = await response.text()
+
+        // 2. Parse the XML string
+        const feed = await parser.parseString(xmlString)
         const title = feed.title || 'Untitled Feed'
 
-        // 2. Insert into user_rss_feeds table
+        // 3. Insert into user_rss_feeds table
         const { data, error } = await supabase
           .from('user_rss_feeds')
           .insert({

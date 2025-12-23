@@ -11,6 +11,8 @@ import { AuthModal } from "@/components/auth/auth-modal"
 import { Badge } from "@/components/ui/badge"
 import { createClient } from "@/lib/supabase/client"
 import toast from "react-hot-toast"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 interface FeedManagementModalProps {
   isOpen: boolean
@@ -40,10 +42,28 @@ export function FeedManagementModal({
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [search, setSearch] = useState("")
+  const [activeTab, setActiveTab] = useState("All")
   const supabase = createClient()
 
-  const followedTagIds = useMemo(() => new Set(feedTags.map(t => t.id)), [feedTags])
-  const existingTagNames = useMemo(() => new Set(allAvailableTags.map(t => t.tag.toLowerCase())), [allAvailableTags])
+  const followedTagIds = useMemo(() => new Set(feedTags.map((t) => t.id)), [feedTags])
+  const existingTagNames = useMemo(() => new Set(allAvailableTags.map((t) => t.tag.toLowerCase())), [allAvailableTags])
+
+  const categories = useMemo(() => {
+    const cats = [...new Set(allAvailableTags.map((t) => t.category || "Uncategorized"))]
+    cats.sort((a, b) => {
+      if (a === "Uncategorized") return 1
+      if (b === "Uncategorized") return -1
+      return a.localeCompare(b)
+    })
+    return ["All", ...cats]
+  }, [allAvailableTags])
+
+  const tagsToDisplay = useMemo(() => {
+    if (activeTab === "All") {
+      return allAvailableTags
+    }
+    return allAvailableTags.filter((tag) => (tag.category || "Uncategorized") === activeTab)
+  }, [allAvailableTags, activeTab])
 
   const handleToggleTag = async (tag: ShowTag) => {
     if (followedTagIds.has(tag.id)) {
@@ -84,7 +104,7 @@ export function FeedManagementModal({
       onClose()
       return
     }
-    
+
     const normalizedTag = newTag.trim()
     if (existingTagNames.has(normalizedTag.toLowerCase())) {
       toast.error(`Tag #${normalizedTag} already exists.`)
@@ -100,7 +120,7 @@ export function FeedManagementModal({
         .insert({
           tag: normalizedTag,
           name: `User Created Tag: ${normalizedTag}`,
-          category: 'User Created',
+          category: "User Created",
         })
         .select()
         .single()
@@ -109,42 +129,17 @@ export function FeedManagementModal({
 
       addNewAvailableTag(newTagData as ShowTag)
       await addTagToFeed(newTagData.id)
-      
+
       toast.success(`Tag #${normalizedTag} created and added to your feed!`)
       setSearch("")
-      
     } catch (error) {
       console.error("Error creating tag:", error)
-      toast.error(`Failed to create tag: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      toast.error(`Failed to create tag: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       toast.dismiss(loadingToast)
       setIsSaving(false)
     }
   }
-
-  const filteredTags = useMemo(() => {
-    if (!search) return allAvailableTags
-    const lowerSearch = search.toLowerCase()
-    return allAvailableTags.filter(tag => 
-      tag.tag.toLowerCase().includes(lowerSearch) || tag.name.toLowerCase().includes(lowerSearch)
-    )
-  }, [allAvailableTags, search])
-
-  const groupedTags = useMemo(() => {
-    const groups: { [key: string]: ShowTag[] } = {}
-    filteredTags.forEach(tag => {
-      const category = tag.category || 'Uncategorized'
-      if (!groups[category]) {
-        groups[category] = []
-      }
-      groups[category].push(tag)
-    })
-    return Object.entries(groups).sort(([a], [b]) => {
-      if (a === 'Uncategorized') return 1
-      if (b === 'Uncategorized') return -1
-      return a.localeCompare(b)
-    })
-  }, [filteredTags])
 
   const showCreateOption = search.trim() && !existingTagNames.has(search.trim().toLowerCase())
 
@@ -169,10 +164,10 @@ export function FeedManagementModal({
                   <p className="text-xs text-muted-foreground">Start searching below to add tags.</p>
                 ) : (
                   feedTags.map((tag) => (
-                    <Badge 
-                      key={tag.id} 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-destructive/20 transition-colors" 
+                    <Badge
+                      key={tag.id}
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-destructive/20 transition-colors"
                       onClick={() => handleToggleTag(tag)}
                     >
                       #{tag.tag} <X className="h-3 w-3 ml-1" />
@@ -182,17 +177,31 @@ export function FeedManagementModal({
               </div>
             </div>
 
-            <Command className="flex-1 overflow-hidden border rounded-lg">
-              <CommandInput 
-                placeholder="Search for shows or episode tags..." 
+            <Command className="flex-1 overflow-hidden flex flex-col">
+              <CommandInput
+                placeholder={`Search in ${activeTab}...`}
                 value={search}
                 onValueChange={setSearch}
               />
-              <CommandList className="flex-1 overflow-y-auto">
+
+              <Tabs defaultValue="All" onValueChange={setActiveTab} className="mt-2">
+                <ScrollArea className="w-full whitespace-nowrap">
+                  <TabsList>
+                    {categories.map((category) => (
+                      <TabsTrigger key={category} value={category}>
+                        {category}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+              </Tabs>
+
+              <CommandList className="flex-1 overflow-y-auto mt-2 border rounded-lg">
                 <CommandEmpty>
                   {showCreateOption ? (
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="w-full justify-start text-left h-auto p-2"
                       onClick={() => handleCreateTag(search.trim())}
                       disabled={isSaving}
@@ -204,29 +213,31 @@ export function FeedManagementModal({
                     "No results found."
                   )}
                 </CommandEmpty>
-                {groupedTags.map(([category, tags]) => (
-                  <CommandGroup key={category} heading={category}>
-                    {tags.map((tag) => {
-                      const isFollowed = followedTagIds.has(tag.id)
-                      return (
-                        <CommandItem
-                          key={tag.id}
-                          value={`${tag.tag} ${tag.name}`}
-                          onSelect={() => handleToggleTag(tag)}
-                          className="flex items-center justify-between"
+                <CommandGroup>
+                  {tagsToDisplay.map((tag) => {
+                    const isFollowed = followedTagIds.has(tag.id)
+                    return (
+                      <CommandItem
+                        key={tag.id}
+                        value={`${tag.tag} ${tag.name}`}
+                        onSelect={() => handleToggleTag(tag)}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">#{tag.tag}</span>
+                          <span className="text-xs text-muted-foreground">{tag.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className={cn(isFollowed ? "text-primary" : "text-muted-foreground")}
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium">#{tag.tag}</span>
-                            <span className="text-xs text-muted-foreground">{tag.name}</span>
-                          </div>
-                          <Button variant="ghost" size="icon-sm" className={cn(isFollowed ? "text-primary" : "text-muted-foreground")}>
-                            {isFollowed ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                          </Button>
-                        </CommandItem>
-                      )
-                    })}
-                  </CommandGroup>
-                ))}
+                          {isFollowed ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                        </Button>
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
               </CommandList>
             </Command>
           </div>
@@ -237,19 +248,17 @@ export function FeedManagementModal({
             </Button>
             {isAnonymous && (
               <Button onClick={handleSaveFeed} disabled={isSaving || followedTagIds.size === 0}>
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
+                {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 {isSaving ? "Saving..." : "Save Feed & Sign Up"}
               </Button>
             )}
           </div>
         </DialogContent>
       </Dialog>
-      
-      {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />}
+
+      {isAuthModalOpen && (
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
+      )}
     </>
   )
 }

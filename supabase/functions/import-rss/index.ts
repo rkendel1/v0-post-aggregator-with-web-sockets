@@ -97,7 +97,7 @@ serve(async (req: Request) => {
             }
             
             return {
-              content: item.title,
+              content: `#${tagData.tag} ${item.title}`,
               author_name: item.creator || feedTitle,
               show_tag_id: show_tag_id,
               user_id: user_id,

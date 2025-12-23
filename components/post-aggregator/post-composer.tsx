@@ -4,12 +4,11 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { ShowTag, Post, Source, ConnectedAccount } from "@/lib/types"
+import type { ShowTag, Post, Source, ConnectedAccount, UserProfile } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Send } from "lucide-react"
@@ -18,13 +17,13 @@ import toast from "react-hot-toast"
 
 interface PostComposerProps {
   showTag: ShowTag
+  profile: UserProfile | null
   onClose: () => void
   onPostCreated: (post: Post) => void
 }
 
-export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerProps) {
+export function PostComposer({ showTag, profile, onClose, onPostCreated }: PostComposerProps) {
   const [content, setContent] = useState("")
-  const [authorName, setAuthorName] = useState("")
   const [sourceId, setSourceId] = useState<string>("")
   const [sources, setSources] = useState<Source[]>([])
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([])
@@ -74,7 +73,7 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!content.trim() || !authorName.trim()) return
+    if (!content.trim()) return
 
     setIsSubmitting(true)
 
@@ -82,7 +81,7 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
       data: { user },
     } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!user || !profile) {
       toast.error("Please sign in to create a post.")
       setIsSubmitting(false)
       return
@@ -93,17 +92,19 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
       const { data, error } = await supabase
         .from("posts")
         .insert({
-          content: content.trim(),
-          author_name: authorName.trim(),
-          show_tag_id: showTag.id, // Updated column name
+          content: `#${showTag.tag} ${content.trim()}`,
+          author_name: profile.display_name || profile.username || "Anonymous",
+          author_avatar: profile.avatar_url || null,
+          show_tag_id: showTag.id,
           source_id: sourceId || null,
-          user_id: user.id, // Ensure user ID is used
+          user_id: user.id,
           likes_count: 0,
         })
         .select(`
           *,
           show_tags (*),
-          sources (*)
+          sources (*),
+          comment_counts (*)
         `)
         .single()
 
@@ -153,17 +154,6 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="author">Your Name</Label>
-            <Input
-              id="author"
-              placeholder="Enter your name"
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="source">Source (optional)</Label>
             <Select value={sourceId} onValueChange={setSourceId}>
               <SelectTrigger id="source">
@@ -183,7 +173,7 @@ export function PostComposer({ showTag, onClose, onPostCreated }: PostComposerPr
             <Label htmlFor="content">Content</Label>
             <Textarea
               id="content"
-              placeholder={`What are your thoughts on #${showTag.tag}?`}
+              placeholder={`What are your thoughts? Your post will start with #${showTag.tag}`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={4}

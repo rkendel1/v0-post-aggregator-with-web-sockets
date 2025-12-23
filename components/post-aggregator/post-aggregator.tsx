@@ -128,7 +128,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             .single()
 
           if (data) {
-            setPosts((current) => [data as Post, ...current])
+            setPosts((current) => {
+              // Prevent duplicates from optimistic updates
+              if (current.some((p) => p.id === (data as Post).id)) {
+                return current
+              }
+              return [data as Post, ...current]
+            })
           }
         },
       )
@@ -257,11 +263,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       {isComposerOpen && selectedTag && (
         <PostComposer
           showTag={selectedTag}
+          profile={profile}
           onClose={() => setIsComposerOpen(false)}
           onPostCreated={(newPost) => {
-            // Only add post if it matches the current view
+            // Optimistically add the post if it belongs in the current view
             if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
-              setPosts((current) => [newPost, ...current])
+              setPosts((current) => {
+                // Prevent duplicates from real-time subscription
+                if (current.some((p) => p.id === newPost.id)) {
+                  return current
+                }
+                return [newPost, ...current]
+              })
             }
             setIsComposerOpen(false)
           }}

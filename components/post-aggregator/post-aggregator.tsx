@@ -13,7 +13,7 @@ import { PlusCircle, Settings, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
-import { Toaster } from "react-hot-toast"
+import { Toaster, toast } from "react-hot-toast"
 import { RssImportModal } from "@/components/settings/rss-import-modal"
 
 interface PostAggregatorProps {
@@ -56,6 +56,16 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
     const fetchPosts = async () => {
       setIsLoadingPosts(true)
+
+      // Fetch IDs of hidden posts for the current user
+      let hiddenPostIds: string[] = []
+      if (user) {
+        const { data: hiddenPosts } = await supabase.from("hidden_posts").select("post_id").eq("user_id", user.id)
+        if (hiddenPosts) {
+          hiddenPostIds = hiddenPosts.map((p) => p.post_id)
+        }
+      }
+
       const query = supabase
         .from("posts")
         .select(
@@ -81,6 +91,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         query.eq("show_tag_id", selectedFeedId)
       }
 
+      // Exclude hidden posts from the query
+      if (hiddenPostIds.length > 0) {
+        query.not("id", "in", `(${hiddenPostIds.join(",")})`)
+      }
+
       const { data } = await query
 
       if (data) {
@@ -90,7 +105,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [selectedFeedId, feedTags, supabase])
+  }, [selectedFeedId, feedTags, supabase, user])
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -130,7 +145,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
           if (data) {
             setPosts((current) => {
-              // Prevent duplicates from optimistic updates
               if (current.some((p) => p.id === (data as Post).id)) {
                 return current
               }
@@ -187,6 +201,26 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   const handlePostDeleted = (postId: string) => {
     setPosts((current) => current.filter((post) => post.id !== postId))
+  }
+
+  const handlePostHidden = async (postId: string) => {
+    if (!user) return
+
+    // Optimistically remove the post from the UI
+    setPosts((current) => current.filter((post) => post.id !== postId))
+    toast.success("Post hidden.")
+
+    // Persist the change to the database
+    const { error } = await supabase.from("hidden_posts").insert({
+      user_id: user.id,
+      post_id: postId,
+    })
+
+    if (error) {
+      toast.error("Failed to hide post permanently.")
+      console.error("Error hiding post:", error)
+      // In a real app, you might want to revert the optimistic update here
+    }
   }
 
   if (isFeedLoading) {
@@ -268,7 +302,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
               </div>
             </div>
           ) : selectedFeedId ? (
-            <PostFeed posts={posts} isLoading={isLoadingPosts} currentUser={user} onPostDeleted={handlePostDeleted} />
+            <PostFeed
+              posts={posts}
+              isLoading={isLoadingPosts}
+              currentUser={user}
+              onPostDeleted={handlePostDeleted}
+              onPostHidden={handlePostHidden}
+            />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Select a show tag to see posts</p>
@@ -283,10 +323,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           profile={profile}
           onClose={() => setIsComposerOpen(false)}
           onPostCreated={(newPost) => {
-            // Optimistically add the post if it belongs in the current view
             if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
               setPosts((current) => {
-                // Prevent duplicates from real-time subscription
                 if (current.some((p) => p.id === newPost.id)) {
                   return current
                 }
@@ -308,7 +346,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           profile={profile}
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
-          migrateAnonymousFeed={async () => {}} // This is now handled by upgrading the user account
+          migrateAnonymousFeed={async () => {}}
           addNewAvailableTag={addNewAvailableTag}
         />
       )}

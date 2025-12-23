@@ -20,9 +20,10 @@ interface PostCardProps {
   post: Post
   currentUser: User | null
   onPostDeleted: (postId: string) => void
+  onPostHidden: (postId: string) => void
 }
 
-export function PostCard({ post, currentUser, onPostDeleted }: PostCardProps) {
+export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
@@ -60,7 +61,14 @@ export function PostCard({ post, currentUser, onPostDeleted }: PostCardProps) {
                 {post.sources.icon} {post.sources.name}
               </Badge>
             )}
-            {isAuthor && <PostActions post={post} onPostDeleted={onPostDeleted} />}
+            {currentUser && (
+              <PostActions
+                post={post}
+                isAuthor={isAuthor}
+                onPostDeleted={onPostDeleted}
+                onPostHidden={onPostHidden}
+              />
+            )}
           </div>
         </div>
       </CardHeader>

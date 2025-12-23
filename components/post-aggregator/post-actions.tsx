@@ -21,15 +21,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { MoreVertical, Trash2, Pencil, Loader2 } from "lucide-react"
+import { MoreVertical, Trash2, Pencil, Loader2, EyeOff } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface PostActionsProps {
   post: Post
+  isAuthor: boolean
   onPostDeleted: (postId: string) => void
+  onPostHidden: (postId: string) => void
 }
 
-export function PostActions({ post, onPostDeleted }: PostActionsProps) {
+export function PostActions({ post, isAuthor, onPostDeleted, onPostHidden }: PostActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isAlertOpen, setIsAlertOpen] = useState(false)
   const supabase = createClient()
@@ -49,6 +51,10 @@ export function PostActions({ post, onPostDeleted }: PostActionsProps) {
     setIsAlertOpen(false)
   }
 
+  const handleHide = () => {
+    onPostHidden(post.id)
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -58,15 +64,24 @@ export function PostActions({ post, onPostDeleted }: PostActionsProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem disabled>
-            <Pencil className="mr-2 h-4 w-4" />
-            <span>Edit Post</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive">
-            <Trash2 className="mr-2 h-4 w-4" />
-            <span>Delete Post</span>
-          </DropdownMenuItem>
+          {isAuthor ? (
+            <>
+              <DropdownMenuItem disabled>
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>Edit Post</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />
+                <span>Delete Post</span>
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem onClick={handleHide}>
+              <EyeOff className="mr-2 h-4 w-4" />
+              <span>Hide Post</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

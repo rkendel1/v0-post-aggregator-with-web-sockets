@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,10 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
   const [isImporting, setIsImporting] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    setRssFeeds(initialRssFeeds)
+  }, [initialRssFeeds])
 
   const handleImportRss = async (urls: string[]) => {
     if (urls.length === 0) return

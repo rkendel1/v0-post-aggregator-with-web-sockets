@@ -4,7 +4,7 @@ import type { ShowTag } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ListPlus } from "lucide-react"
+import { TrendingUp, ListPlus, Rss } from "lucide-react"
 import { Logo } from "@/components/logo"
 
 interface ShowTagSidebarProps {
@@ -12,16 +12,23 @@ interface ShowTagSidebarProps {
   selectedTag: ShowTag | null
   onSelectTag: (tag: ShowTag) => void
   onOpenManager: () => void
+  onOpenRssImporter: () => void
 }
 
-export function ShowTagSidebar({ feedTags, selectedTag, onSelectTag, onOpenManager }: ShowTagSidebarProps) {
+export function ShowTagSidebar({
+  feedTags,
+  selectedTag,
+  onSelectTag,
+  onOpenManager,
+  onOpenRssImporter,
+}: ShowTagSidebarProps) {
   return (
     <div className="w-64 border-r bg-card flex flex-col">
       {/* Logo Header */}
       <div className="p-4 border-b">
         <Logo />
       </div>
-      
+
       {/* Feed Management Section */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
@@ -29,9 +36,14 @@ export function ShowTagSidebar({ feedTags, selectedTag, onSelectTag, onOpenManag
             <TrendingUp className="h-5 w-5 text-primary" />
             <h2 className="font-semibold text-foreground text-sm">My Feed</h2>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={onOpenManager} title="Manage Feed">
-            <ListPlus className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center">
+            <Button variant="ghost" size="icon-sm" onClick={onOpenRssImporter} title="Import RSS Feeds">
+              <Rss className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon-sm" onClick={onOpenManager} title="Manage Feed">
+              <ListPlus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">Followed shows and episodes</p>
       </div>

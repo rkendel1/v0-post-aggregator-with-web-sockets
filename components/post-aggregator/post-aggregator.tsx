@@ -14,6 +14,7 @@ import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
 import { Toaster } from "react-hot-toast"
+import { RssImportModal } from "@/components/settings/rss-import-modal"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -23,6 +24,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
     profile,
     feedTags,
+    rssFeeds,
     allAvailableTags,
     isLoading: isFeedLoading,
     isGuest,
@@ -38,6 +40,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isManagerOpen, setIsManagerOpen] = useState(false)
+  const [isRssModalOpen, setIsRssModalOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
 
   const supabase = createClient()
@@ -63,12 +66,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       setIsLoadingPosts(true)
       const { data } = await supabase
         .from("posts")
-        .select(`
+        .select(
+          `
           *,
           show_tags (*),
           sources (*),
           comment_counts (*)
-        `)
+        `,
+        )
         .eq("show_tag_id", selectedTag.id)
         .order("created_at", { ascending: false })
 
@@ -98,12 +103,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         async (payload) => {
           const { data } = await supabase
             .from("posts")
-            .select(`
+            .select(
+              `
               *,
               show_tags (*),
               sources (*),
               comment_counts (*)
-            `)
+            `,
+            )
             .eq("id", payload.new.id)
             .single()
 
@@ -123,12 +130,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         async (payload) => {
           const { data } = await supabase
             .from("posts")
-            .select(`
+            .select(
+              `
               *,
               show_tags (*),
               sources (*),
               comment_counts (*)
-            `)
+            `,
+            )
             .eq("id", payload.new.id)
             .single()
 
@@ -178,6 +187,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         selectedTag={selectedTag}
         onSelectTag={setSelectedTag}
         onOpenManager={() => setIsManagerOpen(true)}
+        onOpenRssImporter={() => setIsRssModalOpen(true)}
       />
 
       <div className="flex-1 flex flex-col">
@@ -247,6 +257,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           removeTagFromFeed={removeTagFromFeed}
           migrateAnonymousFeed={async () => {}} // This is now handled by upgrading the user account
           addNewAvailableTag={addNewAvailableTag}
+        />
+      )}
+
+      {isRssModalOpen && (
+        <RssImportModal
+          isOpen={isRssModalOpen}
+          onClose={() => setIsRssModalOpen(false)}
+          initialRssFeeds={rssFeeds}
         />
       )}
     </div>

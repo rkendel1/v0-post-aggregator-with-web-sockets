@@ -3,13 +3,13 @@ import Image from 'next/image'
 
 export function Logo() {
   return (
-    <div className="flex items-center justify-center h-10">
+    <div className="flex items-center justify-center h-12">
       {/* Light mode logo (black text on light background) */}
       <Image
         src="/pb_black.PNG"
         alt="PodBridge Logo"
-        width={120}
-        height={32}
+        width={140}
+        height={40}
         className="dark:hidden"
         priority
         unoptimized
@@ -18,8 +18,8 @@ export function Logo() {
       <Image
         src="/pb_white.PNG"
         alt="PodBridge Logo"
-        width={120}
-        height={32}
+        width={140}
+        height={40}
         className="hidden dark:block"
         priority
         unoptimized

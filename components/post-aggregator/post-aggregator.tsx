@@ -6,8 +6,10 @@ import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagSidebar } from "./show-tag-sidebar"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
+import { FeedManagementModal } from "./feed-management-modal"
+import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Settings } from "lucide-react"
+import { PlusCircle, Settings, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 interface PostAggregatorProps {
@@ -15,19 +17,43 @@ interface PostAggregatorProps {
 }
 
 export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
-  const [selectedTag, setSelectedTag] = useState<ShowTag | null>(initialShowTags[0] || null)
+  const {
+    feedTags,
+    allAvailableTags,
+    isLoading: isFeedLoading,
+    isAnonymous,
+    addTagToFeed,
+    removeTagFromFeed,
+    migrateAnonymousFeed,
+  } = useFeedManager(initialShowTags)
+
+  const [selectedTag, setSelectedTag] = useState<ShowTag | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isManagerOpen, setIsManagerOpen] = useState(false)
+  const [isLoadingPosts, setIsLoadingPosts] = useState(true)
 
   const supabase = createClient()
 
+  // Set initial selected tag when feedTags loads
+  useEffect(() => {
+    if (!selectedTag && feedTags.length > 0) {
+      setSelectedTag(feedTags[0])
+    } else if (feedTags.length === 0) {
+      setSelectedTag(null)
+    }
+  }, [feedTags, selectedTag])
+
   // Fetch posts for selected tag
   useEffect(() => {
-    if (!selectedTag) return
+    if (!selectedTag) {
+      setPosts([])
+      setIsLoadingPosts(false)
+      return
+    }
 
     const fetchPosts = async () => {
-      setIsLoading(true)
+      setIsLoadingPosts(true)
       const { data } = await supabase
         .from("posts")
         .select(`
@@ -42,7 +68,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       if (data) {
         setPosts(data as Post[])
       }
-      setIsLoading(false)
+      setIsLoadingPosts(false)
     }
 
     fetchPosts()
@@ -112,10 +138,24 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
   }, [selectedTag, supabase])
 
+  // Show loading state if feed is still loading
+  if (isFeedLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
-      <ShowTagSidebar showTags={initialShowTags} selectedTag={selectedTag} onSelectTag={setSelectedTag} />
+      <ShowTagSidebar
+        feedTags={feedTags}
+        selectedTag={selectedTag}
+        onSelectTag={setSelectedTag}
+        onOpenManager={() => setIsManagerOpen(true)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -135,7 +175,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   Settings
                 </Link>
               </Button>
-              <Button onClick={() => setIsComposerOpen(true)} size="sm" className="gap-2">
+              <Button onClick={() => setIsComposerOpen(true)} size="sm" className="gap-2" disabled={!selectedTag}>
                 <PlusCircle className="h-4 w-4" />
                 New Post
               </Button>
@@ -145,8 +185,17 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
         {/* Feed */}
         <div className="flex-1 overflow-hidden">
-          {selectedTag ? (
-            <PostFeed posts={posts} isLoading={isLoading} />
+          {feedTags.length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <p className="text-muted-foreground mb-2">Your feed is empty.</p>
+                <Button onClick={() => setIsManagerOpen(true)} size="sm">
+                  Add Shows/Tags to Start
+                </Button>
+              </div>
+            </div>
+          ) : selectedTag ? (
+            <PostFeed posts={posts} isLoading={isLoadingPosts} />
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Select a show tag to see posts</p>
@@ -164,6 +213,20 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             setPosts((current) => [newPost, ...current])
             setIsComposerOpen(false)
           }}
+        />
+      )}
+
+      {/* Feed Management Modal */}
+      {isManagerOpen && (
+        <FeedManagementModal
+          isOpen={isManagerOpen}
+          onClose={() => setIsManagerOpen(false)}
+          feedTags={feedTags}
+          allAvailableTags={allAvailableTags}
+          isAnonymous={isAnonymous}
+          addTagToFeed={addTagToFeed}
+          removeTagFromFeed={removeTagFromFeed}
+          migrateAnonymousFeed={migrateAnonymousFeed}
         />
       )}
     </div>

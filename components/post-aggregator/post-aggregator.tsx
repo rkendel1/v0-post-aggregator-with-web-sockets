@@ -301,6 +301,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           isOpen={isRssModalOpen}
           onClose={() => setIsRssModalOpen(false)}
           initialRssFeeds={rssFeeds}
+          onImportSuccess={() => {
+            reloadProfile()
+            setIsRssModalOpen(false)
+          }}
         />
       )}
     </div>

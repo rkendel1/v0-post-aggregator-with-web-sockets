@@ -8,9 +8,10 @@ interface RssImportModalProps {
   isOpen: boolean
   onClose: () => void
   initialRssFeeds: UserRssFeed[]
+  onImportSuccess: () => void
 }
 
-export function RssImportModal({ isOpen, onClose, initialRssFeeds }: RssImportModalProps) {
+export function RssImportModal({ isOpen, onClose, initialRssFeeds, onImportSuccess }: RssImportModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col">
@@ -21,7 +22,7 @@ export function RssImportModal({ isOpen, onClose, initialRssFeeds }: RssImportMo
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto -mx-6 px-6">
-          <RssImportManager initialRssFeeds={initialRssFeeds} />
+          <RssImportManager initialRssFeeds={initialRssFeeds} onImportSuccess={onImportSuccess} />
         </div>
       </DialogContent>
     </Dialog>

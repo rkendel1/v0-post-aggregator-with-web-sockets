@@ -15,12 +15,13 @@ import { Badge } from "@/components/ui/badge"
 
 interface RssImportManagerProps {
   initialRssFeeds: UserRssFeed[]
+  onImportSuccess: () => void
 }
 
 // Hardcoded Edge Function URL structure
 const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
 
-export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
+export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImportManagerProps) {
   const [rssFeeds, setRssFeeds] = useState(initialRssFeeds)
   const [singleRssUrl, setSingleRssUrl] = useState("")
   const [isImporting, setIsImporting] = useState(false)
@@ -65,6 +66,7 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
 
       if (successfulImports.length > 0) {
         toast.success(`Successfully imported ${successfulImports.length} feed${successfulImports.length > 1 ? 's' : ''}.`)
+        onImportSuccess()
       }
       if (failedImports.length > 0) {
         toast.error(`Failed to import ${failedImports.length} feed${failedImports.length > 1 ? 's' : ''}.`)
@@ -72,9 +74,6 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
       if (skippedImports.length > 0) {
         toast(`Skipped ${skippedImports.length} feed${skippedImports.length > 1 ? 's' : ''} (already imported).`, { icon: '⚠️' })
       }
-
-      // Refresh data from server to get newly inserted feeds
-      router.refresh()
 
     } catch (error) {
       console.error("Import error:", error)

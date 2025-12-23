@@ -100,11 +100,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         updateLocalFeed([...currentIds, tagId])
       }
     } else if (user) {
-      // FIX 2: Correct chaining: insert().onConflict().select()
+      // FIX: Correct chaining by removing .select()
       const { error } = await supabase.from("tag_follows").insert({
         user_id: user.id,
         show_tag_id: tagId,
-      }).onConflict('user_id, show_tag_id').ignore().select()
+      }).onConflict('user_id, show_tag_id').ignore()
       
       if (!error) {
         const tagToAdd = initialShowTags.find(t => t.id === tagId)
@@ -148,9 +148,9 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       show_tag_id: tagId,
     }))
 
-    // FIX 3: Correct chaining: insert().onConflict().select()
+    // FIX: Correct chaining by removing .select()
     // Insert local tags, ignoring conflicts if the user already followed some tags server-side
-    const { error } = await supabase.from("tag_follows").insert(followsToInsert).onConflict('user_id, show_tag_id').ignore().select()
+    const { error } = await supabase.from("tag_follows").insert(followsToInsert).onConflict('user_id, show_tag_id').ignore()
 
     if (!error) {
       localStorage.removeItem(ANON_FEED_KEY)

@@ -12,6 +12,8 @@ import Link from "next/link"
 import { Toaster, toast } from "react-hot-toast"
 import { TagFollowButton } from "./tag-follow-button"
 import { User } from "@supabase/supabase-js"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { EpisodeCatalog } from "./episode-catalog"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -115,51 +117,62 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   return (
     <div className="flex flex-col h-screen">
       <Toaster position="bottom-right" />
-      <header className="border-b bg-card p-4 space-y-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:block">
             <Logo />
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <span>#{showTag.tag}</span>
-                <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                  <Rss className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </h1>
-              <p className="text-sm text-muted-foreground">{showTag.name}</p>
-            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {user && <TagFollowButton showTagId={showTag.id} />}
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">
-                <Home className="h-4 w-4 mr-2" />
-                Main Feed
-              </Link>
-            </Button>
-            <Button
-              onClick={() => setIsComposerOpen(true)}
-              size="sm"
-              className="gap-2"
-              disabled={!user}
-            >
-              <PlusCircle className="h-4 w-4" />
-              New Post
-            </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <span>#{showTag.tag}</span>
+              <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+                <Rss className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </h1>
+            <p className="text-sm text-muted-foreground">{showTag.name}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {user && <TagFollowButton showTagId={showTag.id} />}
+          <Button asChild variant="outline" size="sm">
+            <Link href="/">
+              <Home className="h-4 w-4 mr-2" />
+              Main Feed
+            </Link>
+          </Button>
+          <Button
+            onClick={() => setIsComposerOpen(true)}
+            size="sm"
+            className="gap-2"
+            disabled={!user}
+          >
+            <PlusCircle className="h-4 w-4" />
+            New Post
+          </Button>
         </div>
       </header>
 
-      <div className="flex-1 overflow-hidden">
-        <PostFeed
-          posts={posts}
-          isLoading={isLoadingPosts}
-          currentUser={user}
-          onPostDeleted={handlePostDeleted}
-          onPostHidden={handlePostHidden}
-          onInteractionAttempt={() => { /* Not implemented for this view */ }}
-        />
-      </div>
+      <Tabs defaultValue="feed" className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 pt-4 border-b">
+          <TabsList>
+            <TabsTrigger value="feed">Live Feed</TabsTrigger>
+            <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="feed" className="flex-1 overflow-hidden">
+          <PostFeed
+            posts={posts}
+            isLoading={isLoadingPosts}
+            currentUser={user}
+            onPostDeleted={handlePostDeleted}
+            onPostHidden={handlePostHidden}
+            onInteractionAttempt={() => { /* Not implemented for this view */ }}
+          />
+        </TabsContent>
+        <TabsContent value="catalog" className="flex-1 overflow-hidden">
+          <EpisodeCatalog showTagId={showTag.id} showTagSlug={showTag.tag} />
+        </TabsContent>
+      </Tabs>
 
       {isComposerOpen && user && profile && (
         <PostComposer showTag={showTag} profile={profile} onClose={() => setIsComposerOpen(false)} onPostCreated={(newPost) => {

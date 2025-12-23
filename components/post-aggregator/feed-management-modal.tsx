@@ -5,10 +5,12 @@ import type { ShowTag } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "cmdk"
-import { Check, Plus, X, Save, Loader2 } from "lucide-react"
+import { Check, Plus, X, Save, Loader2, Hash } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AuthModal } from "@/components/auth/auth-modal"
 import { Badge } from "@/components/ui/badge"
+import { createClient } from "@/lib/supabase/client"
+import toast from "react-hot-toast"
 
 interface FeedManagementModalProps {
   isOpen: boolean
@@ -33,8 +35,11 @@ export function FeedManagementModal({
 }: FeedManagementModalProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [search, setSearch] = useState("")
+  const supabase = createClient()
 
   const followedTagIds = useMemo(() => new Set(feedTags.map(t => t.id)), [feedTags])
+  const existingTagNames = useMemo(() => new Set(allAvailableTags.map(t => t.tag.toLowerCase())), [allAvailableTags])
 
   const handleToggleTag = async (tag: ShowTag) => {
     if (followedTagIds.has(tag.id)) {
@@ -42,7 +47,7 @@ export function FeedManagementModal({
     } else {
       // Limit anonymous users to 10 tags
       if (isAnonymous && followedTagIds.size >= 10) {
-        alert("Anonymous feeds are limited to 10 tags. Please sign up to follow more!")
+        toast.error("Anonymous feeds are limited to 10 tags. Please sign up to follow more!")
         return
       }
       await addTagToFeed(tag.id)
@@ -64,6 +69,61 @@ export function FeedManagementModal({
     setIsSaving(false)
     onClose()
   }
+
+  const handleCreateTag = async (newTag: string) => {
+    if (isAnonymous) {
+      toast.error("You must be signed in to create new tags.")
+      return
+    }
+    
+    if (existingTagNames.has(newTag.toLowerCase())) {
+      toast.error(`Tag #${newTag} already exists.`)
+      return
+    }
+
+    setIsSaving(true)
+    const loadingToast = toast.loading(`Creating tag #${newTag}...`)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("User not authenticated.")
+
+      // Insert new tag
+      const { data: newTagData, error: tagError } = await supabase
+        .from("show_tags")
+        .insert({
+          tag: newTag,
+          name: `User Created Tag: ${newTag}`,
+        })
+        .select()
+        .single()
+
+      if (tagError) throw tagError
+
+      // Automatically follow the newly created tag
+      await addTagToFeed(newTagData.id)
+      
+      toast.success(`Tag #${newTag} created and added to your feed!`)
+      setSearch("") // Clear search input
+      
+    } catch (error) {
+      console.error("Error creating tag:", error)
+      toast.error(`Failed to create tag: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      toast.dismiss(loadingToast)
+      setIsSaving(false)
+    }
+  }
+
+  const filteredTags = useMemo(() => {
+    if (!search) return allAvailableTags
+    const lowerSearch = search.toLowerCase()
+    return allAvailableTags.filter(tag => 
+      tag.tag.toLowerCase().includes(lowerSearch) || tag.name.toLowerCase().includes(lowerSearch)
+    )
+  }, [allAvailableTags, search])
+
+  const showCreateOption = search.trim() && !existingTagNames.has(search.trim().toLowerCase())
 
   return (
     <>
@@ -102,11 +162,29 @@ export function FeedManagementModal({
 
             {/* Tag Search */}
             <Command className="flex-1 overflow-hidden border rounded-lg">
-              <CommandInput placeholder="Search for shows or episode tags..." />
+              <CommandInput 
+                placeholder="Search for shows or episode tags..." 
+                value={search}
+                onValueChange={setSearch}
+              />
               <CommandList className="flex-1 overflow-y-auto">
-                <CommandEmpty>No results found.</CommandEmpty>
+                <CommandEmpty>
+                  {showCreateOption ? (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-left h-auto p-2"
+                      onClick={() => handleCreateTag(search.trim())}
+                      disabled={isSaving}
+                    >
+                      <Hash className="h-4 w-4 mr-2" />
+                      Create and follow new tag: <span className="font-bold ml-1">#{search.trim()}</span>
+                    </Button>
+                  ) : (
+                    "No results found."
+                  )}
+                </CommandEmpty>
                 <CommandGroup heading="Available Show Tags">
-                  {allAvailableTags.map((tag) => {
+                  {filteredTags.map((tag) => {
                     const isFollowed = followedTagIds.has(tag.id)
                     return (
                       <CommandItem

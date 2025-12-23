@@ -22,16 +22,16 @@ interface RssImportManagerProps {
 const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
 
 const topPodcasts = [
-  { name: "The Joe Rogan Experience", url: "https://feeds.megaphone.fm/the-joe-rogan-experience" },
+  { name: "The Daily", url: "https://feeds.simplecast.com/54nAGcIl" },
   { name: "Lex Fridman Podcast", url: "https://lexfridman.com/feed/" },
-  { name: "Huberman Lab", url: "https://feeds.megaphone.fm/huberman-lab" },
-  { name: "All-In Podcast", url: "https://feeds.simplecast.com/in_3f_jm" },
-  { name: "Armchair Expert", url: "https://feeds.simplecast.com/d_j0_x_D" },
+  { name: "Huberman Lab", url: "https://feeds.megaphone.fm/hubermanlab" },
+  { name: "All-In Podcast", url: "https://www.allinpodcast.co/podcast.xml" },
+  { name: "Crime Junkie", url: "https://feeds.simplecast.com/qm_9xx0g" },
   { name: "Darknet Diaries", url: "https://feeds.darknetdiaries.com/darknetdiaries.xml" },
   { name: "Acquired", url: "https://feeds.transistor.fm/acquired" },
-  { name: "Lenny's Podcast", url: "https://www.lennyspodcast.com/feed" },
-  { name: "Invest Like the Best", url: "https://feeds.simplecast.com/a_d4F_Yw" },
-  { name: "My First Million", url: "https://feeds.megaphone.fm/HSW3343435429" },
+  { name: "Lenny's Podcast", url: "https://feeds.transistor.fm/lennys-podcast" },
+  { name: "Invest Like the Best", url: "http://joincolossus.com/feed" },
+  { name: "My First Million", url: "https://feeds.transistor.fm/my-first-million" },
   { name: "SmartLess", url: "https://rss.art19.com/smartless" },
 ];
 

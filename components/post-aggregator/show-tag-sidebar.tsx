@@ -44,7 +44,7 @@ export function ShowTagSidebar({
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "podbridge.app"
 
   return (
-    <div className="w-64 border-r bg-card flex flex-col">
+    <div className="w-64 border-r bg-card flex flex-col h-full">
       {/* Logo Header */}
       <div className="p-4 border-b">
         <Logo />
@@ -105,13 +105,13 @@ export function ShowTagSidebar({
                         <Button
                           variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
                           className={cn(
-                            "w-full justify-start font-mono h-auto py-1.5 text-left",
+                            "flex-1 justify-start font-mono h-auto py-1.5 text-left min-w-0",
                             selectedFeedId === tag.id && "bg-secondary",
                           )}
                           onClick={() => onSelectFeed(tag.id)}
                         >
-                          <div className="flex flex-col items-start">
-                            <span className="font-bold">#{tag.tag}</span>
+                          <div className="flex flex-col items-start overflow-hidden">
+                            <span className="font-bold truncate">#{tag.tag}</span>
                             <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
                               {tag.name}
                             </span>

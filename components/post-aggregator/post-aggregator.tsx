@@ -9,7 +9,7 @@ import { PostComposer } from "./post-composer"
 import { FeedManagementModal } from "./feed-management-modal"
 import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Settings, Loader2, Rss } from "lucide-react"
+import { PlusCircle, Settings, Loader2, Rss, Menu } from "lucide-react"
 import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
@@ -17,6 +17,7 @@ import { AuthModal } from "@/components/auth/auth-modal"
 import { AuthPromptModal } from "@/components/auth/auth-prompt-modal"
 import { Toaster, toast } from "react-hot-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -51,6 +52,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isManagerOpen, setIsManagerOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const [authPrompt, setAuthPrompt] = useState({ open: false, message: "" })
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false)
@@ -228,39 +230,61 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <Toaster position="bottom-right" />
-      <ShowTagSidebar
-        feedTags={feedTags}
-        selectedFeedId={selectedFeedId}
-        onSelectFeed={(id) => {
-          if (requireUser("view your custom feed")) {
-            setActiveFeed("following")
-            setSelectedFeedId(id)
-          }
-        }}
-        onOpenManager={() => {
-          if (requireUser("manage your feed")) setIsManagerOpen(true)
-        }}
-      />
+      
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <ShowTagSidebar
+          feedTags={feedTags}
+          selectedFeedId={selectedFeedId}
+          onSelectFeed={(id) => {
+            if (requireUser("view your custom feed")) {
+              setActiveFeed("following")
+              setSelectedFeedId(id)
+              setIsSidebarOpen(false)
+            }
+          }}
+          onOpenManager={() => {
+            if (requireUser("manage your feed")) {
+              setIsManagerOpen(true)
+              setIsSidebarOpen(false)
+            }
+          }}
+        />
+      </div>
+      
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 md:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex-1 flex flex-col">
         <header className="border-b bg-card p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <span>
-                  {!user ? "Welcome" : activeFeed === "following" ? (selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag") : "For You"}
-                </span>
-                {selectedTag && (
-                  <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                    <Rss className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                )}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {!user ? "Discover the latest posts from the community" : activeFeed === "following" ? (selectedFeedId === "all" ? `Posts from ${feedTags.length} followed tags` : selectedTag?.name || "Choose a show tag to view posts") : "A curated feed of posts"}
-              </p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
+                <Menu className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <span>
+                    {!user ? "Welcome" : activeFeed === "following" ? (selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag") : "For You"}
+                  </span>
+                  {selectedTag && (
+                    <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+                      <Rss className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  )}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {!user ? "Discover the latest posts from the community" : activeFeed === "following" ? (selectedFeedId === "all" ? `Posts from ${feedTags.length} followed tags` : selectedTag?.name || "Choose a show tag to view posts") : "A curated feed of posts"}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {user && (

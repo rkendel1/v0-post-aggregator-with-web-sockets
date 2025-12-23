@@ -15,6 +15,7 @@ import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
 import { Toaster, toast } from "react-hot-toast"
 import { RssImportModal } from "@/components/settings/rss-import-modal"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -37,6 +38,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     reloadProfile,
   } = useFeedManager(initialShowTags)
 
+  const [activeFeed, setActiveFeed] = useState<"following" | "for-you">("following")
   const [selectedFeedId, setSelectedFeedId] = useState<string | "all" | null>("all")
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
@@ -48,9 +50,9 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   const feedTagIds = useMemo(() => feedTags.map((t) => t.id).join(","), [feedTags])
 
-  // Fetch posts for selected tag
+  // Fetch posts
   useEffect(() => {
-    if (!selectedFeedId) {
+    if (activeFeed === "following" && !selectedFeedId) {
       setPosts([])
       setIsLoadingPosts(false)
       return
@@ -59,7 +61,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     const fetchPosts = async () => {
       setIsLoadingPosts(true)
 
-      // Fetch IDs of hidden posts for the current user
       let hiddenPostIds: string[] = []
       if (user) {
         const { data: hiddenPosts } = await supabase.from("hidden_posts").select("post_id").eq("user_id", user.id)
@@ -80,20 +81,24 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         )
         .order("created_at", { ascending: false })
 
-      if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",") : []
-        if (tagIds.length > 0) {
-          query.in("show_tag_id", tagIds)
+      if (activeFeed === "following") {
+        if (selectedFeedId === "all") {
+          const tagIds = feedTagIds ? feedTagIds.split(",") : []
+          if (tagIds.length > 0) {
+            query.in("show_tag_id", tagIds)
+          } else {
+            setPosts([])
+            setIsLoadingPosts(false)
+            return
+          }
         } else {
-          setPosts([])
-          setIsLoadingPosts(false)
-          return
+          query.eq("show_tag_id", selectedFeedId)
         }
       } else {
-        query.eq("show_tag_id", selectedFeedId)
+        // "For You" feed
+        query.limit(50)
       }
 
-      // Exclude hidden posts from the query
       if (hiddenPostIds.length > 0) {
         query.not("id", "in", `(${hiddenPostIds.join(",")})`)
       }
@@ -107,99 +112,83 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [selectedFeedId, feedTagIds, supabase, user])
+  }, [activeFeed, selectedFeedId, feedTagIds, supabase, user])
 
   // Subscribe to real-time updates
   useEffect(() => {
-    if (!selectedFeedId) return
+    if (activeFeed === "following" && !selectedFeedId) return
 
     const tagIds = feedTagIds ? feedTagIds.split(",") : []
-    if (selectedFeedId === "all" && tagIds.length === 0) {
+    if (activeFeed === "following" && selectedFeedId === "all" && tagIds.length === 0) {
       return
     }
 
-    const filter =
-      selectedFeedId === "all" ? `show_tag_id=in.(${tagIds.join(",")})` : `show_tag_id=eq.${selectedFeedId}`
+    const channelName = `posts:${activeFeed}:${selectedFeedId || "all"}`
+    let filter: string | undefined = undefined
+
+    if (activeFeed === "following") {
+      filter =
+        selectedFeedId === "all" ? `show_tag_id=in.(${tagIds.join(",")})` : `show_tag_id=eq.${selectedFeedId}`
+    }
+
+    const handleInsert = async (payload: any) => {
+      const { data } = await supabase
+        .from("posts")
+        .select(
+          `
+          *,
+          show_tags (*),
+          sources (*),
+          comment_counts (*)
+        `,
+        )
+        .eq("id", payload.new.id)
+        .single()
+
+      if (data) {
+        setPosts((current) => {
+          if (current.some((p) => p.id === (data as Post).id)) {
+            return current
+          }
+          return [data as Post, ...current]
+        })
+      }
+    }
+
+    const handleUpdate = async (payload: any) => {
+      const { data } = await supabase
+        .from("posts")
+        .select(
+          `
+          *,
+          show_tags (*),
+          sources (*),
+          comment_counts (*)
+        `,
+        )
+        .eq("id", payload.new.id)
+        .single()
+
+      if (data) {
+        setPosts((current) => current.map((post) => (post.id === payload.new.id ? (data as Post) : post)))
+      }
+    }
+
+    const handleDelete = (payload: any) => {
+      setPosts((current) => current.filter((post) => post.id !== payload.old.id))
+    }
 
     const channel = supabase
-      .channel(`posts:${selectedFeedId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "posts",
-          filter: filter,
-        },
-        async (payload) => {
-          const { data } = await supabase
-            .from("posts")
-            .select(
-              `
-              *,
-              show_tags (*),
-              sources (*),
-              comment_counts (*)
-            `,
-            )
-            .eq("id", payload.new.id)
-            .single()
-
-          if (data) {
-            setPosts((current) => {
-              if (current.some((p) => p.id === (data as Post).id)) {
-                return current
-              }
-              return [data as Post, ...current]
-            })
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "posts",
-          filter: filter,
-        },
-        async (payload) => {
-          const { data } = await supabase
-            .from("posts")
-            .select(
-              `
-              *,
-              show_tags (*),
-              sources (*),
-              comment_counts (*)
-            `,
-            )
-            .eq("id", payload.new.id)
-            .single()
-
-          if (data) {
-            setPosts((current) => current.map((post) => (post.id === payload.new.id ? (data as Post) : post)))
-          }
-        },
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "posts",
-          filter: filter,
-        },
-        (payload) => {
-          setPosts((current) => current.filter((post) => post.id !== payload.old.id))
-        },
-      )
+      .channel(channelName)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts", filter }, handleInsert)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "posts", filter }, handleUpdate)
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "posts", filter }, handleDelete)
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [selectedFeedId, feedTagIds, supabase])
+  }, [activeFeed, selectedFeedId, feedTagIds, supabase])
 
   const handlePostDeleted = (postId: string) => {
     setPosts((current) => current.filter((post) => post.id !== postId))
@@ -207,22 +196,9 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   const handlePostHidden = async (postId: string) => {
     if (!user) return
-
-    // Optimistically remove the post from the UI
     setPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")
-
-    // Persist the change to the database
-    const { error } = await supabase.from("hidden_posts").insert({
-      user_id: user.id,
-      post_id: postId,
-    })
-
-    if (error) {
-      toast.error("Failed to hide post permanently.")
-      console.error("Error hiding post:", error)
-      // In a real app, you might want to revert the optimistic update here
-    }
+    await supabase.from("hidden_posts").insert({ user_id: user.id, post_id: postId })
   }
 
   if (isFeedLoading) {
@@ -260,22 +236,33 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       <ShowTagSidebar
         feedTags={feedTags}
         selectedFeedId={selectedFeedId}
-        onSelectFeed={setSelectedFeedId}
+        onSelectFeed={(id) => {
+          setActiveFeed("following")
+          setSelectedFeedId(id)
+        }}
         onOpenManager={() => setIsManagerOpen(true)}
         onOpenRssImporter={() => setIsRssModalOpen(true)}
       />
 
       <div className="flex-1 flex flex-col">
-        <header className="border-b bg-card">
-          <div className="flex items-center justify-between p-4">
+        <header className="border-b bg-card p-4 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-foreground">
-                {selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag"}
+                {activeFeed === "following"
+                  ? selectedFeedId === "all"
+                    ? "All Feeds"
+                    : selectedTag
+                    ? `#${selectedTag.tag}`
+                    : "Select a tag"
+                  : "For You"}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {selectedFeedId === "all"
-                  ? `Posts from ${feedTags.length} followed tags`
-                  : selectedTag?.name || "Choose a show tag to view posts"}
+                {activeFeed === "following"
+                  ? selectedFeedId === "all"
+                    ? `Posts from ${feedTags.length} followed tags`
+                    : selectedTag?.name || "Choose a show tag to view posts"
+                  : "A curated feed of posts from across the platform"}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -285,16 +272,31 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   Settings
                 </Link>
               </Button>
-              <Button onClick={() => setIsComposerOpen(true)} size="sm" className="gap-2" disabled={!selectedTag}>
+              <Button
+                onClick={() => setIsComposerOpen(true)}
+                size="sm"
+                className="gap-2"
+                disabled={activeFeed === "for-you" || (activeFeed === "following" && !selectedTag)}
+              >
                 <PlusCircle className="h-4 w-4" />
                 New Post
               </Button>
             </div>
           </div>
+          <Tabs
+            value={activeFeed}
+            onValueChange={(value) => setActiveFeed(value as "following" | "for-you")}
+            className="w-full"
+          >
+            <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2">
+              <TabsTrigger value="following">Following</TabsTrigger>
+              <TabsTrigger value="for-you">For You</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </header>
 
         <div className="flex-1 overflow-hidden">
-          {feedTags.length === 0 ? (
+          {activeFeed === "following" && feedTags.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <p className="text-muted-foreground mb-2">Your feed is empty.</p>
@@ -303,7 +305,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                 </Button>
               </div>
             </div>
-          ) : selectedFeedId ? (
+          ) : selectedFeedId || activeFeed === "for-you" ? (
             <PostFeed
               posts={posts}
               isLoading={isLoadingPosts}
@@ -326,12 +328,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           onClose={() => setIsComposerOpen(false)}
           onPostCreated={(newPost) => {
             if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
-              setPosts((current) => {
-                if (current.some((p) => p.id === newPost.id)) {
-                  return current
-                }
-                return [newPost, ...current]
-              })
+              setPosts((current) => [newPost, ...current])
             }
             setIsComposerOpen(false)
           }}

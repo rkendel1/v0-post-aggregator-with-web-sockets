@@ -156,10 +156,10 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
           )}
           {user && <TagFollowButton showTagId={showTag.id} />}
           <Button asChild variant="outline" size="sm">
-            <Link href="/">
+            <a href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'}`}>
               <Home className="h-4 w-4 mr-2" />
               Main Feed
-            </Link>
+            </a>
           </Button>
           <Button
             onClick={() => setIsComposerOpen(true)}

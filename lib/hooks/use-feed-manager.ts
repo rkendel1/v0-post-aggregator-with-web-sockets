@@ -110,15 +110,15 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
 
   useEffect(() => {
     loadDataForUser(user)
-  }, [user, loadDataForUser])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, loadDataForUser])
 
   const reloadProfile = useCallback(async () => {
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser()
     setUser(currentUser)
-    await loadDataForUser(currentUser)
-  }, [supabase, loadDataForUser])
+  }, [supabase])
 
   const addNewAvailableTag = useCallback((tag: ShowTag) => {
     setAllAvailableTags((current) => {

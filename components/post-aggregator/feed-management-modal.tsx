@@ -73,12 +73,8 @@ export function FeedManagementModal({
   }
 
   const handleCreateTag = async (newTag: string) => {
-    if (isAnonymous) {
-      toast.error("You must be signed in to create new tags.")
-      return
-    }
-    
     const normalizedTag = newTag.trim()
+    
     if (existingTagNames.has(normalizedTag.toLowerCase())) {
       toast.error(`Tag #${normalizedTag} already exists.`)
       return
@@ -88,10 +84,7 @@ export function FeedManagementModal({
     const loadingToast = toast.loading(`Creating tag #${normalizedTag}...`)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("User not authenticated.")
-
-      // Insert new tag
+      // Insert new tag (RLS now allows anon users)
       const { data: newTagData, error: tagError } = await supabase
         .from("show_tags")
         .insert({
@@ -106,7 +99,7 @@ export function FeedManagementModal({
       // 1. Update the list of all available tags in the parent hook state
       addNewAvailableTag(newTagData as ShowTag)
 
-      // 2. Automatically follow the newly created tag
+      // 2. Automatically follow the newly created tag (this handles anon/auth logic internally)
       await addTagToFeed(newTagData.id)
       
       toast.success(`Tag #${normalizedTag} created and added to your feed!`)

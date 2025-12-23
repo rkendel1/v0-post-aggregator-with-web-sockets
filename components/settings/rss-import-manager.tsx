@@ -12,6 +12,7 @@ import { parseOpml } from "@/lib/utils/opml-parser"
 import { UserRssFeed } from "@/lib/types"
 import toast from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
+import { formatDistanceToNow } from "date-fns"
 
 interface RssImportManagerProps {
   initialRssFeeds: UserRssFeed[]
@@ -25,6 +26,7 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
   const [rssFeeds, setRssFeeds] = useState(initialRssFeeds)
   const [singleRssUrl, setSingleRssUrl] = useState("")
   const [isImporting, setIsImporting] = useState(false)
+  const [refreshingFeedId, setRefreshingFeedId] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -32,10 +34,15 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
     setRssFeeds(initialRssFeeds)
   }, [initialRssFeeds])
 
-  const handleImportRss = async (urls: string[]) => {
+  const handleImportRss = async (urls: string[], feedIdToRefresh?: string) => {
     if (urls.length === 0) return
 
-    setIsImporting(true)
+    if (feedIdToRefresh) {
+      setRefreshingFeedId(feedIdToRefresh)
+    } else {
+      setIsImporting(true)
+    }
+    
     const loadingToast = toast.loading(`Importing ${urls.length} feed${urls.length > 1 ? 's' : ''}...`)
 
     try {
@@ -81,6 +88,7 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
     } finally {
       toast.dismiss(loadingToast)
       setIsImporting(false)
+      setRefreshingFeedId(null)
       setSingleRssUrl("")
     }
   }
@@ -186,14 +194,20 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
                   <div className="font-medium">{feed.title}</div>
                   <div className="text-xs text-muted-foreground truncate max-w-xs">{feed.rss_url}</div>
                   <Badge variant="outline" className="mt-1 w-fit text-[10px] h-4">
-                    Last Synced: {feed.last_fetched_at ? new Date(feed.last_fetched_at).toLocaleDateString() : 'Never'}
+                    Last Synced: {feed.last_fetched_at ? `${formatDistanceToNow(new Date(feed.last_fetched_at))} ago` : 'Never'}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" disabled={isImporting} title="Manually Refresh">
-                    <RefreshCw className="h-4 w-4" />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    disabled={isImporting || !!refreshingFeedId} 
+                    title="Manually Refresh"
+                    onClick={() => handleImportRss([feed.rss_url], feed.id)}
+                  >
+                    {refreshingFeedId === feed.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteFeed(feed.id)} disabled={isImporting} title="Remove Feed">
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteFeed(feed.id)} disabled={isImporting || !!refreshingFeedId} title="Remove Feed">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>

@@ -83,8 +83,15 @@ serve(async (req: Request) => {
         if (tagError) throw new Error(`Failed to create tag: ${tagError.message}`)
         const show_tag_id = tagData.id
 
-        await supabase.from('tag_follows').upsert({ user_id, show_tag_id })
-        await supabase.from('user_rss_feeds').upsert({ user_id, rss_url: url, title: feedTitle })
+        await supabase.from('tag_follows').upsert({ user_id, show_tag_id }, { onConflict: 'user_id,show_tag_id' })
+        
+        // Update the user_rss_feeds table with the last_fetched_at timestamp
+        await supabase.from('user_rss_feeds').upsert({ 
+          user_id, 
+          rss_url: url, 
+          title: feedTitle,
+          last_fetched_at: new Date().toISOString()
+        }, { onConflict: 'user_id,rss_url' })
 
         const { data: existingPosts } = await supabase
           .from('posts')

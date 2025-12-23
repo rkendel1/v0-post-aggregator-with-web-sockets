@@ -33,13 +33,13 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
         .select("id")
         .eq("follower_id", user.id)
         .eq("following_id", userId)
-        .single()
+        .limit(1)
 
-      setIsFollowing(!!data)
+      setIsFollowing(!!data && data.length > 0)
     }
 
     checkFollowStatus()
-  }, [userId, supabase])
+  }, [userId])
 
   const handleToggleFollow = async () => {
     if (!currentUserId || currentUserId === userId) return

@@ -29,13 +29,13 @@ export function SavePostButton({ postId, className, onToggle }: SavePostButtonPr
         .select("id")
         .eq("user_id", user.id)
         .eq("post_id", postId)
-        .single()
+        .limit(1)
 
-      setIsSaved(!!data)
+      setIsSaved(!!data && data.length > 0)
     }
 
     checkSaveStatus()
-  }, [postId, supabase])
+  }, [postId])
 
   const handleToggleSave = async () => {
     const {

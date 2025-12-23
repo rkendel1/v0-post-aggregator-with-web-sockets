@@ -30,13 +30,13 @@ export function TagFollowButton({ showTagId, variant = "outline", size = "sm", c
         .select("id")
         .eq("user_id", user.id)
         .eq("show_tag_id", showTagId)
-        .single()
+        .limit(1)
 
-      setIsFollowing(!!data)
+      setIsFollowing(!!data && data.length > 0)
     }
 
     checkFollowStatus()
-  }, [showTagId, supabase])
+  }, [showTagId])
 
   const handleToggleFollow = async () => {
     const {

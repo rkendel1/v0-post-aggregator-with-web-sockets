@@ -31,7 +31,7 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
     }
 
     fetchReactionTypes()
-  }, [supabase])
+  }, [])
 
   // Fetch user's current reaction
   useEffect(() => {
@@ -49,15 +49,17 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
         query.eq("comment_id", commentId)
       }
 
-      const { data } = await query.single()
+      const { data } = await query.limit(1)
 
-      if (data) {
-        setUserReaction(data.reaction_type_id)
+      if (data && data.length > 0) {
+        setUserReaction(data[0].reaction_type_id)
+      } else {
+        setUserReaction(null)
       }
     }
 
     fetchUserReaction()
-  }, [postId, commentId, supabase])
+  }, [postId, commentId])
 
   const handleReaction = async (reactionTypeId: string) => {
     const {

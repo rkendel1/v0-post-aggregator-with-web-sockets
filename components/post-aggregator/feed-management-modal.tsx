@@ -100,6 +100,7 @@ export function FeedManagementModal({
         .insert({
           tag: normalizedTag,
           name: `User Created Tag: ${normalizedTag}`,
+          category: 'User Created',
         })
         .select()
         .single()
@@ -128,6 +129,22 @@ export function FeedManagementModal({
       tag.tag.toLowerCase().includes(lowerSearch) || tag.name.toLowerCase().includes(lowerSearch)
     )
   }, [allAvailableTags, search])
+
+  const groupedTags = useMemo(() => {
+    const groups: { [key: string]: ShowTag[] } = {}
+    filteredTags.forEach(tag => {
+      const category = tag.category || 'Uncategorized'
+      if (!groups[category]) {
+        groups[category] = []
+      }
+      groups[category].push(tag)
+    })
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Uncategorized') return 1
+      if (b === 'Uncategorized') return -1
+      return a.localeCompare(b)
+    })
+  }, [filteredTags])
 
   const showCreateOption = search.trim() && !existingTagNames.has(search.trim().toLowerCase())
 
@@ -187,27 +204,29 @@ export function FeedManagementModal({
                     "No results found."
                   )}
                 </CommandEmpty>
-                <CommandGroup heading="Available Show Tags">
-                  {filteredTags.map((tag) => {
-                    const isFollowed = followedTagIds.has(tag.id)
-                    return (
-                      <CommandItem
-                        key={tag.id}
-                        value={tag.tag}
-                        onSelect={() => handleToggleTag(tag)}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">#{tag.tag}</span>
-                          <span className="text-xs text-muted-foreground">{tag.name}</span>
-                        </div>
-                        <Button variant="ghost" size="icon-sm" className={cn(isFollowed ? "text-primary" : "text-muted-foreground")}>
-                          {isFollowed ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                        </Button>
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
+                {groupedTags.map(([category, tags]) => (
+                  <CommandGroup key={category} heading={category}>
+                    {tags.map((tag) => {
+                      const isFollowed = followedTagIds.has(tag.id)
+                      return (
+                        <CommandItem
+                          key={tag.id}
+                          value={`${tag.tag} ${tag.name}`}
+                          onSelect={() => handleToggleTag(tag)}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium">#{tag.tag}</span>
+                            <span className="text-xs text-muted-foreground">{tag.name}</span>
+                          </div>
+                          <Button variant="ghost" size="icon-sm" className={cn(isFollowed ? "text-primary" : "text-muted-foreground")}>
+                            {isFollowed ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                          </Button>
+                        </CommandItem>
+                      )
+                    })}
+                  </CommandGroup>
+                ))}
               </CommandList>
             </Command>
           </div>

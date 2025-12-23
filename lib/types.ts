@@ -3,6 +3,7 @@ export interface ShowTag {
   tag: string
   name: string
   created_at: string
+  category?: string | null
 }
 
 export interface Source {

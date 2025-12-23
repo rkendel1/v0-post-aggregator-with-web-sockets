@@ -1,9 +1,10 @@
 import React from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 export function Logo() {
   return (
-    <div className="flex items-center justify-center h-12">
+    <Link href="/" className="flex items-center justify-center h-12">
       {/* Light mode logo (black text on light background) */}
       <Image
         src="/pb_black.PNG"
@@ -24,6 +25,6 @@ export function Logo() {
         priority
         unoptimized
       />
-    </div>
+    </Link>
   )
 }

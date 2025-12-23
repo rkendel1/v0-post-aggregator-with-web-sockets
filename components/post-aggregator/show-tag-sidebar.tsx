@@ -4,7 +4,7 @@ import type { ShowTag } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic } from "lucide-react"
+import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic, ExternalLink } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 
@@ -99,22 +99,33 @@ export function ShowTagSidebar({
                       {category}
                     </h3>
                     {groupedTags[category].map((tag) => (
-                      <Button
-                        key={tag.id}
-                        variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
-                        className={cn(
-                          "w-full justify-start font-mono h-auto py-1.5",
-                          selectedFeedId === tag.id && "bg-secondary",
-                        )}
-                        onClick={() => onSelectFeed(tag.id)}
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-bold">#{tag.tag}</span>
-                          <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
-                            {tag.name}
-                          </span>
-                        </div>
-                      </Button>
+                      <div key={tag.id} className="flex items-center w-full group pr-2">
+                        <Button
+                          variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
+                          className={cn(
+                            "w-full justify-start font-mono h-auto py-1.5 text-left",
+                            selectedFeedId === tag.id && "bg-secondary",
+                          )}
+                          onClick={() => onSelectFeed(tag.id)}
+                        >
+                          <div className="flex flex-col items-start">
+                            <span className="font-bold">#{tag.tag}</span>
+                            <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
+                              {tag.name}
+                            </span>
+                          </div>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon-sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        >
+                          <Link href={`/show/${tag.tag.toLowerCase()}`} title={`Go to #${tag.tag} page`}>
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 ))}

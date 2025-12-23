@@ -25,6 +25,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     addTagToFeed,
     removeTagFromFeed,
     migrateAnonymousFeed,
+    addNewAvailableTag, // <-- New function
   } = useFeedManager(initialShowTags)
 
   const [selectedTag, setSelectedTag] = useState<ShowTag | null>(null)
@@ -227,6 +228,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
           migrateAnonymousFeed={migrateAnonymousFeed}
+          addNewAvailableTag={addNewAvailableTag} // <-- Pass new function
         />
       )}
     </div>

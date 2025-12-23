@@ -21,6 +21,7 @@ interface FeedManagementModalProps {
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
   migrateAnonymousFeed: () => Promise<void>
+  addNewAvailableTag: (tag: ShowTag) => void // <-- New prop
 }
 
 export function FeedManagementModal({
@@ -32,6 +33,7 @@ export function FeedManagementModal({
   addTagToFeed,
   removeTagFromFeed,
   migrateAnonymousFeed,
+  addNewAvailableTag, // <-- Destructure new prop
 }: FeedManagementModalProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -76,13 +78,14 @@ export function FeedManagementModal({
       return
     }
     
-    if (existingTagNames.has(newTag.toLowerCase())) {
-      toast.error(`Tag #${newTag} already exists.`)
+    const normalizedTag = newTag.trim()
+    if (existingTagNames.has(normalizedTag.toLowerCase())) {
+      toast.error(`Tag #${normalizedTag} already exists.`)
       return
     }
 
     setIsSaving(true)
-    const loadingToast = toast.loading(`Creating tag #${newTag}...`)
+    const loadingToast = toast.loading(`Creating tag #${normalizedTag}...`)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -92,18 +95,21 @@ export function FeedManagementModal({
       const { data: newTagData, error: tagError } = await supabase
         .from("show_tags")
         .insert({
-          tag: newTag,
-          name: `User Created Tag: ${newTag}`,
+          tag: normalizedTag,
+          name: `User Created Tag: ${normalizedTag}`,
         })
         .select()
         .single()
 
       if (tagError) throw tagError
 
-      // Automatically follow the newly created tag
+      // 1. Update the list of all available tags in the parent hook state
+      addNewAvailableTag(newTagData as ShowTag)
+
+      // 2. Automatically follow the newly created tag
       await addTagToFeed(newTagData.id)
       
-      toast.success(`Tag #${newTag} created and added to your feed!`)
+      toast.success(`Tag #${normalizedTag} created and added to your feed!`)
       setSearch("") // Clear search input
       
     } catch (error) {

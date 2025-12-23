@@ -17,6 +17,7 @@ interface FeedManager {
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
   migrateAnonymousFeed: () => Promise<void>
+  addNewAvailableTag: (tag: ShowTag) => void // New function
 }
 
 // Helper type guard for nested data structure
@@ -27,6 +28,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [feedTags, setFeedTags] = useState<ShowTag[]>([])
+  const [allAvailableTags, setAllAvailableTags] = useState<ShowTag[]>(initialShowTags) // Manage available tags internally
   const [isLoading, setIsLoading] = useState(true)
 
   const isAnonymous = user === null
@@ -64,11 +66,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     } else {
       // Anonymous: Load local storage feed
       const localTagIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
-      const tags = initialShowTags.filter(tag => localTagIds.includes(tag.id))
+      const tags = allAvailableTags.filter(tag => localTagIds.includes(tag.id))
       setFeedTags(tags)
     }
     setIsLoading(false)
-  }, [supabase, initialShowTags])
+  }, [supabase, allAvailableTags]) // Dependency updated to use internal state
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -89,11 +91,23 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
 
   const updateLocalFeed = (newTagIds: string[]) => {
     localStorage.setItem(ANON_FEED_KEY, JSON.stringify(newTagIds))
-    const newTags = initialShowTags.filter(tag => newTagIds.includes(tag.id))
+    const newTags = allAvailableTags.filter(tag => newTagIds.includes(tag.id))
     setFeedTags(newTags)
   }
 
+  const addNewAvailableTag = useCallback((tag: ShowTag) => {
+    setAllAvailableTags(current => {
+      if (!current.some(t => t.id === tag.id)) {
+        return [...current, tag]
+      }
+      return current
+    })
+  }, [])
+
   const addTagToFeed = async (tagId: string) => {
+    const tagToAdd = allAvailableTags.find(t => t.id === tagId)
+    if (!tagToAdd) return
+
     if (isAnonymous) {
       const currentIds = JSON.parse(localStorage.getItem(ANON_FEED_KEY) || '[]') as string[]
       if (!currentIds.includes(tagId)) {
@@ -107,15 +121,12 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       }) as any).onConflict('user_id, show_tag_id').ignore()
       
       if (!error) {
-        const tagToAdd = initialShowTags.find(t => t.id === tagId)
-        if (tagToAdd) {
-          setFeedTags(current => {
-            if (!current.some(t => t.id === tagId)) {
-              return [...current, tagToAdd]
-            }
-            return current
-          })
-        }
+        setFeedTags(current => {
+          if (!current.some(t => t.id === tagId)) {
+            return [...current, tagToAdd]
+          }
+          return current
+        })
       }
     }
   }
@@ -165,11 +176,12 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     user,
     profile,
     feedTags,
-    allAvailableTags: initialShowTags,
+    allAvailableTags,
     isLoading,
     isAnonymous,
     addTagToFeed,
     removeTagFromFeed,
     migrateAnonymousFeed,
+    addNewAvailableTag,
   }
 }

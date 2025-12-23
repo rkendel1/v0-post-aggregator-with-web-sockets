@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, Link2, Loader2, Trash2, RefreshCw } from "lucide-react"
+import { Upload, Link2, Loader2, Trash2, RefreshCw, Rss } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { parseOpml } from "@/lib/utils/opml-parser"
@@ -21,10 +21,24 @@ interface RssImportManagerProps {
 // Hardcoded Edge Function URL structure
 const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
 
+const topPodcasts = [
+  { name: "The Joe Rogan Experience", url: "https://feeds.megaphone.fm/the-joe-rogan-experience" },
+  { name: "Lex Fridman Podcast", url: "https://lexfridman.com/feed/" },
+  { name: "Huberman Lab", url: "https://feeds.megaphone.fm/huberman-lab" },
+  { name: "All-In Podcast", url: "https://feeds.simplecast.com/in_3f_jm" },
+  { name: "Darknet Diaries", url: "https://feeds.darknetdiaries.com/darknetdiaries.xml" },
+  { name: "Acquired", url: "https://feeds.transistor.fm/acquired" },
+  { name: "Lenny's Podcast", url: "https://www.lennyspodcast.com/feed" },
+  { name: "Invest Like the Best", url: "https://feeds.simplecast.com/a_d4F_Yw" },
+  { name: "My First Million", url: "https://feeds.megaphone.fm/HSW3343435429" },
+  { name: "SmartLess", url: "https://rss.art19.com/smartless" },
+];
+
 export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
   const [rssFeeds, setRssFeeds] = useState(initialRssFeeds)
   const [singleRssUrl, setSingleRssUrl] = useState("")
   const [isImporting, setIsImporting] = useState(false)
+  const [isSeeding, setIsSeeding] = useState(false)
   const [refreshingFeedId, setRefreshingFeedId] = useState<string | null>(null)
   const router = useRouter()
   const [supabase] = useState(() => createClient())
@@ -128,8 +142,28 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
     router.refresh()
   }
 
+  const handleSeedPodcasts = async () => {
+    setIsSeeding(true);
+    const urls = topPodcasts.map(p => p.url);
+    await handleImportRss(urls);
+    setIsSeeding(false);
+  }
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Seed Popular Podcasts</CardTitle>
+          <CardDescription>Quickly import the top 10 podcasts to populate your feed with content and episode catalogs.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={handleSeedPodcasts} disabled={isSeeding || isImporting}>
+            {isSeeding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Rss className="h-4 w-4 mr-2" />}
+            Import Top 10 Podcasts
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Content Sources</CardTitle>

@@ -35,8 +35,11 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host')!
 
-  // Use an environment variable for the root domain.
-  // You'll need to set this in your Vercel project settings.
+  // Special handling for localhost to prevent rewrite
+  if (hostname.startsWith('localhost')) {
+    return response
+  }
+
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
 
   // If the request is for the root domain or www, do nothing.

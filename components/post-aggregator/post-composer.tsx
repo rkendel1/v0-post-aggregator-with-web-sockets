@@ -104,7 +104,8 @@ export function PostComposer({ showTag, profile, onClose, onPostCreated }: PostC
           *,
           show_tags (*),
           sources (*),
-          comment_counts (*)
+          comment_counts (*),
+          reaction_counts (*, reaction_types (*))
         `)
         .single()
 

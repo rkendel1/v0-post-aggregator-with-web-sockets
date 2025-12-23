@@ -4,6 +4,7 @@ export interface ShowTag {
   name: string
   created_at: string
   category?: string | null
+  claimed_by_user_id?: string | null
 }
 
 export interface Source {

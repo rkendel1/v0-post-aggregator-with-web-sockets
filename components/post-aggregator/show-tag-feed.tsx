@@ -6,7 +6,7 @@ import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Rss, Home } from "lucide-react"
+import { PlusCircle, Rss, Home, BadgeCheck } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Toaster, toast } from "react-hot-toast"
@@ -14,6 +14,7 @@ import { TagFollowButton } from "./tag-follow-button"
 import { User } from "@supabase/supabase-js"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
+import { ClaimPageModal } from "./claim-page-modal"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -30,6 +31,7 @@ const POST_SELECT_QUERY = `
 export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -125,6 +127,7 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
               <span>#{showTag.tag}</span>
+              {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
               <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
                 <Rss className="h-4 w-4 text-muted-foreground" />
               </Button>
@@ -133,6 +136,11 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {user && !showTag.claimed_by_user_id && (
+            <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)}>
+              Claim this page
+            </Button>
+          )}
           {user && <TagFollowButton showTagId={showTag.id} />}
           <Button asChild variant="outline" size="sm">
             <Link href="/">
@@ -179,6 +187,15 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
           setPosts((current) => [newPost, ...current])
           setIsComposerOpen(false)
         }} />
+      )}
+
+      {isClaimModalOpen && user && (
+        <ClaimPageModal
+          isOpen={isClaimModalOpen}
+          onClose={() => setIsClaimModalOpen(false)}
+          showTag={showTag}
+          user={user}
+        />
       )}
     </div>
   )

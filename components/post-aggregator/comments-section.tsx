@@ -22,15 +22,6 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [replyContent, setReplyContent] = useState("")
   const [supabase] = useState(() => createClient())
 
-  const allCommentIds = useMemo(() => {
-    const ids = new Set<string>()
-    comments.forEach((comment) => {
-      ids.add(comment.id)
-      comment.replies?.forEach((reply) => ids.add(reply.id))
-    })
-    return ids
-  }, [comments])
-
   const fetchComments = useCallback(async () => {
     const { data } = await supabase
       .from("comments")
@@ -74,26 +65,28 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   // Subscribe to real-time updates
   useEffect(() => {
     const commentsChannel = supabase
-      .channel(`comments:post_id=eq.${postId}`)
+      .channel(`public:comments:post_id=eq.${postId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` },
         () => {
-          // Refetch all comments on any change to ensure consistency for all clients
           fetchComments()
         },
       )
       .subscribe()
 
     const reactionsChannel = supabase
-      .channel(`reactions:post_id=eq.${postId}`)
+      .channel(`public:reaction_counts:comments`)
       .on<ReactionCount>(
         "postgres_changes",
-        { event: "*", schema: "public", table: "reaction_counts" },
+        {
+          event: "*",
+          schema: "public",
+          table: "reaction_counts",
+        },
         (payload) => {
-          const newRecord = payload.new as Partial<ReactionCount>
-          // Check if the reaction is for a comment that is currently displayed
-          if (newRecord.comment_id && allCommentIds.has(newRecord.comment_id)) {
+          const record = payload.new as Partial<ReactionCount>
+          if (record.comment_id) {
             fetchComments()
           }
         },
@@ -104,7 +97,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
       supabase.removeChannel(commentsChannel)
       supabase.removeChannel(reactionsChannel)
     }
-  }, [postId, supabase, fetchComments, allCommentIds])
+  }, [postId, supabase, fetchComments])
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return

@@ -128,10 +128,15 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
     const tagToAdd = allAvailableTags.find(t => t.id === tagId)
     if (!tagToAdd || !user) return
 
-    const { error } = await (supabase.from("tag_follows").insert({
-      user_id: user.id,
-      show_tag_id: tagId,
-    }) as any).onConflict('user_id, show_tag_id').ignore()
+    const { error } = await supabase
+      .from("tag_follows")
+      .upsert({
+        user_id: user.id,
+        show_tag_id: tagId,
+      }, {
+        onConflict: 'user_id,show_tag_id',
+        ignoreDuplicates: true
+      })
     
     if (!error) {
       setFeedTags(current => {

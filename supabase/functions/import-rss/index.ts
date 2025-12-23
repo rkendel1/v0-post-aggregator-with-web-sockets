@@ -4,6 +4,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { verifyJwt } from '../_shared/auth.ts'
 import Parser from 'https://esm.sh/rss-parser@3.13.0'
 
+// Define a minimal type for the RSS item to satisfy TypeScript
+interface Item {
+  guid?: string;
+  link?: string;
+  title?: string;
+  creator?: string;
+  isoDate?: string;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -14,6 +23,17 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 // @ts-ignore: Deno global
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+const sanitizeForTag = (title: string) => {
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '')
+    .slice(0, 50)
+}
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -33,11 +53,8 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'Invalid or empty rssUrls array' }), { status: 400, headers: corsHeaders })
     }
 
-    // Use the service role key for database operations that might involve complex inserts/updates
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        persistSession: false,
-      }
+      auth: { persistSession: false }
     })
 
     const parser = new Parser()
@@ -45,56 +62,68 @@ serve(async (req: Request) => {
 
     for (const url of rssUrls) {
       try {
-        // 1. Fetch the RSS feed content using Deno's native fetch
         const response = await fetch(url)
-        if (!response.ok) {
-          throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`)
-        }
+        if (!response.ok) throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`)
         const xmlString = await response.text()
-
-        // 2. Parse the XML string
         const feed = await parser.parseString(xmlString)
-        const title = feed.title || 'Untitled Feed'
+        const feedTitle = feed.title || 'Untitled Feed'
 
-        // 3. Insert into user_rss_feeds table
-        const { data, error } = await supabase
-          .from('user_rss_feeds')
-          .insert({
-            user_id: user_id,
-            rss_url: url,
-            title: title,
-          })
+        const tagSlug = sanitizeForTag(feedTitle)
+        const { data: tagData, error: tagError } = await supabase
+          .from('show_tags')
+          .upsert({ tag: tagSlug, name: feedTitle, category: 'RSS Imports' }, { onConflict: 'tag' })
           .select()
           .single()
         
-        if (error && error.code === '23505') { // Unique violation (already exists)
-          results.push({ url, status: 'skipped', message: 'Feed already imported' })
-        } else if (error) {
-          throw error
-        } else {
-          results.push({ url, status: 'success', title: data.title })
+        if (tagError) throw new Error(`Failed to create tag: ${tagError.message}`)
+        const show_tag_id = tagData.id
+
+        await supabase.from('tag_follows').upsert({ user_id, show_tag_id })
+        await supabase.from('user_rss_feeds').upsert({ user_id, rss_url: url, title: feedTitle })
+
+        const { data: existingPosts } = await supabase
+          .from('posts')
+          .select('external_guid')
+          .eq('show_tag_id', show_tag_id)
+          .not('external_guid', 'is', null)
+        
+        const existingGuids = new Set(existingPosts?.map(p => p.external_guid) || [])
+
+        const newPosts = feed.items
+          .map((item: Item) => {
+            const guid = item.guid || item.link
+            if (!guid || existingGuids.has(guid)) return null
+            
+            return {
+              content: item.title,
+              author_name: item.creator || feedTitle,
+              show_tag_id: show_tag_id,
+              user_id: user_id,
+              created_at: item.isoDate ? new Date(item.isoDate).toISOString() : new Date().toISOString(),
+              external_guid: guid,
+            }
+          })
+          .filter((p): p is NonNullable<typeof p> => p !== null)
+
+        if (newPosts.length > 0) {
+          const { error: postsError } = await supabase.from('posts').insert(newPosts)
+          if (postsError) throw new Error(`Failed to insert posts: ${postsError.message}`)
         }
+
+        results.push({ url, status: 'success', title: feedTitle, new_posts: newPosts.length })
 
       } catch (e) {
         console.error(`Error processing URL ${url}:`, e)
-        // Safely access error message
         const errorMessage = e instanceof Error ? e.message : 'Unknown error during feed processing'
         results.push({ url, status: 'failed', message: errorMessage })
       }
     }
 
-    return new Response(JSON.stringify({ results }), {
-      headers: corsHeaders,
-      status: 200,
-    })
+    return new Response(JSON.stringify({ results }), { headers: corsHeaders, status: 200 })
 
   } catch (error) {
     console.error('Request error:', error)
-    // Safely access error message
     const errorMessage = error instanceof Error ? error.message : 'Unknown request error'
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: corsHeaders,
-      status: 500,
-    })
+    return new Response(JSON.stringify({ error: errorMessage }), { headers: corsHeaders, status: 500 })
   }
 })

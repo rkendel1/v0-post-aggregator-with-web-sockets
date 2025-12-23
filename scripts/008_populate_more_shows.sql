@@ -11,6 +11,7 @@ DECLARE
     tim_ferriss_id UUID;
     mfm_id UUID;
     smartless_id UUID;
+    joe_rogan_id UUID; -- Added Joe Rogan
     user_id_placeholder UUID;
 BEGIN
     -- Find an existing user to attribute posts to.
@@ -32,6 +33,9 @@ BEGIN
 
     INSERT INTO public.show_tags (tag, name, category) VALUES
     ('smartless', 'SmartLess', 'Comedy') RETURNING id INTO smartless_id;
+
+    INSERT INTO public.show_tags (tag, name, category) VALUES
+    ('joerogan', 'The Joe Rogan Experience', 'Society & Culture') RETURNING id INTO joe_rogan_id;
 
     -- Insert posts for Lex Fridman Podcast (a mix of episodes with audio and discussion posts)
     INSERT INTO public.posts (user_id, show_tag_id, author_name, content, image_url, audio_url, created_at) VALUES
@@ -56,6 +60,12 @@ BEGIN
     -- Insert posts for SmartLess
     INSERT INTO public.posts (user_id, show_tag_id, author_name, content, image_url, audio_url, created_at) VALUES
     (user_id_placeholder, smartless_id, 'SmartLess', '#smartless Bradley Cooper', 'https://picsum.photos/seed/smartless_cooper/400', 'https://cdn.simplecast.com/audio/cae8b030-ae45-4a55-877c-56b25c5f859f/episodes/a1502912-4015-459a-9a53-a05554c78b5a/audio/128/default.mp3', NOW() - INTERVAL '1 week');
+
+    -- Insert posts for Joe Rogan Experience
+    INSERT INTO public.posts (user_id, show_tag_id, author_name, content, image_url, audio_url, created_at) VALUES
+    (user_id_placeholder, joe_rogan_id, 'Joe Rogan', '#joerogan #2161 - Bill Maher', 'https://picsum.photos/seed/jre2161/400', 'https://cdn.simplecast.com/audio/cae8b030-ae45-4a55-877c-56b25c5f859f/episodes/a1502912-4015-459a-9a53-a05554c78b5a/audio/128/default.mp3', NOW() - INTERVAL '2 days'),
+    (user_id_placeholder, joe_rogan_id, 'Joe Rogan', '#joerogan #2160 - Action Bronson', 'https://picsum.photos/seed/jre2160/400', 'https://cdn.simplecast.com/audio/cae8b030-ae45-4a55-877c-56b25c5f859f/episodes/a1502912-4015-459a-9a53-a05554c78b5a/audio/128/default.mp3', NOW() - INTERVAL '4 days'),
+    (user_id_placeholder, joe_rogan_id, 'JREListener', '#joerogan The Bill Maher episode was fascinating. Their dynamic is always interesting to watch.', NULL, NULL, NOW() - INTERVAL '1 day');
 
 END $$;
 

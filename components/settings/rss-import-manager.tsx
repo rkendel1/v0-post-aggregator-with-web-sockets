@@ -26,6 +26,7 @@ const topPodcasts = [
   { name: "Lex Fridman Podcast", url: "https://lexfridman.com/feed/" },
   { name: "Huberman Lab", url: "https://feeds.megaphone.fm/huberman-lab" },
   { name: "All-In Podcast", url: "https://feeds.simplecast.com/in_3f_jm" },
+  { name: "Armchair Expert", url: "https://feeds.simplecast.com/d_j0_x_D" },
   { name: "Darknet Diaries", url: "https://feeds.darknetdiaries.com/darknetdiaries.xml" },
   { name: "Acquired", url: "https://feeds.transistor.fm/acquired" },
   { name: "Lenny's Podcast", url: "https://www.lennyspodcast.com/feed" },
@@ -154,12 +155,12 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
       <Card>
         <CardHeader>
           <CardTitle>Seed Popular Podcasts</CardTitle>
-          <CardDescription>Quickly import the top 10 podcasts to populate your feed with content and episode catalogs.</CardDescription>
+          <CardDescription>Quickly import popular podcasts to populate your feed with content and episode catalogs.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleSeedPodcasts} disabled={isSeeding || isImporting}>
             {isSeeding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Rss className="h-4 w-4 mr-2" />}
-            Import Top 10 Podcasts
+            Import Popular Podcasts
           </Button>
         </CardContent>
       </Card>

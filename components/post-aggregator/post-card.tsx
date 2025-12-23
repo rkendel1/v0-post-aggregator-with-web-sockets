@@ -72,29 +72,32 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden }: Pos
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {post.image_url && (
-          <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
-            <img
-              src={post.image_url}
-              alt={post.content.substring(0, 50)}
-              className="object-cover w-full h-full"
-              onError={(e) => (e.currentTarget.style.display = "none")}
-            />
+      <CardContent className="pt-0 space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {post.image_url && (
+            <div className="sm:w-40 flex-shrink-0">
+              <img
+                src={post.image_url}
+                alt={post.content.substring(0, 50)}
+                className="aspect-square w-full rounded-lg object-cover border"
+                onError={(e) => (e.currentTarget.style.display = "none")}
+              />
+            </div>
+          )}
+          <div className="flex-1 space-y-3">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+            {post.external_url && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={post.external_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Original
+                </a>
+              </Button>
+            )}
           </div>
-        )}
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+        </div>
 
-        {post.external_url && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={post.external_url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Original
-            </a>
-          </Button>
-        )}
-
-        <div className="flex items-center gap-4 pt-2">
+        <div className="flex items-center gap-4">
           <ReactionPicker postId={post.id} />
           <Button variant="ghost" size="sm" className="gap-2 h-8" onClick={() => setShowComments(!showComments)}>
             <MessageCircle className="h-4 w-4" />

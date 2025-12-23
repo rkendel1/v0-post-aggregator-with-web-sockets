@@ -11,6 +11,7 @@ interface AudioPlayerState {
   playTrack: (track: Post) => void
   togglePlayPause: () => void
   seek: (time: number) => void
+  closePlayer: () => void
 }
 
 const AudioPlayerContext = createContext<AudioPlayerState | undefined>(undefined)
@@ -53,6 +54,17 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const closePlayer = () => {
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.src = ""
+    }
+    setCurrentTrack(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+  }
+
   const handleTimeUpdate = () => {
     if (audioRef.current) {
       setCurrentTime(audioRef.current.currentTime)
@@ -71,7 +83,7 @@ export function AudioPlayerProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AudioPlayerContext.Provider value={{ currentTrack, isPlaying, duration, currentTime, playTrack, togglePlayPause, seek }}>
+    <AudioPlayerContext.Provider value={{ currentTrack, isPlaying, duration, currentTime, playTrack, togglePlayPause, seek, closePlayer }}>
       {children}
       <audio
         ref={audioRef}

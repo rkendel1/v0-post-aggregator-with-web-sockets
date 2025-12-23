@@ -10,9 +10,10 @@ interface SavePostButtonProps {
   postId: string
   className?: string
   onToggle?: (isSaved: boolean) => void
+  showText?: boolean
 }
 
-export function SavePostButton({ postId, className, onToggle }: SavePostButtonProps) {
+export function SavePostButton({ postId, className, onToggle, showText = true }: SavePostButtonProps) {
   const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [supabase] = useState(() => createClient())
@@ -72,13 +73,13 @@ export function SavePostButton({ postId, className, onToggle }: SavePostButtonPr
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size={showText ? "sm" : "icon-sm"}
       onClick={handleToggleSave}
       disabled={isLoading}
-      className={cn("gap-2 h-8", isSaved && "text-primary", className)}
+      className={cn(showText && "gap-2 h-8", isSaved && "text-primary", className)}
     >
       {isSaved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-      <span className="text-xs">{isSaved ? "Saved" : "Save"}</span>
+      {showText && <span className="text-xs">{isSaved ? "Saved" : "Save"}</span>}
     </Button>
   )
 }

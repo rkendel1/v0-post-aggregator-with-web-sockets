@@ -41,6 +41,8 @@ export function ShowTagSidebar({
     return a.localeCompare(b)
   })
 
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "podbridge.app"
+
   return (
     <div className="w-64 border-r bg-card flex flex-col">
       {/* Logo Header */}
@@ -121,9 +123,9 @@ export function ShowTagSidebar({
                           size="icon-sm"
                           className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         >
-                          <Link href={`/show/${tag.tag.toLowerCase()}`} title={`Go to #${tag.tag} page`}>
+                          <a href={`https://${tag.tag.toLowerCase()}.${rootDomain}`} target="_blank" rel="noopener noreferrer" title={`Go to #${tag.tag} page`}>
                             <ExternalLink className="h-4 w-4" />
-                          </Link>
+                          </a>
                         </Button>
                       </div>
                     ))}

@@ -24,7 +24,7 @@ interface FeedManager {
 type TagFollowWithTag = TagFollow & { show_tags: ShowTag | null }
 
 export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [feedTags, setFeedTags] = useState<ShowTag[]>([])

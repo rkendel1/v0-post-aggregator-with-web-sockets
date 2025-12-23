@@ -43,7 +43,7 @@ export function FeedManagementModal({
   const [isSaving, setIsSaving] = useState(false)
   const [search, setSearch] = useState("")
   const [activeTab, setActiveTab] = useState("All")
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const followedTagIds = useMemo(() => new Set(feedTags.map((t) => t.id)), [feedTags])
   const existingTagNames = useMemo(() => new Set(allAvailableTags.map((t) => t.tag.toLowerCase())), [allAvailableTags])

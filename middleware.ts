@@ -33,16 +33,24 @@ export async function middleware(request: NextRequest) {
   await supabase.auth.getUser()
 
   const url = request.nextUrl
-  const hostname = request.headers.get('host') || ''
-  
-  // NOTE: You may want to use an environment variable for the main domain
-  const mainDomain = 'podbridge.app'
+  const hostname = request.headers.get('host')!
 
-  if (hostname.endsWith(mainDomain)) {
-    const subdomain = hostname.replace(`.${mainDomain}`, '').replace(mainDomain, '')
-    if (subdomain && subdomain !== 'www') {
-      return NextResponse.rewrite(new URL(`/${subdomain}${url.pathname}`, request.url), response)
-    }
+  // Use an environment variable for the root domain.
+  // You'll need to set this in your Vercel project settings.
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+
+  // If the request is for the root domain or www, do nothing.
+  if (hostname === rootDomain || hostname === `www.${rootDomain}`) {
+    return response
+  }
+
+  // For any other subdomain, rewrite to the dynamic page route.
+  const subdomain = hostname.replace(`.${rootDomain}`, '')
+  if (subdomain) {
+    return NextResponse.rewrite(
+      new URL(`/${subdomain}${url.pathname}`, request.url),
+      response
+    )
   }
 
   return response

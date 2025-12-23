@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { tag: string } }
 ) {
-  const supabase = await createClient()
+  const supabase = createClient()
   const tagSlug = params.tag
 
   if (!tagSlug) {

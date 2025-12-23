@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
 export default async function QueuePage() {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const {
     data: { user },

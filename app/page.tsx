@@ -3,7 +3,7 @@ import { PostAggregator } from "@/components/post-aggregator/post-aggregator"
 import type { ShowTag } from "@/lib/types"
 
 export default async function Home() {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Fetch all available show tags
   const { data: showTags } = await supabase.from("show_tags").select("*").order("name")

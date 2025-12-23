@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast"
 import type { UserProfile, UserRssFeed } from "@/lib/types"
 
 export default async function SettingsPage() {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const {
     data: { user },

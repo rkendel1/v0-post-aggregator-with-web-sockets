@@ -169,7 +169,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         .select(POST_SELECT_QUERY)
         .eq("id", payload.new.id)
         .single()
-      if (data) setPosts((current) => [data as Post, ...current])
+      if (data) {
+        setPosts((current) => {
+          if (current.some((post) => post.id === data.id)) {
+            return current
+          }
+          return [data as Post, ...current]
+        })
+      }
     }
 
     const channel = supabase

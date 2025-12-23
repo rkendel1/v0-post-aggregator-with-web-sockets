@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import type { ShowTag } from "@/lib/types"
+import type { ShowTag, UserProfile } from "@/lib/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "cmdk"
@@ -18,10 +18,11 @@ interface FeedManagementModalProps {
   feedTags: ShowTag[]
   allAvailableTags: ShowTag[]
   isAnonymous: boolean
+  profile: UserProfile | null
   addTagToFeed: (tagId: string) => Promise<void>
   removeTagFromFeed: (tagId: string) => Promise<void>
   migrateAnonymousFeed: () => Promise<void>
-  addNewAvailableTag: (tag: ShowTag) => void // <-- New prop
+  addNewAvailableTag: (tag: ShowTag) => void
 }
 
 export function FeedManagementModal({
@@ -30,10 +31,11 @@ export function FeedManagementModal({
   feedTags,
   allAvailableTags,
   isAnonymous,
+  profile,
   addTagToFeed,
   removeTagFromFeed,
   migrateAnonymousFeed,
-  addNewAvailableTag, // <-- Destructure new prop
+  addNewAvailableTag,
 }: FeedManagementModalProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -47,7 +49,6 @@ export function FeedManagementModal({
     if (followedTagIds.has(tag.id)) {
       await removeTagFromFeed(tag.id)
     } else {
-      // Limit anonymous users to 10 tags
       if (isAnonymous && followedTagIds.size >= 10) {
         toast.error("Anonymous feeds are limited to 10 tags. Please sign up to follow more!")
         return
@@ -73,8 +74,18 @@ export function FeedManagementModal({
   }
 
   const handleCreateTag = async (newTag: string) => {
-    const normalizedTag = newTag.trim()
+    if (isAnonymous) {
+      toast.error("Please sign up to create new tags.")
+      setIsAuthModalOpen(true)
+      return
+    }
+    if (!profile?.username) {
+      toast.error("Please complete your profile setup to create tags.")
+      onClose()
+      return
+    }
     
+    const normalizedTag = newTag.trim()
     if (existingTagNames.has(normalizedTag.toLowerCase())) {
       toast.error(`Tag #${normalizedTag} already exists.`)
       return
@@ -84,7 +95,6 @@ export function FeedManagementModal({
     const loadingToast = toast.loading(`Creating tag #${normalizedTag}...`)
 
     try {
-      // Insert new tag (RLS now allows anon users)
       const { data: newTagData, error: tagError } = await supabase
         .from("show_tags")
         .insert({
@@ -96,14 +106,11 @@ export function FeedManagementModal({
 
       if (tagError) throw tagError
 
-      // 1. Update the list of all available tags in the parent hook state
       addNewAvailableTag(newTagData as ShowTag)
-
-      // 2. Automatically follow the newly created tag (this handles anon/auth logic internally)
       await addTagToFeed(newTagData.id)
       
       toast.success(`Tag #${normalizedTag} created and added to your feed!`)
-      setSearch("") // Clear search input
+      setSearch("")
       
     } catch (error) {
       console.error("Error creating tag:", error)
@@ -138,7 +145,6 @@ export function FeedManagementModal({
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden flex flex-col gap-4">
-            {/* Current Feed Preview */}
             <div className="border rounded-lg p-3">
               <h4 className="text-sm font-medium mb-2">Current Feed Tags ({followedTagIds.size})</h4>
               <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
@@ -159,7 +165,6 @@ export function FeedManagementModal({
               </div>
             </div>
 
-            {/* Tag Search */}
             <Command className="flex-1 overflow-hidden border rounded-lg">
               <CommandInput 
                 placeholder="Search for shows or episode tags..." 
@@ -207,7 +212,6 @@ export function FeedManagementModal({
             </Command>
           </div>
 
-          {/* Footer / Save Button */}
           <div className="flex justify-end pt-4">
             <Button type="button" variant="outline" onClick={onClose} className="mr-2">
               {isAnonymous ? "Continue Anonymously" : "Close"}
@@ -226,7 +230,6 @@ export function FeedManagementModal({
         </DialogContent>
       </Dialog>
       
-      {/* Auth Modal for Anonymous Save */}
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />}
     </>
   )

@@ -20,6 +20,7 @@ interface PostAggregatorProps {
 
 export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
+    profile,
     feedTags,
     allAvailableTags,
     isLoading: isFeedLoading,
@@ -231,6 +232,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           feedTags={feedTags}
           allAvailableTags={allAvailableTags}
           isAnonymous={isAnonymous}
+          profile={profile}
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
           migrateAnonymousFeed={migrateAnonymousFeed}

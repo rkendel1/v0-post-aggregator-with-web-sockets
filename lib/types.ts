@@ -168,3 +168,12 @@ export interface AggregatedPost {
   created_at: string
   connected_accounts?: ConnectedAccount
 }
+
+export interface UserRssFeed {
+  id: string
+  user_id: string
+  rss_url: string
+  title: string
+  last_fetched_at: string | null
+  created_at: string
+}

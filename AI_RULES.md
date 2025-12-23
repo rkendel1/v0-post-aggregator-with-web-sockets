@@ -24,3 +24,4 @@ This document outlines the technical stack and mandatory library usage rules for
 | **Client-side DB Access** | `@/lib/supabase/client` | Use this wrapper for all client-side Supabase interactions (e.g., fetching data in client components, real-time subscriptions). |
 | **Server-side DB Access** | `@/lib/supabase/server` | Use this wrapper for all server-side Supabase interactions (e.g., data fetching in Next.js Server Components/Pages). |
 | **Forms** | `react-hook-form` & `zod` | Use these for complex form validation and state management. |
+| **Edge Functions Auth** | `supabase/functions/_shared/auth.ts` | Use the shared utility for JWT verification in Deno Edge Functions. |

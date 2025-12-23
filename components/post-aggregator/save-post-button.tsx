@@ -6,37 +6,37 @@ import { Button } from "@/components/ui/button"
 import { Bookmark, BookmarkCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface PostFollowButtonProps {
+interface SavePostButtonProps {
   postId: string
   className?: string
 }
 
-export function PostFollowButton({ postId, className }: PostFollowButtonProps) {
-  const [isFollowing, setIsFollowing] = useState(false)
+export function SavePostButton({ postId, className }: SavePostButtonProps) {
+  const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
-    const checkFollowStatus = async () => {
+    const checkSaveStatus = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) return
 
       const { data } = await supabase
-        .from("post_follows")
+        .from("saved_posts")
         .select("id")
         .eq("user_id", user.id)
         .eq("post_id", postId)
         .single()
 
-      setIsFollowing(!!data)
+      setIsSaved(!!data)
     }
 
-    checkFollowStatus()
+    checkSaveStatus()
   }, [postId, supabase])
 
-  const handleToggleFollow = async () => {
+  const handleToggleSave = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser()
@@ -44,22 +44,22 @@ export function PostFollowButton({ postId, className }: PostFollowButtonProps) {
 
     setIsLoading(true)
 
-    if (isFollowing) {
-      // Unfollow
-      const { error } = await supabase.from("post_follows").delete().eq("user_id", user.id).eq("post_id", postId)
+    if (isSaved) {
+      // Unsave
+      const { error } = await supabase.from("saved_posts").delete().eq("user_id", user.id).eq("post_id", postId)
 
       if (!error) {
-        setIsFollowing(false)
+        setIsSaved(false)
       }
     } else {
-      // Follow
-      const { error } = await supabase.from("post_follows").insert({
+      // Save
+      const { error } = await supabase.from("saved_posts").insert({
         user_id: user.id,
         post_id: postId,
       })
 
       if (!error) {
-        setIsFollowing(true)
+        setIsSaved(true)
       }
     }
 
@@ -70,12 +70,12 @@ export function PostFollowButton({ postId, className }: PostFollowButtonProps) {
     <Button
       variant="ghost"
       size="sm"
-      onClick={handleToggleFollow}
+      onClick={handleToggleSave}
       disabled={isLoading}
-      className={cn("gap-2 h-8", isFollowing && "text-primary", className)}
+      className={cn("gap-2 h-8", isSaved && "text-primary", className)}
     >
-      {isFollowing ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-      <span className="text-xs">{isFollowing ? "Saved" : "Save"}</span>
+      {isSaved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+      <span className="text-xs">{isSaved ? "Saved" : "Save"}</span>
     </Button>
   )
 }

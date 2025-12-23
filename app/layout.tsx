@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import { AudioPlayerProvider } from '@/contexts/audio-player-context'
+import { AudioPlayer } from '@/components/audio/audio-player'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -33,7 +35,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        {children}
+        <AudioPlayerProvider>
+          <main className="pb-28">{children}</main>
+          <AudioPlayer />
+        </AudioPlayerProvider>
         <Analytics />
       </body>
     </html>

@@ -25,6 +25,7 @@ export interface Post {
   user_id: string | null
   image_url?: string | null
   external_url?: string | null
+  audio_url?: string | null
   show_tags?: ShowTag
   sources?: Source
   comment_counts?: CommentCount
@@ -131,7 +132,7 @@ export interface UserFollow {
   created_at: string
 }
 
-export interface PostFollow {
+export interface SavedPost {
   id: string
   user_id: string
   post_id: string

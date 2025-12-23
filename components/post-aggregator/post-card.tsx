@@ -6,15 +6,16 @@ import { User } from "@supabase/supabase-js"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Share2, ExternalLink } from "lucide-react"
+import { MessageCircle, Share2, ExternalLink, Play, Pause } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { CommentsSection } from "./comments-section"
 import { ReactionPicker } from "./reaction-picker"
-import { PostFollowButton } from "./post-follow-button"
+import { SavePostButton } from "./save-post-button"
 import { FederatedPostStatus } from "./federated-post-status"
 import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
+import { useAudioPlayer } from "@/contexts/audio-player-context"
 
 interface PostCardProps {
   post: Post
@@ -26,12 +27,14 @@ interface PostCardProps {
 
 export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt }: PostCardProps) {
   const [showComments, setShowComments] = useState(false)
+  const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
     addSuffix: true,
   })
 
   const commentCount = post.comment_counts?.count || 0
   const isAuthor = currentUser?.id === post.user_id
+  const isCurrentlyPlaying = currentTrack?.id === post.id && isPlaying
 
   const handleShare = () => {
     const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`
@@ -106,7 +109,24 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1">
+          {post.audio_url && (
+             <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 h-8"
+              onClick={(e) => {
+                if (!currentUser) {
+                  handleInteraction("play audio", e)
+                } else {
+                  playTrack(post)
+                }
+              }}
+            >
+              {isCurrentlyPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              <span className="text-xs">{isCurrentlyPlaying ? "Pause" : "Play"}</span>
+            </Button>
+          )}
           <div onClick={(e) => handleInteraction("react to a post", e)}>
             <ReactionPicker postId={post.id} />
           </div>
@@ -126,14 +146,13 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             <span className="text-xs">{commentCount}</span>
           </Button>
           <div onClick={(e) => handleInteraction("save this post", e)}>
-            <PostFollowButton postId={post.id} />
+            <SavePostButton postId={post.id} />
           </div>
           <Button
             variant="ghost"
             size="sm"
             className="gap-2 h-8"
             onClick={() => {
-              // Sharing is a passive action, allow for all users
               handleShare()
             }}
           >

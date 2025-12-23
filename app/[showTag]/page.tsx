@@ -12,7 +12,7 @@ export default async function ShowTagPage({ params }: { params: { showTag: strin
   const { data: showTag } = await supabase
     .from("show_tags")
     .select("*")
-    .eq("tag", tagSlug)
+    .ilike("tag", tagSlug)
     .single()
 
   if (!showTag) {

@@ -38,7 +38,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       // Authenticated: Load server-side follows
       const { data: follows, error: followError } = await supabase
         .from("tag_follows")
-        .select(`*, show_tags (*)`) // <-- FIX 1: Select all columns from tag_follows
+        .select(`*, show_tags (*)`)
         .eq("user_id", currentUser.id)
       
       if (followError) {
@@ -100,11 +100,11 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         updateLocalFeed([...currentIds, tagId])
       }
     } else if (user) {
-      // FIX: Correct chaining by removing .select()
-      const { error } = await supabase.from("tag_follows").insert({
+      // FIX: Use type assertion to resolve TS2339 error
+      const { error } = await (supabase.from("tag_follows").insert({
         user_id: user.id,
         show_tag_id: tagId,
-      }).onConflict('user_id, show_tag_id').ignore()
+      }) as any).onConflict('user_id, show_tag_id').ignore()
       
       if (!error) {
         const tagToAdd = initialShowTags.find(t => t.id === tagId)
@@ -148,9 +148,9 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
       show_tag_id: tagId,
     }))
 
-    // FIX: Correct chaining by removing .select()
+    // FIX: Use type assertion to resolve TS2339 error
     // Insert local tags, ignoring conflicts if the user already followed some tags server-side
-    const { error } = await supabase.from("tag_follows").insert(followsToInsert).onConflict('user_id, show_tag_id').ignore()
+    const { error } = await (supabase.from("tag_follows").insert(followsToInsert) as any).onConflict('user_id, show_tag_id').ignore()
 
     if (!error) {
       localStorage.removeItem(ANON_FEED_KEY)

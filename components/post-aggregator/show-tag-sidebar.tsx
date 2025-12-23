@@ -13,7 +13,6 @@ interface ShowTagSidebarProps {
   selectedFeedId: string | "all" | null
   onSelectFeed: (id: string | "all") => void
   onOpenManager: () => void
-  onOpenRssImporter: () => void
 }
 
 export function ShowTagSidebar({
@@ -21,7 +20,6 @@ export function ShowTagSidebar({
   selectedFeedId,
   onSelectFeed,
   onOpenManager,
-  onOpenRssImporter,
 }: ShowTagSidebarProps) {
   const groupedTags = feedTags.reduce(
     (acc, tag) => {
@@ -58,8 +56,10 @@ export function ShowTagSidebar({
             <h2 className="font-semibold text-foreground text-sm">My Feed</h2>
           </div>
           <div className="flex items-center">
-            <Button variant="ghost" size="icon-sm" onClick={onOpenRssImporter} title="Import RSS Feeds">
-              <Rss className="h-4 w-4" />
+            <Button asChild variant="ghost" size="icon-sm" title="Import & Manage Sources">
+              <Link href="/settings">
+                <Rss className="h-4 w-4" />
+              </Link>
             </Button>
             <Button variant="ghost" size="icon-sm" onClick={onOpenManager} title="Manage Feed">
               <ListPlus className="h-4 w-4" />

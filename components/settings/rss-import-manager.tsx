@@ -69,17 +69,14 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
 
       const successfulImports = data.results.filter((r: any) => r.status === 'success')
       const failedImports = data.results.filter((r: any) => r.status === 'failed')
-      const skippedImports = data.results.filter((r: any) => r.status === 'skipped')
-
+      
       if (successfulImports.length > 0) {
         toast.success(`Successfully imported ${successfulImports.length} feed${successfulImports.length > 1 ? 's' : ''}.`)
         onImportSuccess()
+        router.refresh() // Refresh the page to show new feeds
       }
       if (failedImports.length > 0) {
         toast.error(`Failed to import ${failedImports.length} feed${failedImports.length > 1 ? 's' : ''}.`)
-      }
-      if (skippedImports.length > 0) {
-        toast(`Skipped ${skippedImports.length} feed${skippedImports.length > 1 ? 's' : ''} (already imported).`, { icon: '⚠️' })
       }
 
     } catch (error) {
@@ -135,16 +132,15 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
 
   return (
     <div className="space-y-6">
-      {/* RSS Import Card */}
       <Card>
         <CardHeader>
-          <CardTitle>RSS Feed Import</CardTitle>
-          <CardDescription>Import your podcast subscriptions via OPML file or a single RSS URL.</CardDescription>
+          <CardTitle>Content Sources</CardTitle>
+          <CardDescription>Import and manage your podcast subscriptions via RSS.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* OPML Upload */}
           <div className="space-y-2 border p-4 rounded-lg">
-            <Label htmlFor="opml-upload" className="flex items-center gap-2">
+            <Label htmlFor="opml-upload" className="flex items-center gap-2 font-medium">
               <Upload className="h-4 w-4" /> Import via OPML File
             </Label>
             <Input 
@@ -154,12 +150,12 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
               onChange={handleOpmlUpload} 
               disabled={isImporting}
             />
-            <p className="text-xs text-muted-foreground">Upload an OPML file exported from your podcast app (e.g., Pocket Casts, Overcast).</p>
+            <p className="text-xs text-muted-foreground">Upload an OPML file from your podcast app (e.g., Pocket Casts, Overcast).</p>
           </div>
 
           {/* Single RSS Paste */}
           <form onSubmit={handleSingleRssSubmit} className="space-y-2 border p-4 rounded-lg">
-            <Label htmlFor="single-rss" className="flex items-center gap-2">
+            <Label htmlFor="single-rss" className="flex items-center gap-2 font-medium">
               <Link2 className="h-4 w-4" /> Import Single RSS URL
             </Label>
             <div className="flex gap-2">
@@ -178,11 +174,10 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
         </CardContent>
       </Card>
 
-      {/* Imported Feeds List */}
       <Card>
         <CardHeader>
           <CardTitle>My Imported Feeds ({rssFeeds.length})</CardTitle>
-          <CardDescription>These feeds are actively monitored for new episodes and discussions.</CardDescription>
+          <CardDescription>This is the list of all your connected podcast feeds.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {rssFeeds.length === 0 ? (
@@ -190,14 +185,14 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
           ) : (
             rssFeeds.map((feed) => (
               <div key={feed.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex flex-col">
-                  <div className="font-medium">{feed.title}</div>
-                  <div className="text-xs text-muted-foreground truncate max-w-xs">{feed.rss_url}</div>
+                <div className="flex flex-col overflow-hidden">
+                  <div className="font-medium truncate">{feed.title}</div>
+                  <div className="text-xs text-muted-foreground truncate">{feed.rss_url}</div>
                   <Badge variant="outline" className="mt-1 w-fit text-[10px] h-4">
                     Last Synced: {feed.last_fetched_at ? `${formatDistanceToNow(new Date(feed.last_fetched_at))} ago` : 'Never'}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button 
                     variant="ghost" 
                     size="sm" 

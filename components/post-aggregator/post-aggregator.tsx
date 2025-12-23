@@ -16,7 +16,6 @@ import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
 import { AuthModal } from "@/components/auth/auth-modal"
 import { AuthPromptModal } from "@/components/auth/auth-prompt-modal"
 import { Toaster, toast } from "react-hot-toast"
-import { RssImportModal } from "@/components/settings/rss-import-modal"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface PostAggregatorProps {
@@ -36,7 +35,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     user,
     profile,
     feedTags,
-    rssFeeds,
     allAvailableTags,
     isLoading: isFeedLoading,
     isGuest,
@@ -52,7 +50,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [posts, setPosts] = useState<Post[]>([])
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isManagerOpen, setIsManagerOpen] = useState(false)
-  const [isRssModalOpen, setIsRssModalOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
 
   const [authPrompt, setAuthPrompt] = useState({ open: false, message: "" })
@@ -159,7 +156,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    // Real-time updates are for logged-in users' feeds
     if (!user || activeFeed === "for-you" || !selectedFeedId) return
 
     const tagIds = feedTagIds ? feedTagIds.split(",") : []
@@ -239,9 +235,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         onOpenManager={() => {
           if (requireUser("manage your feed")) setIsManagerOpen(true)
         }}
-        onOpenRssImporter={() => {
-          if (requireUser("import RSS feeds")) setIsRssModalOpen(true)
-        }}
       />
 
       <div className="flex-1 flex flex-col">
@@ -317,13 +310,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       {isManagerOpen && (
         <FeedManagementModal isOpen={isManagerOpen} onClose={() => setIsManagerOpen(false)} feedTags={feedTags} allAvailableTags={allAvailableTags} isAnonymous={isGuest} profile={profile} addTagToFeed={addTagToFeed} removeTagFromFeed={removeTagFromFeed} migrateAnonymousFeed={async () => {}} addNewAvailableTag={addNewAvailableTag} />
-      )}
-
-      {isRssModalOpen && (
-        <RssImportModal isOpen={isRssModalOpen} onClose={() => setIsRssModalOpen(false)} initialRssFeeds={rssFeeds} onImportSuccess={() => {
-          reloadProfile()
-          setIsRssModalOpen(false)
-        }} />
       )}
 
       {authPrompt.open && (

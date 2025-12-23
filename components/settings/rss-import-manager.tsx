@@ -63,40 +63,49 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         toast.error("You must be logged in to import feeds.")
-        return
+        throw new Error("User not authenticated")
       }
 
-      const response = await fetch(EDGE_FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ rssUrls: urls }),
-      })
+      const importPromises = urls.map(url => 
+        fetch(EDGE_FUNCTION_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ rssUrls: [url] }), // Send one URL at a time
+        }).then(async (response) => {
+          const data = await response.json()
+          if (!response.ok) {
+            throw new Error(data.error || `Failed to process ${url}`)
+          }
+          return data.results[0]
+        })
+      )
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to process feeds.")
-      }
-
-      const successfulImports = data.results.filter((r: any) => r.status === 'success')
-      const failedImports = data.results.filter((r: any) => r.status === 'failed')
+      const results = await Promise.allSettled(importPromises)
       
-      if (successfulImports.length > 0) {
-        toast.success(`Successfully imported ${successfulImports.length} feed${successfulImports.length > 1 ? 's' : ''}.`)
-        router.refresh() // Refresh the page to show new feeds
+      const successfulImports = results.filter(r => r.status === 'fulfilled').length
+      const failedImports = results.filter(r => r.status === 'rejected').length
+
+      toast.dismiss(loadingToast)
+
+      if (successfulImports > 0) {
+        toast.success(`Successfully imported ${successfulImports} feed${successfulImports > 1 ? 's' : ''}.`)
+        router.refresh()
       }
-      if (failedImports.length > 0) {
-        toast.error(`Failed to import ${failedImports.length} feed${failedImports.length > 1 ? 's' : ''}.`)
+      if (failedImports > 0) {
+        toast.error(`Failed to import ${failedImports} feed${failedImports > 1 ? 's' : ''}. Check console for details.`)
+        results.forEach(r => {
+          if (r.status === 'rejected') console.error("Import error:", r.reason)
+        })
       }
 
     } catch (error) {
       console.error("Import error:", error)
+      toast.dismiss(loadingToast)
       toast.error(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
-      toast.dismiss(loadingToast)
       setIsImporting(false)
       setRefreshingFeedId(null)
       setSingleRssUrl("")

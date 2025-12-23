@@ -44,11 +44,11 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // For any other subdomain, rewrite to the dynamic page route.
+  // For any other subdomain, rewrite to the /show/[showTag] route.
   const subdomain = hostname.replace(`.${rootDomain}`, '')
   if (subdomain) {
     return NextResponse.rewrite(
-      new URL(`/${subdomain}${url.pathname}`, request.url),
+      new URL(`/show/${subdomain}${url.pathname}`, request.url),
       response
     )
   }

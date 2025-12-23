@@ -6,9 +6,11 @@ import { Toaster } from "react-hot-toast"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
+import { cookies } from "next/headers"
 
 export default async function QueuePage() {
-  const supabase = createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
   const {
     data: { user },

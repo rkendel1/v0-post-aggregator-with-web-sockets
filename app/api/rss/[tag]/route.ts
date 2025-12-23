@@ -1,13 +1,15 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 import RSS from "rss"
+import { cookies } from "next/headers"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { tag: string } }
+  { params }: { params: Promise<{ tag: string }> }
 ) {
-  const supabase = createClient()
-  const tagSlug = params.tag
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+  const { tag: tagSlug } = await params
 
   if (!tagSlug) {
     return new NextResponse("Tag parameter is required", { status: 400 })

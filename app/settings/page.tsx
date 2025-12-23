@@ -5,9 +5,11 @@ import { ProfileSettings } from "@/components/settings/profile-settings"
 import { RssImportManager } from "@/components/settings/rss-import-manager"
 import { Toaster } from "react-hot-toast"
 import type { UserProfile, UserRssFeed } from "@/lib/types"
+import { cookies } from "next/headers"
 
 export default async function SettingsPage() {
-  const supabase = createClient()
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
 
   const {
     data: { user },

@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ConnectedAccountsManager } from "@/components/settings/connected-accounts-manager"
+import { ProfileSettings } from "@/components/settings/profile-settings"
 import { Toaster } from "react-hot-toast"
+import type { UserProfile } from "@/lib/types"
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -14,13 +16,24 @@ export default async function SettingsPage() {
     redirect("/auth/login")
   }
 
+  // Fetch user's profile
+  const { data: profile } = await supabase.from("user_profiles").select(`*`).eq("id", user.id).single()
+
+  if (!profile) {
+    // This case should ideally not happen for a logged-in user who has completed setup,
+    // but as a fallback, we can redirect them.
+    redirect("/")
+  }
+
   // Fetch user's connected accounts
   const { data: connectedAccounts } = await supabase
     .from("connected_accounts")
-    .select(`
+    .select(
+      `
       *,
       platforms (*)
-    `)
+    `,
+    )
     .eq("user_id", user.id)
 
   // Fetch all available platforms
@@ -35,6 +48,7 @@ export default async function SettingsPage() {
         </div>
 
         <div className="space-y-8">
+          <ProfileSettings profile={profile as UserProfile} />
           <ConnectedAccountsManager connectedAccounts={connectedAccounts || []} availablePlatforms={platforms || []} />
         </div>
       </div>

@@ -6,7 +6,7 @@ import { User } from "@supabase/supabase-js"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Share2 } from "lucide-react"
+import { MessageCircle, Share2, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { CommentsSection } from "./comments-section"
@@ -32,7 +32,7 @@ export function PostCard({ post, currentUser, onPostDeleted }: PostCardProps) {
   const isAuthor = currentUser?.id === post.user_id
 
   const handleShare = () => {
-    const postUrl = `${window.location.origin}/post/${post.id}` // A bit of a mock URL, but good for demonstration
+    const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`
     navigator.clipboard.writeText(postUrl)
     toast.success("Post link copied to clipboard!")
   }
@@ -65,7 +65,26 @@ export function PostCard({ post, currentUser, onPostDeleted }: PostCardProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
+        {post.image_url && (
+          <div className="relative aspect-video overflow-hidden rounded-lg border bg-muted">
+            <img
+              src={post.image_url}
+              alt={post.content.substring(0, 50)}
+              className="object-cover w-full h-full"
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
+          </div>
+        )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+
+        {post.external_url && (
+          <Button variant="outline" size="sm" asChild>
+            <a href={post.external_url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Original
+            </a>
+          </Button>
+        )}
 
         <div className="flex items-center gap-4 pt-2">
           <ReactionPicker postId={post.id} />

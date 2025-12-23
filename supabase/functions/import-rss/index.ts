@@ -4,13 +4,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 import { verifyJwt } from '../_shared/auth.ts'
 import Parser from 'https://esm.sh/rss-parser@3.13.0'
 
-// Define a minimal type for the RSS item to satisfy TypeScript
 interface Item {
   guid?: string;
   link?: string;
   title?: string;
   creator?: string;
   isoDate?: string;
+  contentSnippet?: string;
+  itunes?: {
+    image?: string;
+  };
 }
 
 const corsHeaders = {
@@ -67,6 +70,8 @@ serve(async (req: Request) => {
         const xmlString = await response.text()
         const feed = await parser.parseString(xmlString)
         const feedTitle = feed.title || 'Untitled Feed'
+        // @ts-ignore: Property 'image' might not exist on feed
+        const feedImage = feed.itunes?.image || feed.image?.url || null
 
         const tagSlug = sanitizeForTag(feedTitle)
         const { data: tagData, error: tagError } = await supabase
@@ -96,13 +101,20 @@ serve(async (req: Request) => {
               return null
             }
             
+            const postContent = [
+              `#${tagData.tag} ${item.title}`,
+              item.contentSnippet ? `\n\n${item.contentSnippet.split('\n')[0]}` : '' // Use first line of snippet
+            ].join('');
+
             return {
-              content: `#${tagData.tag} ${item.title}`,
+              content: postContent,
               author_name: item.creator || feedTitle,
               show_tag_id: show_tag_id,
               user_id: user_id,
               created_at: item.isoDate ? new Date(item.isoDate).toISOString() : new Date().toISOString(),
               external_guid: guid,
+              external_url: item.link || null,
+              image_url: item.itunes?.image || feedImage,
             }
           })
           .filter(Boolean)

@@ -45,7 +45,6 @@ export default async function SettingsPage() {
           />
           <RssImportManager 
             initialRssFeeds={rssFeedsResult.data as UserRssFeed[] || []} 
-            onImportSuccess={() => {}} 
           />
         </div>
       </div>

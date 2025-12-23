@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,13 +16,12 @@ import { formatDistanceToNow } from "date-fns"
 
 interface RssImportManagerProps {
   initialRssFeeds: UserRssFeed[]
-  onImportSuccess: () => void
 }
 
 // Hardcoded Edge Function URL structure
 const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
 
-export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImportManagerProps) {
+export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
   const [rssFeeds, setRssFeeds] = useState(initialRssFeeds)
   const [singleRssUrl, setSingleRssUrl] = useState("")
   const [isImporting, setIsImporting] = useState(false)
@@ -72,7 +71,6 @@ export function RssImportManager({ initialRssFeeds, onImportSuccess }: RssImport
       
       if (successfulImports.length > 0) {
         toast.success(`Successfully imported ${successfulImports.length} feed${successfulImports.length > 1 ? 's' : ''}.`)
-        onImportSuccess()
         router.refresh() // Refresh the page to show new feeds
       }
       if (failedImports.length > 0) {

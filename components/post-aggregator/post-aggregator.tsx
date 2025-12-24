@@ -311,12 +311,24 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <Button asChild variant="ghost" size="icon" className="md:hidden">
+                <Button asChild variant="outline" size="sm" className="hidden md:flex">
                   <Link href="/settings">
-                    <Settings className="h-5 w-5" />
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
                   </Link>
                 </Button>
               )}
+              <Button
+                onClick={() => {
+                  if (requireUser("create a new post")) setIsComposerOpen(true)
+                }}
+                size="sm"
+                className="gap-2 hidden md:flex"
+                disabled={!user || (activeFeed === "following" && !selectedTag)}
+              >
+                <Plus className="h-4 w-4" />
+                New Post
+              </Button>
             </div>
           </div>
           {user && (

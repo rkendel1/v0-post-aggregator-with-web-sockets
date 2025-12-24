@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, ListMusic, User } from "lucide-react"
+import { Home, ListMusic, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -11,7 +11,7 @@ export function MobileNav() {
   const navItems = [
     { href: "/", icon: Home, label: "Home" },
     { href: "/queue", icon: ListMusic, label: "Queue" },
-    { href: "/settings", icon: User, label: "Profile" },
+    { href: "/settings", icon: Settings, label: "Settings" },
   ]
 
   return (

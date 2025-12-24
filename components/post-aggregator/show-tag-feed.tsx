@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
@@ -27,6 +27,7 @@ const POST_SELECT_QUERY = `
   comment_counts (*),
   reaction_counts (*, reaction_types (*))
 `
+const POSTS_PER_PAGE = 20
 
 export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   const [allPosts, setAllPosts] = useState<Post[]>([])
@@ -36,6 +37,9 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [supabase] = useState(() => createClient())
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
 
   const platformPosts = useMemo(() => allPosts.filter((p) => p.external_guid === null), [allPosts])
   const officialPosts = useMemo(() => allPosts.filter((p) => p.external_guid !== null), [allPosts])
@@ -68,20 +72,49 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
   useEffect(() => {
     const fetchPosts = async () => {
       setIsLoadingPosts(true)
+      setAllPosts([])
+      setOffset(0)
+      setHasMore(true)
       const { data } = await supabase
         .from("posts")
         .select(POST_SELECT_QUERY)
         .eq("show_tag_id", showTag.id)
         .order("created_at", { ascending: false })
-        .limit(100)
+        .range(0, POSTS_PER_PAGE - 1)
       
       if (data) {
         setAllPosts(data as Post[])
+        setOffset(data.length)
+        if (data.length < POSTS_PER_PAGE) {
+          setHasMore(false)
+        }
       }
       setIsLoadingPosts(false)
     }
     fetchPosts()
   }, [showTag.id, supabase])
+
+  const loadMorePosts = useCallback(async () => {
+    if (isFetchingMore || !hasMore) return
+
+    setIsFetchingMore(true)
+
+    const { data } = await supabase
+      .from("posts")
+      .select(POST_SELECT_QUERY)
+      .eq("show_tag_id", showTag.id)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + POSTS_PER_PAGE - 1)
+
+    if (data) {
+      setAllPosts((prev) => [...prev, ...(data as Post[])])
+      setOffset((prev) => prev + data.length)
+      if (data.length < POSTS_PER_PAGE) {
+        setHasMore(false)
+      }
+    }
+    setIsFetchingMore(false)
+  }, [isFetchingMore, hasMore, offset, showTag.id, supabase])
 
   useEffect(() => {
     const handleInsert = async (payload: any) => {
@@ -189,6 +222,9 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
             onPostDeleted={handlePostDeleted}
             onPostHidden={handlePostHidden}
             onInteractionAttempt={() => { /* Not implemented for this view */ }}
+            loadMorePosts={loadMorePosts}
+            hasMore={hasMore}
+            isFetchingMore={isFetchingMore}
           />
         </TabsContent>
         <TabsContent value="official-feed" className="flex-1 overflow-hidden">
@@ -199,6 +235,9 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
             onPostDeleted={handlePostDeleted}
             onPostHidden={handlePostHidden}
             onInteractionAttempt={() => { /* Not implemented for this view */ }}
+            loadMorePosts={loadMorePosts}
+            hasMore={hasMore}
+            isFetchingMore={isFetchingMore}
           />
         </TabsContent>
         <TabsContent value="catalog" className="flex-1 overflow-hidden">

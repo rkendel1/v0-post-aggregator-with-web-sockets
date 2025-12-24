@@ -20,6 +20,11 @@ interface FeedManager {
   reloadProfile: () => Promise<void>
 }
 
+const CACHE_KEYS = {
+  PROFILE: "podbridge_profile",
+  FEED_TAGS: "podbridge_feed_tags",
+}
+
 // Helper type guard for nested data structure
 type TagFollowWithTag = TagFollow & { show_tags: ShowTag | null }
 
@@ -51,6 +56,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
           console.error("Error fetching profile:", profileError)
         } else {
           setProfile((profileData as UserProfile) || null)
+          if (profileData) localStorage.setItem(CACHE_KEYS.PROFILE, JSON.stringify(profileData))
         }
 
         if (profileData) {
@@ -67,6 +73,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
               .map((f) => f.show_tags)
               .filter((t): t is ShowTag => !!t)
             setFeedTags(tags)
+            localStorage.setItem(CACHE_KEYS.FEED_TAGS, JSON.stringify(tags))
           }
 
           if (rssFeedsResult.error) {
@@ -88,6 +95,8 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
         setProfile(null)
         setFeedTags([])
         setRssFeeds([])
+        localStorage.removeItem(CACHE_KEYS.PROFILE)
+        localStorage.removeItem(CACHE_KEYS.FEED_TAGS)
       }
       setIsLoading(false)
     },
@@ -95,23 +104,34 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
   )
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const currentUser = session?.user ?? null
+      setUser(currentUser)
+
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        // On initial load or sign in, first try to populate from cache for speed
+        if (currentUser) {
+          try {
+            const cachedProfile = localStorage.getItem(CACHE_KEYS.PROFILE)
+            const cachedFeedTags = localStorage.getItem(CACHE_KEYS.FEED_TAGS)
+            if (cachedProfile) setProfile(JSON.parse(cachedProfile))
+            if (cachedFeedTags) setFeedTags(JSON.parse(cachedFeedTags))
+          } catch (e) {
+            console.error("Failed to parse cache", e)
+          }
+        }
+        // Then, always fetch fresh data from the server
+        loadDataForUser(currentUser)
+      } else if (event === "SIGNED_OUT") {
+        // On sign out, clear everything
+        loadDataForUser(null)
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
-
-  useEffect(() => {
-    loadDataForUser(user)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, loadDataForUser])
+  }, [supabase, loadDataForUser])
 
   const reloadProfile = useCallback(async () => {
     const {

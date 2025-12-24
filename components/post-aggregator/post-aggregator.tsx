@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagSidebar } from "./show-tag-sidebar"
@@ -30,6 +30,7 @@ const POST_SELECT_QUERY = `
   comment_counts (*),
   reaction_counts (*, reaction_types (*))
 `
+const POSTS_PER_PAGE = 20
 
 export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
@@ -49,6 +50,9 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [activeFeed, setActiveFeed] = useState<"following" | "for-you">("following")
   const [selectedFeedId, setSelectedFeedId] = useState<string | "all" | null>("all")
   const [posts, setPosts] = useState<Post[]>([])
+  const [offset, setOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isManagerOpen, setIsManagerOpen] = useState(false)
   const [isLoadingPosts, setIsLoadingPosts] = useState(true)
@@ -90,28 +94,30 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     reloadProfile()
   }
 
-  // Fetch posts
+  // Fetch initial posts
   useEffect(() => {
     const fetchPosts = async () => {
       setIsLoadingPosts(true)
+      setPosts([])
+      setOffset(0)
+      setHasMore(true)
 
       if (!user) {
-        // Fetch generic feed for logged-out users
         const { data } = await supabase
           .from("posts")
           .select(POST_SELECT_QUERY)
           .order("created_at", { ascending: false })
-          .limit(20)
+          .range(0, POSTS_PER_PAGE - 1)
         if (data) {
           setPosts(data as Post[])
+          setOffset(data.length)
+          if (data.length < POSTS_PER_PAGE) setHasMore(false)
         }
         setIsLoadingPosts(false)
         return
       }
 
-      // Logged-in user logic
       if (isFeedLoading) return
-
       if (activeFeed === "for-you" || !selectedFeedId) {
         setPosts([])
         setIsLoadingPosts(false)
@@ -120,20 +126,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       let hiddenPostIds: string[] = []
       const { data: hiddenPosts } = await supabase.from("hidden_posts").select("post_id").eq("user_id", user.id)
-      if (hiddenPosts) {
-        hiddenPostIds = hiddenPosts.map((p) => p.post_id)
-      }
+      if (hiddenPosts) hiddenPostIds = hiddenPosts.map((p) => p.post_id)
 
-      const query = supabase
-        .from("posts")
-        .select(POST_SELECT_QUERY)
-        .order("created_at", { ascending: false })
+      const query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",") : []
-        if (tagIds.length > 0) {
-          query.in("show_tag_id", tagIds)
-        } else {
+        if (tagIds.length > 0) query.in("show_tag_id", tagIds)
+        else {
           setPosts([])
           setIsLoadingPosts(false)
           return
@@ -142,19 +142,50 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         query.eq("show_tag_id", selectedFeedId)
       }
 
-      if (hiddenPostIds.length > 0) {
-        query.not("id", "in", `(${hiddenPostIds.join(",")})`)
-      }
+      if (hiddenPostIds.length > 0) query.not("id", "in", `(${hiddenPostIds.join(",")})`)
 
-      const { data } = await query
+      const { data } = await query.range(0, POSTS_PER_PAGE - 1)
       if (data) {
         setPosts(data as Post[])
+        setOffset(data.length)
+        if (data.length < POSTS_PER_PAGE) setHasMore(false)
       }
       setIsLoadingPosts(false)
     }
 
     fetchPosts()
   }, [activeFeed, selectedFeedId, feedTagIds, supabase, user, isFeedLoading])
+
+  const loadMorePosts = useCallback(async () => {
+    if (isFetchingMore || !hasMore) return
+
+    setIsFetchingMore(true)
+
+    let query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
+
+    if (user) {
+      let hiddenPostIds: string[] = []
+      const { data: hiddenPosts } = await supabase.from("hidden_posts").select("post_id").eq("user_id", user.id)
+      if (hiddenPosts) hiddenPostIds = hiddenPosts.map((p) => p.post_id)
+      if (hiddenPostIds.length > 0) query.not("id", "in", `(${hiddenPostIds.join(",")})`)
+
+      if (selectedFeedId === "all") {
+        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        if (tagIds.length > 0) query.in("show_tag_id", tagIds)
+      } else if (selectedFeedId) {
+        query.eq("show_tag_id", selectedFeedId)
+      }
+    }
+
+    const { data } = await query.range(offset, offset + POSTS_PER_PAGE - 1)
+
+    if (data) {
+      setPosts((prev) => [...prev, ...(data as Post[])])
+      setOffset((prev) => prev + data.length)
+      if (data.length < POSTS_PER_PAGE) setHasMore(false)
+    }
+    setIsFetchingMore(false)
+  }, [isFetchingMore, hasMore, offset, user, supabase, selectedFeedId, feedTagIds])
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -166,16 +197,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     const filter = selectedFeedId === "all" ? `show_tag_id=in.(${tagIds.join(",")})` : `show_tag_id=eq.${selectedFeedId}`
 
     const handleInsert = async (payload: any) => {
-      const { data } = await supabase
-        .from("posts")
-        .select(POST_SELECT_QUERY)
-        .eq("id", payload.new.id)
-        .single()
+      const { data } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
       if (data) {
         setPosts((current) => {
-          if (current.some((post) => post.id === data.id)) {
-            return current
-          }
+          if (current.some((post) => post.id === data.id)) return current
           return [data as Post, ...current]
         })
       }
@@ -232,11 +257,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   return (
     <div className="flex h-screen bg-background">
       <Toaster position="bottom-right" />
-      
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
         <ShowTagSidebar
           feedTags={feedTags}
           selectedFeedId={selectedFeedId}
@@ -255,13 +282,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           }}
         />
       </div>
-      
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 md:hidden" 
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+
+      {isSidebarOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
       <div className="flex-1 flex flex-col">
         <header className="border-b bg-card p-4 space-y-4">
@@ -273,7 +295,15 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
               <div>
                 <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   <span>
-                    {!user ? "Welcome" : activeFeed === "following" ? (selectedFeedId === "all" ? "All Feeds" : selectedTag ? `#${selectedTag.tag}` : "Select a tag") : "For You"}
+                    {!user
+                      ? "Welcome"
+                      : activeFeed === "following"
+                      ? selectedFeedId === "all"
+                        ? "All Feeds"
+                        : selectedTag
+                        ? `#${selectedTag.tag}`
+                        : "Select a tag"
+                      : "For You"}
                   </span>
                   {selectedTag && (
                     <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
@@ -282,7 +312,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   )}
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {!user ? "Discover the latest posts from the community" : activeFeed === "following" ? (selectedFeedId === "all" ? `Posts from ${feedTags.length} followed tags` : selectedTag?.name || "Choose a show tag to view posts") : "A curated feed of posts"}
+                  {!user
+                    ? "Discover the latest posts from the community"
+                    : activeFeed === "following"
+                    ? selectedFeedId === "all"
+                      ? `Posts from ${feedTags.length} followed tags`
+                      : selectedTag?.name || "Choose a show tag to view posts"
+                    : "A curated feed of posts"}
                 </p>
               </div>
             </div>
@@ -326,29 +362,54 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             onPostDeleted={handlePostDeleted}
             onPostHidden={handlePostHidden}
             onInteractionAttempt={requireUser}
+            loadMorePosts={loadMorePosts}
+            hasMore={hasMore}
+            isFetchingMore={isFetchingMore}
           />
         </div>
       </div>
 
       {isComposerOpen && selectedTag && (
-        <PostComposer showTag={selectedTag} profile={profile} onClose={() => setIsComposerOpen(false)} onPostCreated={(newPost) => {
-          if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
-            setPosts((current) => [newPost, ...current])
-          }
-          setIsComposerOpen(false)
-        }} />
+        <PostComposer
+          showTag={selectedTag}
+          profile={profile}
+          onClose={() => setIsComposerOpen(false)}
+          onPostCreated={(newPost) => {
+            if (selectedFeedId === "all" || selectedFeedId === newPost.show_tag_id) {
+              setPosts((current) => [newPost, ...current])
+            }
+            setIsComposerOpen(false)
+          }}
+        />
       )}
 
       {isManagerOpen && (
-        <FeedManagementModal isOpen={isManagerOpen} onClose={() => setIsManagerOpen(false)} feedTags={feedTags} allAvailableTags={allAvailableTags} isAnonymous={isGuest} profile={profile} addTagToFeed={addTagToFeed} removeTagFromFeed={removeTagFromFeed} migrateAnonymousFeed={async () => {}} addNewAvailableTag={addNewAvailableTag} />
+        <FeedManagementModal
+          isOpen={isManagerOpen}
+          onClose={() => setIsManagerOpen(false)}
+          feedTags={feedTags}
+          allAvailableTags={allAvailableTags}
+          isAnonymous={isGuest}
+          profile={profile}
+          addTagToFeed={addTagToFeed}
+          removeTagFromFeed={removeTagFromFeed}
+          migrateAnonymousFeed={async () => {}}
+          addNewAvailableTag={addNewAvailableTag}
+        />
       )}
 
       {authPrompt.open && (
-        <AuthPromptModal isOpen={authPrompt.open} onClose={() => setAuthPrompt({ open: false, message: "" })} message={authPrompt.message} onContinueAsGuest={handleContinueAsGuest} onSignUp={handleSignUp} />
+        <AuthPromptModal
+          isOpen={authPrompt.open}
+          onClose={() => setAuthPrompt({ open: false, message: "" })}
+          message={authPrompt.message}
+          onContinueAsGuest={handleContinueAsGuest}
+          onSignUp={handleSignUp}
+        />
       )}
 
       {isGuestModalOpen && <GuestHandleModal onSuccess={handleGuestSuccess} />}
-      
+
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />}
     </div>
   )

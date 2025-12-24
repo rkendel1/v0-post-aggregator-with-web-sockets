@@ -1,16 +1,18 @@
 "use client"
 
-import type { ShowTag } from "@/lib/types"
+import type { ShowTag, UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic, ExternalLink } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface ShowTagSidebarProps {
   feedTags: ShowTag[]
   selectedFeedId: string | "all" | null
+  profile: UserProfile | null
   onSelectFeed: (id: string | "all") => void
   onOpenManager: () => void
 }
@@ -18,6 +20,7 @@ interface ShowTagSidebarProps {
 export function ShowTagSidebar({
   feedTags,
   selectedFeedId,
+  profile,
   onSelectFeed,
   onOpenManager,
 }: ShowTagSidebarProps) {
@@ -43,12 +46,23 @@ export function ShowTagSidebar({
 
   return (
     <div className="w-64 border-r bg-card flex flex-col h-full">
-      {/* Logo Header */}
       <div className="p-4 border-b">
-        <Logo />
+        {profile ? (
+          <Link href="/settings">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={profile.avatar_url || undefined} />
+              <AvatarFallback>{profile.display_name?.slice(0, 2).toUpperCase() || "??"}</AvatarFallback>
+            </Avatar>
+            <div className="mt-2">
+              <p className="font-semibold text-sm">{profile.display_name}</p>
+              <p className="text-xs text-muted-foreground">@{profile.username}</p>
+            </div>
+          </Link>
+        ) : (
+          <Logo />
+        )}
       </div>
 
-      {/* Feed Management Section */}
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">

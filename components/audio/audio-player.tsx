@@ -42,38 +42,39 @@ export function AudioPlayer() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4">
+    <div className="fixed bottom-14 left-0 right-0 z-50 p-2 md:p-4 md:bottom-0">
       <Card className="bg-card/95 backdrop-blur-sm">
-        <CardContent className="p-3 flex items-center gap-4">
-          <Link href={currentTrack.show_tags ? `/show/${currentTrack.show_tags.tag}` : "#"}>
+        <CardContent className="p-2 md:p-3 flex items-center gap-2 md:gap-4">
+          <Link href={currentTrack.show_tags ? `/show/${currentTrack.show_tags.tag}` : "#"} className="hidden md:block">
             <Avatar className="h-12 w-12">
               <AvatarImage src={currentTrack.image_url || currentTrack.author_avatar || undefined} />
               <AvatarFallback>{currentTrack.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
           </Link>
-          <div className="flex-1 flex flex-col gap-1 overflow-hidden">
-            <Link href={currentTrack.show_tags ? `/show/${currentTrack.show_tags.tag}` : "#"}>
-              <p className="font-semibold text-sm truncate hover:underline">{currentTrack.content.split('\n')[0]}</p>
-            </Link>
-            <p className="text-xs text-muted-foreground">{currentTrack.author_name}</p>
+          <div className="flex-1 flex items-center gap-2 overflow-hidden">
+             <Button variant="default" size="icon" onClick={togglePlayPause} className="h-10 w-10">
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </Button>
+            <div className="flex-1 flex flex-col gap-1 overflow-hidden">
+              <Link href={currentTrack.show_tags ? `/show/${currentTrack.show_tags.tag}` : "#"}>
+                <p className="font-semibold text-sm truncate hover:underline">{currentTrack.content.split('\n')[0]}</p>
+              </Link>
+              <div className="flex items-center gap-2 w-full">
+                <span className="text-xs text-muted-foreground w-10 text-center">{formatTime(currentTime)}</span>
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={1}
+                  onValueChange={handleSeek}
+                  className="flex-1"
+                />
+                <span className="text-xs text-muted-foreground w-10 text-center">{formatTime(duration)}</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2 w-full max-w-md">
-            <span className="text-xs text-muted-foreground w-10 text-center">{formatTime(currentTime)}</span>
-            <Slider
-              value={[currentTime]}
-              max={duration || 100}
-              step={1}
-              onValueChange={handleSeek}
-              className="flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-10 text-center">{formatTime(duration)}</span>
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handleRewind}>
               <Rewind className="h-5 w-5" />
-            </Button>
-            <Button variant="default" size="icon" onClick={togglePlayPause}>
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
             </Button>
             <Button variant="ghost" size="icon" onClick={handleFastForward}>
               <FastForward className="h-5 w-5" />

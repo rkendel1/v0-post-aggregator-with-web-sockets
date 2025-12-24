@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react"
 import type { Post, ReactionCount, CommentCount } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, Share2, ExternalLink, Play, Pause } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { formatDistanceToNow } from "date-fns"
 import { CommentsSection } from "./comments-section"
 import { ReactionPicker } from "./reaction-picker"
@@ -17,6 +16,7 @@ import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
+import { cn } from "@/lib/utils"
 
 interface PostCardProps {
   post: Post
@@ -90,28 +90,21 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={post.author_avatar || undefined} />
-              <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
+    <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
+      <div className="p-3 flex gap-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={post.author_avatar || undefined} />
+          <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <div className="flex justify-between items-start">
             <div>
-              <p className="font-semibold text-sm">{post.author_name}</p>
               <div className="flex items-center gap-2">
+                <p className="font-semibold text-sm">{post.author_name}</p>
                 <p className="text-xs text-muted-foreground">{timeAgo}</p>
-                {currentUser && <FederatedPostStatus postId={post.id} />}
               </div>
+              {currentUser && <FederatedPostStatus postId={post.id} />}
             </div>
-          </div>
-          <div className="flex items-center gap-1">
-            {post.sources && (
-              <Badge variant="outline" className="text-xs">
-                {post.sources.icon} {post.sources.name}
-              </Badge>
-            )}
             {currentUser && (
               <PostActions
                 post={post}
@@ -121,22 +114,19 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
               />
             )}
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-0 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {post.image_url && (
-            <div className="sm:w-40 flex-shrink-0">
-              <img
-                src={post.image_url}
-                alt={post.content.substring(0, 50)}
-                className="aspect-square w-full rounded-lg object-cover border"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
-            </div>
-          )}
-          <div className="flex-1 space-y-3">
+
+          <div className="space-y-3 mt-1">
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
+            {post.image_url && (
+              <div className="rounded-lg border overflow-hidden">
+                <img
+                  src={post.image_url}
+                  alt={post.content.substring(0, 50)}
+                  className="aspect-video w-full object-cover"
+                  onError={(e) => (e.currentTarget.style.display = "none")}
+                />
+              </div>
+            )}
             {post.external_url && (
               <Button variant="outline" size="sm" asChild>
                 <a href={post.external_url} target="_blank" rel="noopener noreferrer">
@@ -146,69 +136,74 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
               </Button>
             )}
           </div>
-        </div>
 
-        <div className="flex items-center gap-1">
-          {post.audio_url && (
-             <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 h-8"
-              onClick={(e) => {
-                if (!currentUser) {
-                  handleInteraction("play audio", e)
-                } else {
-                  playTrack(post)
-                }
-              }}
-            >
-              {isCurrentlyPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              <span className="text-xs">{isCurrentlyPlaying ? "Pause" : "Play"}</span>
-            </Button>
-          )}
-          <div onClick={(e) => handleInteraction("react to a post", e)}>
-            <ReactionPicker postId={post.id} reactionCounts={reactionCounts} />
+          <div className="flex items-center justify-between mt-3 -ml-2">
+            <div className="flex items-center">
+              <div onClick={(e) => handleInteraction("react to a post", e)}>
+                <ReactionPicker postId={post.id} reactionCounts={reactionCounts} />
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 h-8"
+                onClick={(e) => {
+                  if (!currentUser) {
+                    handleInteraction("comment on a post", e)
+                  } else {
+                    setShowComments(!showComments)
+                  }
+                }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="text-xs">{commentCount}</span>
+              </Button>
+              {post.audio_url && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2 h-8"
+                  onClick={(e) => {
+                    if (!currentUser) {
+                      handleInteraction("play audio", e)
+                    } else {
+                      playTrack(post)
+                    }
+                  }}
+                >
+                  {isCurrentlyPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center">
+              <div onClick={(e) => handleInteraction("save this post", e)}>
+                <SavePostButton
+                  postId={post.id}
+                  showText={false}
+                  onToggle={(isSaved) => {
+                    if (!isSaved) {
+                      onPostUnsaved?.(post.id)
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => {
+                  handleShare()
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 h-8"
-            onClick={(e) => {
-              if (!currentUser) {
-                handleInteraction("comment on a post", e)
-              } else {
-                setShowComments(!showComments)
-              }
-            }}
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span className="text-xs">{commentCount}</span>
-          </Button>
-          <div onClick={(e) => handleInteraction("save this post", e)}>
-            <SavePostButton
-              postId={post.id}
-              onToggle={(isSaved) => {
-                if (!isSaved) {
-                  onPostUnsaved?.(post.id)
-                }
-              }}
-            />
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2 h-8"
-            onClick={() => {
-              handleShare()
-            }}
-          >
-            <Share2 className="h-4 w-4" />
-            <span className="text-xs">Share</span>
-          </Button>
         </div>
-
-        {showComments && currentUser && <CommentsSection postId={post.id} />}
-      </CardContent>
+      </div>
+      {showComments && currentUser && (
+        <div className="px-3 pb-3">
+          <CommentsSection postId={post.id} />
+        </div>
+      )}
     </Card>
   )
 }

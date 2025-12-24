@@ -36,7 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <AudioPlayerProvider>
-          <main className="pb-28">{children}</main>
+          <main>{children}</main>
           <AudioPlayer />
         </AudioPlayerProvider>
         <Analytics />

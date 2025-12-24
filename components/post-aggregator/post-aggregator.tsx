@@ -9,7 +9,7 @@ import { PostComposer } from "./post-composer"
 import { FeedManagementModal } from "./feed-management-modal"
 import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Settings, Loader2, Rss, Menu } from "lucide-react"
+import { Plus, Settings, Loader2, Rss, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { ProfileSetupModal } from "@/components/auth/profile-setup-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
@@ -18,6 +18,9 @@ import { AuthPromptModal } from "@/components/auth/auth-prompt-modal"
 import { Toaster, toast } from "react-hot-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { MobileNav } from "./mobile-nav"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Logo } from "@/components/logo"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -247,13 +250,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const selectedTag =
     selectedFeedId !== "all" && selectedFeedId !== null ? feedTags.find((t) => t.id === selectedFeedId) : null
 
-  const handleCopyRssLink = () => {
-    if (!selectedTag) return
-    const rssUrl = `${window.location.origin}/api/rss/${selectedTag.tag}`
-    navigator.clipboard.writeText(rssUrl)
-    toast.success("RSS feed link copied to clipboard!")
-  }
-
   return (
     <div className="flex h-screen bg-background">
       <Toaster position="bottom-right" />
@@ -267,6 +263,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         <ShowTagSidebar
           feedTags={feedTags}
           selectedFeedId={selectedFeedId}
+          profile={profile}
           onSelectFeed={(id) => {
             if (requireUser("view your custom feed")) {
               setActiveFeed("following")
@@ -286,67 +283,45 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       {isSidebarOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
       <div className="flex-1 flex flex-col">
-        <header className="border-b bg-card p-4 space-y-4">
+        <header className="border-b bg-card p-3 sticky top-0 z-30 md:p-4 md:space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
-                <Menu className="h-5 w-5" />
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback>{profile?.display_name?.slice(0, 1) || "?"}</AvatarFallback>
+                </Avatar>
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <span>
-                    {!user
-                      ? "Welcome"
-                      : activeFeed === "following"
-                      ? selectedFeedId === "all"
-                        ? "All Feeds"
-                        : selectedTag
-                        ? `#${selectedTag.tag}`
-                        : "Select a tag"
-                      : "For You"}
-                  </span>
-                  {selectedTag && (
-                    <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                      <Rss className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  )}
-                </h1>
-                <p className="text-sm text-muted-foreground">
+              <div className="md:hidden">
+                <Logo />
+              </div>
+              <div className="hidden md:block">
+                <h1 className="text-2xl font-bold text-foreground">
                   {!user
-                    ? "Discover the latest posts from the community"
+                    ? "Welcome"
                     : activeFeed === "following"
                     ? selectedFeedId === "all"
-                      ? `Posts from ${feedTags.length} followed tags`
-                      : selectedTag?.name || "Choose a show tag to view posts"
-                    : "A curated feed of posts"}
-                </p>
+                      ? "All Feeds"
+                      : selectedTag
+                      ? `#${selectedTag.tag}`
+                      : "Select a tag"
+                    : "For You"}
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="ghost" size="icon" className="md:hidden">
                   <Link href="/settings">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
+                    <Settings className="h-5 w-5" />
                   </Link>
                 </Button>
               )}
-              <Button
-                onClick={() => {
-                  if (requireUser("create a new post")) setIsComposerOpen(true)
-                }}
-                size="sm"
-                className="gap-2"
-                disabled={!user || (activeFeed === "following" && !selectedTag)}
-              >
-                <PlusCircle className="h-4 w-4" />
-                New Post
-              </Button>
             </div>
           </div>
           {user && (
-            <Tabs value={activeFeed} onValueChange={(value) => setActiveFeed(value as "following" | "for-you")} className="w-full">
-              <TabsList className="grid w-full max-w-sm mx-auto grid-cols-2">
+            <Tabs value={activeFeed} onValueChange={(value) => setActiveFeed(value as "following" | "for-you")} className="w-full mt-2">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="following">Following</TabsTrigger>
                 <TabsTrigger value="for-you">For You</TabsTrigger>
               </TabsList>
@@ -354,7 +329,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           )}
         </header>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden pb-14 md:pb-0">
           <PostFeed
             posts={posts}
             isLoading={isLoadingPosts}
@@ -368,6 +343,21 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           />
         </div>
       </div>
+
+      {user && (
+        <Button
+          onClick={() => {
+            if (requireUser("create a new post")) setIsComposerOpen(true)
+          }}
+          size="icon"
+          className="rounded-full h-14 w-14 fixed bottom-20 right-4 z-40 md:hidden"
+          disabled={activeFeed === "following" && !selectedTag}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      )}
+
+      <MobileNav />
 
       {isComposerOpen && selectedTag && (
         <PostComposer

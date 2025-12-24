@@ -8,6 +8,7 @@ import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic, ExternalLink } from "
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface ShowTagSidebarProps {
   feedTags: ShowTag[]
@@ -106,44 +107,48 @@ export function ShowTagSidebar({
                 <LayoutGrid className="h-4 w-4 mr-2" />
                 All Feeds
               </Button>
-              <div className="pt-2">
+              <Accordion type="multiple" defaultValue={["Comedy"]} className="w-full">
                 {categories.map((category) => (
-                  <div key={category} className="space-y-1">
-                    <h3 className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase">
+                  <AccordionItem value={category} key={category}>
+                    <AccordionTrigger className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase hover:no-underline">
                       {category}
-                    </h3>
-                    {groupedTags[category].map((tag) => (
-                      <div key={tag.id} className="flex items-center w-full group pr-2">
-                        <Button
-                          variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
-                          className={cn(
-                            "flex-1 justify-start font-mono h-auto py-1.5 text-left min-w-0",
-                            selectedFeedId === tag.id && "bg-secondary",
-                          )}
-                          onClick={() => onSelectFeed(tag.id)}
-                        >
-                          <div className="flex flex-col items-start overflow-hidden">
-                            <span className="font-bold truncate">#{tag.tag}</span>
-                            <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
-                              {tag.name}
-                            </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-1">
+                        {groupedTags[category].map((tag) => (
+                          <div key={tag.id} className="flex items-center w-full group pr-2">
+                            <Button
+                              variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
+                              className={cn(
+                                "flex-1 justify-start font-mono h-auto py-1.5 text-left min-w-0",
+                                selectedFeedId === tag.id && "bg-secondary",
+                              )}
+                              onClick={() => onSelectFeed(tag.id)}
+                            >
+                              <div className="flex flex-col items-start overflow-hidden">
+                                <span className="font-bold truncate">#{tag.tag}</span>
+                                <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
+                                  {tag.name}
+                                </span>
+                              </div>
+                            </Button>
+                            <Button
+                              asChild
+                              variant="ghost"
+                              size="icon-sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            >
+                              <Link href={`/show/${tag.tag.toLowerCase()}`} title={`Go to #${tag.tag} page`}>
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </Button>
                           </div>
-                        </Button>
-                        <Button
-                          asChild
-                          variant="ghost"
-                          size="icon-sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                        >
-                          <Link href={`/show/${tag.tag.toLowerCase()}`} title={`Go to #${tag.tag} page`}>
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 ))}
-              </div>
+              </Accordion>
             </>
           )}
         </div>

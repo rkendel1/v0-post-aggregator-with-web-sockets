@@ -18,6 +18,7 @@ import { ClaimPageModal } from "./claim-page-modal"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
+  initialPosts: Post[]
 }
 
 const POST_SELECT_QUERY = `
@@ -29,16 +30,16 @@ const POST_SELECT_QUERY = `
 `
 const POSTS_PER_PAGE = 20
 
-export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
-  const [allPosts, setAllPosts] = useState<Post[]>([])
+export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
+  const [allPosts, setAllPosts] = useState<Post[]>(initialPosts)
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true)
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [supabase] = useState(() => createClient())
-  const [offset, setOffset] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const [offset, setOffset] = useState(initialPosts.length)
+  const [hasMore, setHasMore] = useState(initialPosts.length === POSTS_PER_PAGE)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
 
   const platformPosts = useMemo(() => allPosts.filter((p) => p.external_guid === null), [allPosts])
@@ -68,31 +69,6 @@ export function ShowTagFeed({ showTag }: ShowTagFeedProps) {
     }
     fetchProfile()
   }, [user, supabase])
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setIsLoadingPosts(true)
-      setAllPosts([])
-      setOffset(0)
-      setHasMore(true)
-      const { data } = await supabase
-        .from("posts")
-        .select(POST_SELECT_QUERY)
-        .eq("show_tag_id", showTag.id)
-        .order("created_at", { ascending: false })
-        .range(0, POSTS_PER_PAGE - 1)
-      
-      if (data) {
-        setAllPosts(data as Post[])
-        setOffset(data.length)
-        if (data.length < POSTS_PER_PAGE) {
-          setHasMore(false)
-        }
-      }
-      setIsLoadingPosts(false)
-    }
-    fetchPosts()
-  }, [showTag.id, supabase])
 
   const loadMorePosts = useCallback(async () => {
     if (isFetchingMore || !hasMore) return

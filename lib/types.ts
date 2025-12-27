@@ -5,6 +5,7 @@ export interface ShowTag {
   created_at: string
   category?: string | null
   claimed_by_user_id?: string | null
+  parent_tag_id?: string | null
 }
 
 export interface Source {

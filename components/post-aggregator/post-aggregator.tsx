@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { MobileNav } from "./mobile-nav"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Logo } from "@/components/logo"
+import { useUser } from "@/contexts/user-context"
 
 interface PostAggregatorProps {
   initialShowTags: ShowTag[]
@@ -39,15 +40,19 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const {
     user,
     profile,
+    isLoading: isUserLoading,
+    isGuest,
+    isProfileSetupNeeded,
+    reloadProfile,
+  } = useUser()
+
+  const {
     feedTags,
     allAvailableTags,
     isLoading: isFeedLoading,
-    isGuest,
-    isProfileSetupNeeded,
     addTagToFeed,
     removeTagFromFeed,
     addNewAvailableTag,
-    reloadProfile,
   } = useFeedManager(initialShowTags)
 
   const [activeFeed, setActiveFeed] = useState<"following" | "for-you">("following")
@@ -230,7 +235,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     await supabase.from("hidden_posts").insert({ user_id: user.id, post_id: postId })
   }
 
-  if (isFeedLoading && !user) {
+  if (isUserLoading && !user) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

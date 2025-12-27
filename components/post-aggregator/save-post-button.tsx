@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Bookmark, BookmarkCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/contexts/user-context"
 
 interface SavePostButtonProps {
   postId: string
@@ -17,14 +18,15 @@ export function SavePostButton({ postId, className, onToggle, showText = true }:
   const [isSaved, setIsSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [supabase] = useState(() => createClient())
+  const { user } = useUser()
 
   useEffect(() => {
-    const checkSaveStatus = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user) {
+      setIsSaved(false)
+      return
+    }
 
+    const checkSaveStatus = async () => {
       const { data } = await supabase
         .from("saved_posts")
         .select("id")
@@ -36,12 +38,9 @@ export function SavePostButton({ postId, className, onToggle, showText = true }:
     }
 
     checkSaveStatus()
-  }, [postId, supabase])
+  }, [postId, supabase, user])
 
   const handleToggleSave = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     setIsLoading(true)

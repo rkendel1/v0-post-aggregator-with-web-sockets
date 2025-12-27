@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Plus, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/contexts/user-context"
 
 interface TagFollowButtonProps {
   showTagId: string
@@ -17,14 +18,15 @@ export function TagFollowButton({ showTagId, variant = "outline", size = "sm", c
   const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [supabase] = useState(() => createClient())
+  const { user } = useUser()
 
   useEffect(() => {
-    const checkFollowStatus = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user) {
+      setIsFollowing(false)
+      return
+    }
 
+    const checkFollowStatus = async () => {
       const { data } = await supabase
         .from("tag_follows")
         .select("id")
@@ -36,12 +38,9 @@ export function TagFollowButton({ showTagId, variant = "outline", size = "sm", c
     }
 
     checkFollowStatus()
-  }, [showTagId, supabase])
+  }, [showTagId, supabase, user])
 
   const handleToggleFollow = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     setIsLoading(true)

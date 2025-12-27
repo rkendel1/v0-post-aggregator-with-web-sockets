@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AudioPlayerProvider } from '@/contexts/audio-player-context'
 import { AudioPlayer } from '@/components/audio/audio-player'
+import { UserProvider } from '@/contexts/user-context'
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -35,10 +36,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <AudioPlayerProvider>
-          <main>{children}</main>
-          <AudioPlayer />
-        </AudioPlayerProvider>
+        <UserProvider>
+          <AudioPlayerProvider>
+            <main>{children}</main>
+            <AudioPlayer />
+          </AudioPlayerProvider>
+        </UserProvider>
         <Analytics />
       </body>
     </html>

@@ -6,6 +6,7 @@ import type { ReactionType, ReactionCount } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/contexts/user-context"
 
 interface ReactionPickerProps {
   postId?: string
@@ -19,6 +20,7 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
   const [userReaction, setUserReaction] = useState<string | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [supabase] = useState(() => createClient())
+  const { user } = useUser()
 
   // Fetch reaction types
   useEffect(() => {
@@ -35,12 +37,12 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
 
   // Fetch user's current reaction
   useEffect(() => {
-    const fetchUserReaction = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
+    if (!user) {
+      setUserReaction(null)
+      return
+    }
 
+    const fetchUserReaction = async () => {
       const query = supabase.from("reactions").select("reaction_type_id").eq("user_id", user.id)
 
       if (postId) {
@@ -59,12 +61,9 @@ export function ReactionPicker({ postId, commentId, reactionCounts = [], onReact
     }
 
     fetchUserReaction()
-  }, [postId, commentId, supabase])
+  }, [postId, commentId, supabase, user])
 
   const handleReaction = async (reactionTypeId: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (!user) return
 
     // If user already has this reaction, remove it

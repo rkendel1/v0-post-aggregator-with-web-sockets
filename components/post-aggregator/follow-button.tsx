@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { UserPlus, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/contexts/user-context"
 
 interface FollowButtonProps {
   userId: string
@@ -16,22 +17,20 @@ interface FollowButtonProps {
 export function FollowButton({ userId, variant = "outline", size = "sm", className }: FollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [supabase] = useState(() => createClient())
+  const { user: currentUser } = useUser()
 
   useEffect(() => {
+    if (!currentUser) {
+      setIsFollowing(false)
+      return
+    }
+
     const checkFollowStatus = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-
-      setCurrentUserId(user.id)
-
       const { data } = await supabase
         .from("user_follows")
         .select("id")
-        .eq("follower_id", user.id)
+        .eq("follower_id", currentUser.id)
         .eq("following_id", userId)
         .limit(1)
 
@@ -39,10 +38,10 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
     }
 
     checkFollowStatus()
-  }, [userId, supabase])
+  }, [userId, supabase, currentUser])
 
   const handleToggleFollow = async () => {
-    if (!currentUserId || currentUserId === userId) return
+    if (!currentUser || currentUser.id === userId) return
 
     setIsLoading(true)
 
@@ -51,7 +50,7 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
       const { error } = await supabase
         .from("user_follows")
         .delete()
-        .eq("follower_id", currentUserId)
+        .eq("follower_id", currentUser.id)
         .eq("following_id", userId)
 
       if (!error) {
@@ -60,7 +59,7 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
     } else {
       // Follow
       const { error } = await supabase.from("user_follows").insert({
-        follower_id: currentUserId,
+        follower_id: currentUser.id,
         following_id: userId,
       })
 
@@ -73,7 +72,7 @@ export function FollowButton({ userId, variant = "outline", size = "sm", classNa
   }
 
   // Don't show follow button for own profile
-  if (currentUserId === userId) {
+  if (currentUser?.id === userId) {
     return null
   }
 

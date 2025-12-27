@@ -1,48 +1,64 @@
-import { createClient } from "@/lib/supabase/server"
-import { cookies } from "next/headers"
-import { TagManager } from "@/components/admin/tag-manager"
+import React, { useState } from "react"
 import type { ShowTag } from "@/lib/types"
-import { Toaster } from "react-hot-toast"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-export default async function AdminTagsPage() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+type TagManagerProps = {
+  initialTags: ShowTag[]
+}
 
-  // In a real app, you'd protect this route for admins only.
-  // For now, we'll assume the user is authorized.
+export function TagManager({ initialTags }: TagManagerProps) {
+  const [tags, setTags] = useState<ShowTag[]>(initialTags)
 
-  const { data: tags, error } = await supabase
-    .from("show_tags")
-    .select("*, user_rss_feeds(rss_url), subdomain_mappings(subdomain)")
-    .order("tag", { ascending: true })
+  // Separate canonical creators and aliases
+  const canonical = tags.filter(t => !t.parent_tag_id)
+  const aliases = tags.filter(t => t.parent_tag_id)
 
-  if (error) {
-    console.error("Error fetching tags for admin:", error)
-  }
+  const aliasesByParent = aliases.reduce<Record<string, ShowTag[]>>((acc, tag) => {
+    const parentId = tag.parent_tag_id as string
+    acc[parentId] = acc[parentId] || []
+    acc[parentId].push(tag)
+    return acc
+  }, {})
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-8">
-          <Button asChild variant="outline" size="icon">
-            <Link href="/">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="sr-only">Back to feed</span>
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Tag Management</h1>
-            <p className="text-muted-foreground mt-1">
-              Manage show tags and their canonical/alias relationships for subdomains.
-            </p>
-          </div>
-        </div>
-        <TagManager initialTags={(tags as ShowTag[]) || []} />
-      </div>
-      <Toaster position="bottom-right" />
+    <div>
+      <h2 className="text-lg font-semibold mt-6 mb-2">Canonical Creators</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        These define creator subdomains and are the final rendering destination.
+      </p>
+      {canonical.map(tag => {
+        const childAliases = aliasesByParent[tag.id] || []
+        return (
+          <details key={tag.id} className="mb-4 border rounded">
+            <summary className="cursor-pointer p-4 flex items-center justify-between">
+              <div>
+                <div className="font-medium">{tag.tag}</div>
+                <div className="text-xs text-muted-foreground">
+                  {childAliases.length} alias{childAliases.length === 1 ? '' : 'es'}
+                </div>
+              </div>
+            </summary>
+
+            <div className="p-4 border-t space-y-3">
+              <Label>Canonical Tag</Label>
+              <Input value={tag.tag} readOnly />
+
+              {childAliases.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <div className="text-sm font-medium">Aliases</div>
+                  {childAliases.map(alias => (
+                    <div key={alias.id} className="pl-4 border-l">
+                      <Input value={alias.tag} readOnly />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
+        )
+      })}
     </div>
   )
 }

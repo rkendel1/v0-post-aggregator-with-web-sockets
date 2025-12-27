@@ -6,6 +6,7 @@ export interface ShowTag {
   category?: string | null
   claimed_by_user_id?: string | null
   parent_tag_id?: string | null
+  user_rss_feeds?: { rss_url: string }[] | null
 }
 
 export interface Source {
@@ -185,4 +186,5 @@ export interface UserRssFeed {
   title: string
   last_fetched_at: string | null
   created_at: string
+  show_tag_id?: string | null
 }

@@ -69,8 +69,14 @@ export function TagManager({ initialTags }: TagManagerProps) {
       console.error(error)
     } else {
       toast.success("Tag updated successfully.")
-      // Update local state
-      setTags(tags.map(t => t.id === currentTag.id ? { ...t, ...currentTag } as ShowTag : t))
+      // Refresh data from server to get latest state
+      const { data: updatedTags } = await supabase
+        .from("show_tags")
+        .select("*, user_rss_feeds(rss_url)")
+        .order("tag", { ascending: true })
+      if (updatedTags) {
+        setTags(updatedTags as ShowTag[])
+      }
       setIsEditing(false)
       setCurrentTag(null)
     }
@@ -90,13 +96,15 @@ export function TagManager({ initialTags }: TagManagerProps) {
             <TableRow>
               <TableHead>Tag</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Type / Parent</TableHead>
+              <TableHead>Associated RSS Feed</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {tags.map((tag) => {
               const parent = getParentTag(tag.parent_tag_id)
+              const rssFeed = tag.user_rss_feeds && tag.user_rss_feeds.length > 0 ? tag.user_rss_feeds[0].rss_url : null
               return (
                 <TableRow key={tag.id}>
                   <TableCell className="font-mono">#{tag.tag}</TableCell>
@@ -109,6 +117,15 @@ export function TagManager({ initialTags }: TagManagerProps) {
                     )}
                   </TableCell>
                   <TableCell>
+                    {rssFeed ? (
+                      <a href={rssFeed} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate block max-w-xs" title={rssFeed}>
+                        {rssFeed}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">None</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
                     <Button variant="ghost" size="sm" onClick={() => handleEdit(tag)}>
                       <Pencil className="h-4 w-4" />
                     </Button>

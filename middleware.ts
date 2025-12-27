@@ -35,42 +35,50 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl
   const hostname = request.headers.get('host')!
 
-  // Special handling for localhost to prevent rewrite
   if (hostname.startsWith('localhost')) {
     return response
   }
 
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
 
-  // If the request is for the root domain or www, do nothing.
   if (hostname === rootDomain || hostname === `www.${rootDomain}`) {
     return response
   }
 
   const subdomain = hostname.replace(`.${rootDomain}`, '')
   if (subdomain) {
-    // New logic: look up subdomain in the subdomain_mappings table
+    // 1. Check for a direct subdomain mapping
     const { data: mapping } = await supabase
       .from('subdomain_mappings')
       .select('show_tags(tag)')
       .eq('subdomain', subdomain)
       .single()
 
-    const tagSlug = (mapping as any)?.show_tags?.tag
+    const mappedTagSlug = (mapping as any)?.show_tags?.tag
 
-    if (tagSlug) {
-      // Found a matching subdomain, rewrite to its tag slug
-      return NextResponse.rewrite(
-        new URL(`/show/${tagSlug}${url.pathname}`, request.url),
-        response
-      )
-    } else {
-      // Fallback to old behavior: treat subdomain as the tag slug
-      return NextResponse.rewrite(
-        new URL(`/show/${subdomain}${url.pathname}`, request.url),
-        response
-      )
+    if (mappedTagSlug) {
+      return NextResponse.rewrite(new URL(`/show/${mappedTagSlug}${url.pathname}`, request.url), response)
     }
+
+    // 2. If no mapping, check if the subdomain is an alias tag
+    const { data: tagData } = await supabase
+      .from('show_tags')
+      .select('tag, parent:parent_tag_id(tag)')
+      .ilike('tag', subdomain)
+      .single()
+
+    if (tagData) {
+      // The parent relationship is returned as an array, so we access the first element.
+      if (tagData.parent?.[0]?.tag) {
+        // It's an alias, rewrite to the parent's slug
+        return NextResponse.rewrite(new URL(`/show/${tagData.parent[0].tag}${url.pathname}`, request.url), response)
+      }
+      // It's a canonical tag without a mapping, rewrite to its own slug
+      return NextResponse.rewrite(new URL(`/show/${tagData.tag}${url.pathname}`, request.url), response)
+    }
+    
+    // 3. Fallback: if no mapping and no tag found, let the page show "Not Found"
+    return NextResponse.rewrite(new URL(`/show/${subdomain}${url.pathname}`, request.url), response)
   }
 
   return response

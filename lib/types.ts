@@ -7,6 +7,7 @@ export interface ShowTag {
   claimed_by_user_id?: string | null
   parent_tag_id?: string | null
   user_rss_feeds?: { rss_url: string }[] | null
+  subdomain_mappings?: { subdomain: string }[] | null
 }
 
 export interface Source {

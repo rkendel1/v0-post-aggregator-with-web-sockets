@@ -16,7 +16,7 @@ export default async function AdminTagsPage() {
 
   const { data: tags, error } = await supabase
     .from("show_tags")
-    .select("*, user_rss_feeds(rss_url)")
+    .select("*, user_rss_feeds(rss_url), subdomain_mappings(subdomain)")
     .order("tag", { ascending: true })
 
   if (error) {

@@ -47,13 +47,30 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // For any other subdomain, rewrite to the /show/[showTag] route.
   const subdomain = hostname.replace(`.${rootDomain}`, '')
   if (subdomain) {
-    return NextResponse.rewrite(
-      new URL(`/show/${subdomain}${url.pathname}`, request.url),
-      response
-    )
+    // New logic: look up subdomain in the subdomain_mappings table
+    const { data: mapping } = await supabase
+      .from('subdomain_mappings')
+      .select('show_tags(tag)')
+      .eq('subdomain', subdomain)
+      .single()
+
+    const tagSlug = (mapping as any)?.show_tags?.tag
+
+    if (tagSlug) {
+      // Found a matching subdomain, rewrite to its tag slug
+      return NextResponse.rewrite(
+        new URL(`/show/${tagSlug}${url.pathname}`, request.url),
+        response
+      )
+    } else {
+      // Fallback to old behavior: treat subdomain as the tag slug
+      return NextResponse.rewrite(
+        new URL(`/show/${subdomain}${url.pathname}`, request.url),
+        response
+      )
+    }
   }
 
   return response

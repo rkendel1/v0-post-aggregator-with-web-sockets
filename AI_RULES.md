@@ -1,17 +1,40 @@
 # AI Editor Rules for Post Aggregator
 
-This document outlines the technical stack and mandatory library usage rules for maintaining consistency and quality in the Post Aggregator application.
+This document outlines the technical stack, core concepts, and mandatory library usage rules for maintaining consistency and quality in the Post Aggregator application.
+
+## Application Overview
+
+PodBridge is a Twitter-like community platform designed to organize podcasts and creators. It allows users to follow specific shows, creators, or topics through a system of "Show Tags". The platform aggregates content from various sources and provides a centralized community hub for each tag.
+
+A key feature is providing each creator/show with a dedicated subdomain (e.g., `https://huberman-lab.podbridge.app`), creating a branded space for their community and content.
+
+## Core Concepts
+
+### 1. Show Tags
+
+- **Central Organizing Principle**: Everything in the app revolves around `show_tags`. A show tag represents a podcast, creator, or specific topic (e.g., `#JoeRogan`, `#HubermanLab`).
+- **Database Link**: All content, such as posts, episodes, and comments, is associated with a `show_tag_id` in the database.
+- **Tag-based Feeds**: The primary user experience is consuming feeds based on the `show_tags` they follow.
+
+### 2. Creator Subdomains & Routing
+
+- **Platform**: The application is deployed on Vercel, which handles wildcard subdomains.
+- **Subdomain Structure**: Each `show_tag` can have a corresponding subdomain. For a tag like `huberman-lab`, the URL is `https://huberman-lab.podbridge.app`.
+- **Routing Middleware**: The `middleware.ts` file is responsible for routing. It rewrites requests from a subdomain like `creator-slug.podbridge.app` to the internal Next.js route `/show/creator-slug`.
+- **Canonical Page**: The single source of truth for a creator's page is `app/show/[showTag]/page.tsx`. The `[showTag]` slug from the URL is used to fetch the corresponding record from the `show_tags` table.
+- **Consistent Linking**: When creating links to a show's page, always use the path `/show/[tag-slug]`. This ensures routing works correctly both on the main domain and on subdomains.
 
 ## Technical Stack Overview
 
-1.  **Framework**: Next.js 16, utilizing the App Router for routing and server/client components.
-2.  **Language**: TypeScript is mandatory for all application code.
-3.  **Backend & Database**: Supabase is used for PostgreSQL database, Realtime subscriptions (WebSockets), and User Authentication (Supabase Auth).
-4.  **Styling**: Tailwind CSS v4 is the sole styling utility. All components must be styled using Tailwind classes.
-5.  **UI Library**: shadcn/ui components (built on Radix UI primitives) are used for all standard UI elements (Buttons, Cards, Dialogs, etc.).
-6.  **Icons**: All icons must be sourced from the `lucide-react` package.
-7.  **Date Management**: The `date-fns` library is used for all date and time manipulation and formatting.
-8.  **Data Access**: Supabase client wrappers (`@/lib/supabase/client` and `@/lib/supabase/server`) must be used for all database interactions.
+1.  **Framework**: Next.js 16, utilizing the App Router.
+2.  **Deployment**: Vercel, for seamless deployment and wildcard subdomain management.
+3.  **Language**: TypeScript is mandatory for all application code.
+4.  **Backend & Database**: Supabase is used for PostgreSQL database, Realtime subscriptions (WebSockets), and User Authentication (Supabase Auth).
+5.  **Styling**: Tailwind CSS v4 is the sole styling utility. All components must be styled using Tailwind classes.
+6.  **UI Library**: shadcn/ui components (built on Radix UI primitives) are used for all standard UI elements (Buttons, Cards, Dialogs, etc.).
+7.  **Icons**: All icons must be sourced from the `lucide-react` package.
+8.  **Date Management**: The `date-fns` library is used for all date and time manipulation and formatting.
+9.  **Data Access**: Supabase client wrappers (`@/lib/supabase/client` and `@/lib/supabase/server`) must be used for all database interactions.
 
 ## Mandatory Library Usage Rules
 

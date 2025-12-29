@@ -14,19 +14,61 @@ const POST_SELECT_QUERY = `
 `
 const POSTS_PER_PAGE = 20
 
+function normalizeForMatch(str: string): string {
+  return str.toLowerCase()
+    .replace(/[-_\s]+/g, '') // Remove hyphens, underscores, spaces
+    .replace(/([a-z])([A-Z])/g, '$1$2'.toLowerCase()); // Handle camelCase simply by lowercasing
+}
+
 export default async function ShowTagPage({ params }: { params: Promise<{ showTag: string }> }) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
   const { showTag: tagSlug } = await params
+  const normalizedInput = normalizeForMatch(tagSlug)
 
-  // Step 1: Find the requested tag by its slug (case-insensitive).
-  const { data: requestedTag } = await supabase
+  // Step 1: Try to find the requested tag by partial slug match (case-insensitive).
+  let { data: requestedTag } = await supabase
     .from("show_tags")
     .select(`*`)
-    .ilike("tag", tagSlug)
+    .ilike("tag", `%${tagSlug}%`)
     .single()
 
-  if (!requestedTag) {
+  let canonicalTag: ShowTag | null = null
+
+  if (requestedTag) {
+    canonicalTag = requestedTag as ShowTag
+
+    // Step 2: If the tag is an alias (it has a parent_tag_id), fetch the canonical parent tag.
+    if (requestedTag.parent_tag_id) {
+      const { data: parentTagData } = await supabase
+        .from("show_tags")
+        .select(`*`)
+        .eq("id", requestedTag.parent_tag_id)
+        .single()
+      
+      // If the parent is found, it becomes the canonical tag for this page.
+      if (parentTagData) {
+        canonicalTag = parentTagData as ShowTag
+      }
+    }
+  } else {
+    // Fallback: Search canonical tags by normalized tag or name match.
+    const { data: canonicals } = await supabase
+      .from("show_tags")
+      .select(`*`)
+      .is("parent_tag_id", null) // Only canonicals
+
+    if (canonicals) {
+      for (const tag of canonicals) {
+        if (normalizeForMatch(tag.tag) === normalizedInput || normalizeForMatch(tag.name) === normalizedInput) {
+          canonicalTag = tag as ShowTag
+          break
+        }
+      }
+    }
+  }
+
+  if (!canonicalTag) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 text-center">
         <h1 className="text-4xl font-bold">Tag Not Found</h1>
@@ -38,22 +80,6 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
         </Button>
       </div>
     )
-  }
-
-  let canonicalTag = requestedTag as ShowTag
-
-  // Step 2: If the tag is an alias (it has a parent_tag_id), fetch the canonical parent tag.
-  if (requestedTag.parent_tag_id) {
-    const { data: parentTagData } = await supabase
-      .from("show_tags")
-      .select(`*`)
-      .eq("id", requestedTag.parent_tag_id)
-      .single()
-    
-    // If the parent is found, it becomes the canonical tag for this page.
-    if (parentTagData) {
-      canonicalTag = parentTagData as ShowTag
-    }
   }
 
   // Step 3: Fetch posts using the canonical tag's ID.

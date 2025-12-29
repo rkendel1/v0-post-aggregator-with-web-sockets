@@ -55,7 +55,7 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
     try {
       const { data, error } = await supabase
         .from("show_tags")
-        .select("*")
+        .select("*, user_rss_feeds(rss_url)")
         .order("tag", { ascending: true })
       if (error) throw error
       setTags(data || [])
@@ -82,14 +82,27 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
     setLoading(true)
     setError(null)
     try {
-      const rssFeeds = newRssUrls.filter(url => url.trim()).map(url => ({ rss_url: url.trim() }))
-      const { data, error } = await supabase
+      const { data: newTagData, error: insertError } = await supabase
         .from("show_tags")
-        .insert([{ tag: newCanonical.tag.toLowerCase().trim(), name: newCanonical.name.trim(), user_rss_feeds: rssFeeds.length > 0 ? rssFeeds : null }])
+        .insert([{ tag: newCanonical.tag.toLowerCase().trim(), name: newCanonical.name.trim() }])
         .select()
         .single()
-      if (error) throw error
-      setTags([...tags, data])
+      if (insertError) throw insertError
+
+      // Handle RSS feeds relation
+      const rssUrls = newRssUrls.filter(url => url.trim())
+      if (rssUrls.length > 0) {
+        const newFeeds = rssUrls.map(url => ({ rss_url: url.trim(), show_tag_id: newTagData.id }))
+        await supabase.from('user_rss_feeds').insert(newFeeds)
+      }
+
+      // Fetch full data with relations
+      const { data: fullData } = await supabase
+        .from("show_tags")
+        .select("*, user_rss_feeds(rss_url)")
+        .eq("id", newTagData.id)
+        .single()
+      setTags([...tags, fullData])
       setNewCanonical({ tag: "", name: "" })
       setNewRssUrls([])
       setShowAddCanonical(false)
@@ -106,14 +119,27 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
     setLoading(true)
     setError(null)
     try {
-      const rssFeeds = newAliasRssUrls.filter(url => url.trim()).map(url => ({ rss_url: url.trim() }))
-      const { data, error } = await supabase
+      const { data: newTagData, error: insertError } = await supabase
         .from("show_tags")
-        .insert([{ tag: newAlias.tag.toLowerCase().trim(), name: newAlias.name.trim(), parent_tag_id: newAlias.parentId, user_rss_feeds: rssFeeds.length > 0 ? rssFeeds : null }])
+        .insert([{ tag: newAlias.tag.toLowerCase().trim(), name: newAlias.name.trim(), parent_tag_id: newAlias.parentId }])
         .select()
         .single()
-      if (error) throw error
-      setTags([...tags, data])
+      if (insertError) throw insertError
+
+      // Handle RSS feeds relation
+      const rssUrls = newAliasRssUrls.filter(url => url.trim())
+      if (rssUrls.length > 0) {
+        const newFeeds = rssUrls.map(url => ({ rss_url: url.trim(), show_tag_id: newTagData.id }))
+        await supabase.from('user_rss_feeds').insert(newFeeds)
+      }
+
+      // Fetch full data with relations
+      const { data: fullData } = await supabase
+        .from("show_tags")
+        .select("*, user_rss_feeds(rss_url)")
+        .eq("id", newTagData.id)
+        .single()
+      setTags([...tags, fullData])
       setNewAlias({ tag: "", name: "", parentId: "" })
       setNewAliasRssUrls([])
       setShowAddAlias(false)
@@ -130,14 +156,27 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
     setLoading(true)
     setError(null)
     try {
-      const rssFeeds = editingRss.filter(url => url.trim()).map(url => ({ rss_url: url.trim() }))
-      const { error } = await supabase
+      const newTag = editingTag.tag.toLowerCase().trim()
+      const newName = editingTag.name.trim()
+      const newParentId = editingTag.parent_tag_id || null
+      const { error: updateError } = await supabase
         .from("show_tags")
-        .update({ tag: editingTag.tag.toLowerCase().trim(), name: editingTag.name.trim(), user_rss_feeds: rssFeeds.length > 0 ? rssFeeds : null })
+        .update({ tag: newTag, name: newName, parent_tag_id: newParentId })
         .eq("id", originalTag.id)
-      if (error) throw error
+      if (updateError) throw updateError
+
+      // Handle RSS feeds relation
+      await supabase.from('user_rss_feeds').delete().eq('show_tag_id', originalTag.id)
+      const rssUrls = editingRss.filter(url => url.trim())
+      if (rssUrls.length > 0) {
+        const newFeeds = rssUrls.map(url => ({ rss_url: url.trim(), show_tag_id: originalTag.id }))
+        const { error: insertError } = await supabase.from('user_rss_feeds').insert(newFeeds)
+        if (insertError) throw insertError
+      }
+
       // Update local state optimistically
-      setTags(tags.map(t => t.id === originalTag.id ? { ...t, tag: editingTag.tag.toLowerCase().trim(), name: editingTag.name.trim(), user_rss_feeds: rssFeeds.length > 0 ? rssFeeds : null } : t))
+      const newUserRssFeeds = rssUrls.map(url => ({ rss_url: url.trim() }))
+      setTags(tags.map(t => t.id === originalTag.id ? { ...t, tag: newTag, name: newName, parent_tag_id: newParentId, user_rss_feeds: newUserRssFeeds } : t))
       setEditingTag(null)
       setEditingRss([])
     } catch (error: any) {
@@ -448,6 +487,21 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
                             </Button>
                           </div>
                         </div>
+                        <div>
+                          <Label htmlFor="parent-id">Canonical Parent (Alias of)</Label>
+                          <select
+                            id="parent-id"
+                            value={editingTag?.parent_tag_id || ""}
+                            onChange={(e) => setEditingTag(editingTag ? { ...editingTag, parent_tag_id: e.target.value || null } : null)}
+                            className="w-full p-2 border rounded-md"
+                            disabled={loading}
+                          >
+                            <option value="">Canonical (no parent)</option>
+                            {canonical.filter(c => c.id !== editingTag?.id).map(c => (
+                              <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                       <DialogFooter>
                         <Button variant="outline" onClick={() => {setEditingTag(null); setEditingRss([]);}} disabled={loading}>Cancel</Button>
@@ -582,6 +636,21 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
                                         + Add RSS Feed
                                       </Button>
                                     </div>
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="alias-parent-id">Canonical Parent</Label>
+                                    <select
+                                      id="alias-parent-id"
+                                      value={editingTag?.parent_tag_id || ""}
+                                      onChange={(e) => setEditingTag(editingTag ? { ...editingTag, parent_tag_id: e.target.value || null } : null)}
+                                      className="w-full p-2 border rounded-md"
+                                      disabled={loading}
+                                    >
+                                      <option value="">Canonical (no parent)</option>
+                                      {canonical.filter(c => c.id !== editingTag?.id).map(c => (
+                                        <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
+                                      ))}
+                                    </select>
                                   </div>
                                 </div>
                                 <DialogFooter>

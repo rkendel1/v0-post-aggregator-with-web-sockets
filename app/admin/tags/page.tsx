@@ -29,13 +29,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { createClient } from "@/lib/supabase/client"
-import {
-  ColumnDef,
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
 
 type TagManagerProps = {
   initialTags?: ShowTag[]
@@ -63,6 +56,9 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
   const [newMapping, setNewMapping] = useState({ hashtag: '', showTagId: '' })
   const [editingMappingHashtag, setEditingMappingHashtag] = useState('')
   const [editingMappingShowTagId, setEditingMappingShowTagId] = useState('')
+  const [editingRssId, setEditingRssId] = useState<string | null>(null)
+  const [editingRssUrls, setEditingRssUrls] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
   const supabase = createClient()
 
   useEffect(() => {

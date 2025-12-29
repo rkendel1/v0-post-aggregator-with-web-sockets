@@ -189,3 +189,11 @@ export interface UserRssFeed {
   created_at: string
   show_tag_id?: string | null
 }
+
+export interface HashtagMapping {
+  id: string
+  hashtag: string
+  show_tag_id: string
+  show_tags?: ShowTag | null
+  created_at: string
+}

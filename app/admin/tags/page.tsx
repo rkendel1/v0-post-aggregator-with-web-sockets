@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react"
-import type { ShowTag } from "@/lib/types"
+import React, { useState, useEffect, useMemo } from "react"
+import type { ShowTag, HashtagMapping } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -27,6 +29,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { createClient } from "@/lib/supabase/client"
+import {
+  ColumnDef,
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
 
 type TagManagerProps = {
   initialTags?: ShowTag[]
@@ -44,11 +53,74 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
   const [newAlias, setNewAlias] = useState({ tag: "", name: "", parentId: "" })
   const [newRssUrls, setNewRssUrls] = useState<string[]>([])
   const [newAliasRssUrls, setNewAliasRssUrls] = useState<string[]>([])
+  const [mappings, setMappings] = useState<HashtagMapping[]>([])
+  const [editingMapping, setEditingMapping] = useState<HashtagMapping | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortConfig, setSortConfig] = useState<{ key: keyof ShowTag | null; dir: 'asc' | 'desc' }>({ key: null, dir: 'asc' })
+  const [editingRowId, setEditingRowId] = useState<string | null>(null)
+  const [editingMappingId, setEditingMappingId] = useState<string | null>(null)
+  const [showAddMapping, setShowAddMapping] = useState(false)
+  const [newMapping, setNewMapping] = useState({ hashtag: '', showTagId: '' })
+  const [editingMappingHashtag, setEditingMappingHashtag] = useState('')
+  const [editingMappingShowTagId, setEditingMappingShowTagId] = useState('')
   const supabase = createClient()
 
   useEffect(() => {
     fetchTags()
+    fetchMappings()
   }, [])
+
+  const fetchMappings = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('hashtag_mappings')
+        .select('*, show_tags(*)')
+        .order('hashtag', { ascending: true })
+      if (error) throw error
+      setMappings(data || [])
+    } catch (error) {
+      console.error('Error fetching mappings:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredTags = useMemo(() => {
+    return tags.filter(t =>
+      t.tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [tags, searchTerm])
+
+  const filteredMappings = useMemo(() => {
+    return mappings.filter(m =>
+      m.hashtag.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.show_tags?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [mappings, searchTerm])
+
+  const handleSort = (key: keyof ShowTag) => {
+    let dir: 'asc' | 'desc' = 'asc'
+    if (sortConfig.key === key && sortConfig.dir === 'asc') {
+      dir = 'desc'
+    }
+    setSortConfig({ key, dir })
+  }
+
+  const sortedTags = useMemo(() => {
+    let sortableTags = [...filteredTags]
+    if (sortConfig.key) {
+      sortableTags.sort((a, b) => {
+        let aVal = String(a[sortConfig.key!] ?? '')
+        let bVal = String(b[sortConfig.key!] ?? '')
+        if (aVal < bVal) return sortConfig.dir === 'asc' ? -1 : 1
+        if (aVal > bVal) return sortConfig.dir === 'asc' ? 1 : -1
+        return 0
+      })
+    }
+    return sortableTags
+  }, [filteredTags, sortConfig])
 
   const fetchTags = async () => {
     setLoading(true)
@@ -206,138 +278,399 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
     }
   }
 
-  if (loading && tags.length === 0) {
-    return <div className="p-4">Loading tags...</div>
+  const handleAddMapping = async () => {
+    if (!newMapping.hashtag || !newMapping.showTagId) return
+    setLoading(true)
+    setError(null)
+    try {
+      const { data: newMappingData, error: insertError } = await supabase
+        .from('hashtag_mappings')
+        .insert([{ hashtag: newMapping.hashtag.toLowerCase().trim(), show_tag_id: newMapping.showTagId }])
+        .select('*, show_tags(*)')
+        .single()
+      if (insertError) throw insertError
+      setMappings([...mappings, newMappingData])
+      setNewMapping({ hashtag: '', showTagId: '' })
+      setShowAddMapping(false)
+    } catch (error: any) {
+      console.error('Error adding mapping:', error)
+      setError(error.message || 'Failed to add mapping')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEditMapping = async (originalMapping: HashtagMapping) => {
+    if (!editingMappingHashtag || !editingMappingShowTagId) return
+    setLoading(true)
+    setError(null)
+    try {
+      const { error: updateError } = await supabase
+        .from('hashtag_mappings')
+        .update({ hashtag: editingMappingHashtag.toLowerCase().trim(), show_tag_id: editingMappingShowTagId })
+        .eq('id', originalMapping.id)
+      if (updateError) throw updateError
+      setMappings(mappings.map(m => m.id === originalMapping.id ? { ...m, hashtag: editingMappingHashtag.toLowerCase().trim(), show_tag_id: editingMappingShowTagId, show_tags: canonical.find(c => c.id === editingMappingShowTagId) || null } : m))
+      setEditingMappingId(null)
+      setEditingMappingHashtag('')
+      setEditingMappingShowTagId('')
+    } catch (error: any) {
+      console.error('Error updating mapping:', error)
+      setError(error.message || 'Failed to update mapping')
+      fetchMappings()
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteMapping = async (mappingId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { error } = await supabase.from('hashtag_mappings').delete().eq('id', mappingId)
+      if (error) throw error
+      setMappings(mappings.filter(m => m.id !== mappingId))
+    } catch (error: any) {
+      console.error('Error deleting mapping:', error)
+      setError(error.message || 'Failed to delete mapping')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading && tags.length === 0 && mappings.length === 0) {
+    return <div className="p-4">Loading...</div>
   }
 
   return (
-    <div className="p-4">
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
-          {error}
-          <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-2 h-4 w-4 p-0">
-            ×
-          </Button>
-        </div>
-      )}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold">Canonical Creators</h2>
-        <div className="space-x-2">
-          <Dialog open={showAddCanonical} onOpenChange={setShowAddCanonical}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={loading}>Add Canonical</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Canonical Tag</DialogTitle>
-                <DialogDescription>
-                  Create a new creator tag that aliases resolve to.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="canonical-tag">Tag (e.g., podbridge)</Label>
-                  <Input
-                    id="canonical-tag"
-                    placeholder="Enter tag"
-                    value={newCanonical.tag}
-                    onChange={(e) => setNewCanonical({ ...newCanonical, tag: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="canonical-name">Name</Label>
-                  <Input
-                    id="canonical-name"
-                    placeholder="Enter name"
-                    value={newCanonical.name}
-                    onChange={(e) => setNewCanonical({ ...newCanonical, name: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div>
-                  <Label>RSS Feeds</Label>
-                  <div className="space-y-2">
-                    {newRssUrls.map((url, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Input
-                          placeholder="Enter RSS URL"
-                          value={url}
-                          onChange={(e) => {
-                            const updated = [...newRssUrls]
-                            updated[index] = e.target.value
-                            setNewRssUrls(updated)
-                          }}
-                          disabled={loading}
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setNewRssUrls(newRssUrls.filter((_, i) => i !== index))}
-                          disabled={loading}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNewRssUrls([...newRssUrls, ""])}
+    <Tabs defaultValue="tags" className="p-4">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="tags">Tags & RSS</TabsTrigger>
+        <TabsTrigger value="mappings">Hashtag Mappings</TabsTrigger>
+      </TabsList>
+      <TabsContent value="tags" className="mt-4">
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
+            {error}
+            <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-2 h-4 w-4 p-0">
+              ×
+            </Button>
+          </div>
+        )}
+        <div className="flex justify-between items-center mb-4">
+          <Input
+            placeholder="Search tags..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+          <div className="space-x-2">
+            <Dialog open={showAddCanonical} onOpenChange={setShowAddCanonical}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={loading}>Add Canonical</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Canonical Tag</DialogTitle>
+                  <DialogDescription>
+                    Create a new creator tag that aliases resolve to.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="canonical-tag">Tag (e.g., podbridge)</Label>
+                    <Input
+                      id="canonical-tag"
+                      placeholder="Enter tag"
+                      value={newCanonical.tag}
+                      onChange={(e) => setNewCanonical({ ...newCanonical, tag: e.target.value })}
                       disabled={loading}
-                    >
-                      + Add RSS Feed
-                    </Button>
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="canonical-name">Name</Label>
+                    <Input
+                      id="canonical-name"
+                      placeholder="Enter name"
+                      value={newCanonical.name}
+                      onChange={(e) => setNewCanonical({ ...newCanonical, name: e.target.value })}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <Label>RSS Feeds</Label>
+                    <div className="space-y-2">
+                      {newRssUrls.map((url, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <Input
+                            placeholder="Enter RSS URL"
+                            value={url}
+                            onChange={(e) => {
+                              const updated = [...newRssUrls]
+                              updated[index] = e.target.value
+                              setNewRssUrls(updated)
+                            }}
+                            disabled={loading}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setNewRssUrls(newRssUrls.filter((_, i) => i !== index))}
+                            disabled={loading}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewRssUrls([...newRssUrls, ""])}
+                        disabled={loading}
+                      >
+                        + Add RSS Feed
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {setShowAddCanonical(false); setNewRssUrls([]);}} disabled={loading}>Cancel</Button>
-                <Button onClick={handleAddCanonical} disabled={loading || !newCanonical.tag || !newCanonical.name}>Add</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {setShowAddCanonical(false); setNewRssUrls([]);}} disabled={loading}>Cancel</Button>
+                  <Button onClick={handleAddCanonical} disabled={loading || !newCanonical.tag || !newCanonical.name}>Add</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
-          <Dialog open={showAddAlias} onOpenChange={setShowAddAlias}>
+            <Dialog open={showAddAlias} onOpenChange={setShowAddAlias}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={loading}>Add Alias</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Alias Tag</DialogTitle>
+                  <DialogDescription>
+                    Create an alias that resolves to a canonical tag.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="alias-tag">Tag (e.g., podcastname)</Label>
+                    <Input
+                      id="alias-tag"
+                      placeholder="Enter tag"
+                      value={newAlias.tag}
+                      onChange={(e) => setNewAlias({ ...newAlias, tag: e.target.value })}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="alias-name">Name</Label>
+                    <Input
+                      id="alias-name"
+                      placeholder="Enter name"
+                      value={newAlias.name}
+                      onChange={(e) => setNewAlias({ ...newAlias, name: e.target.value })}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="parent-id">Parent Canonical</Label>
+                    <select
+                      id="parent-id"
+                      value={newAlias.parentId}
+                      onChange={(e) => setNewAlias({ ...newAlias, parentId: e.target.value })}
+                      className="w-full p-2 border rounded-md"
+                      disabled={loading}
+                    >
+                      <option value="">Select Canonical</option>
+                      {canonical.map(c => (
+                        <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label>RSS Feeds</Label>
+                    <div className="space-y-2">
+                      {newAliasRssUrls.map((url, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <Input
+                            placeholder="Enter RSS URL"
+                            value={url}
+                            onChange={(e) => {
+                              const updated = [...newAliasRssUrls]
+                              updated[index] = e.target.value
+                              setNewAliasRssUrls(updated)
+                            }}
+                            disabled={loading}
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setNewAliasRssUrls(newAliasRssUrls.filter((_, i) => i !== index))}
+                            disabled={loading}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewAliasRssUrls([...newAliasRssUrls, ""])}
+                        disabled={loading}
+                      >
+                        + Add RSS Feed
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => {setShowAddAlias(false); setNewAliasRssUrls([]);}} disabled={loading}>Cancel</Button>
+                  <Button onClick={handleAddAlias} disabled={loading || !newAlias.tag || !newAlias.name || !newAlias.parentId}>Add</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mb-4">
+          These define creator subdomains and are the final rendering destination.
+        </p>
+        {sortedTags.length === 0 && !loading ? (
+          <p className="text-muted-foreground">No tags found matching search.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead onClick={() => handleSort('tag')} className="cursor-pointer">Tag</TableHead>
+                <TableHead onClick={() => handleSort('name')} className="cursor-pointer">Name</TableHead>
+                <TableHead>RSS Feeds</TableHead>
+                <TableHead>Aliases</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedTags.map(tag => (
+                <TableRow key={tag.id}>
+                  <TableCell>
+                    {editingRowId === tag.id ? (
+                      <Input
+                        value={editingTag?.tag || ''}
+                        onChange={(e) => setEditingTag({ ...editingTag!, tag: e.target.value })}
+                        onBlur={() => setEditingRowId(null)}
+                      />
+                    ) : (
+                      <Badge variant="secondary" onClick={() => setEditingRowId(tag.id)} className="cursor-pointer">{tag.tag}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingRowId === tag.id ? (
+                      <Input
+                        value={editingTag?.name || ''}
+                        onChange={(e) => setEditingTag({ ...editingTag!, name: e.target.value })}
+                        onBlur={() => setEditingRowId(null)}
+                      />
+                    ) : (
+                      tag.name
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {tag.user_rss_feeds?.map(feed => (
+                        <Badge key={feed.rss_url} variant="outline" className="max-w-xs truncate">{feed.rss_url}</Badge>
+                      )) || 'No RSS'}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {aliasesByParent[tag.id]?.length || 0}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingTag(tag)
+                          setEditingRss(tag.user_rss_feeds?.map(f => f.rss_url) || [])
+                          setEditingRowId(tag.id)
+                        }}
+                        disabled={loading}
+                      >
+                        Edit
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" disabled={loading}>Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Tag?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete "{tag.tag}". This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteTag(tag.id, !!aliasesByParent[tag.id]?.length)} disabled={loading}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </TabsContent>
+      <TabsContent value="mappings" className="mt-4">
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md">
+            {error}
+            <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-2 h-4 w-4 p-0">
+              ×
+            </Button>
+          </div>
+        )}
+        <div className="flex justify-between items-center mb-4">
+          <Input
+            placeholder="Search mappings..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm"
+          />
+          <Dialog open={showAddMapping} onOpenChange={setShowAddMapping}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={loading}>Add Alias</Button>
+              <Button variant="outline" size="sm" disabled={loading}>Add Mapping</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Alias Tag</DialogTitle>
+                <DialogTitle>Add Hashtag Mapping</DialogTitle>
                 <DialogDescription>
-                  Create an alias that resolves to a canonical tag.
+                  Map a hashtag to a canonical tag for RSS categorization.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="alias-tag">Tag (e.g., podcastname)</Label>
+                  <Label htmlFor="new-hashtag">Hashtag (e.g., ai)</Label>
                   <Input
-                    id="alias-tag"
-                    placeholder="Enter tag"
-                    value={newAlias.tag}
-                    onChange={(e) => setNewAlias({ ...newAlias, tag: e.target.value })}
+                    id="new-hashtag"
+                    placeholder="Enter hashtag without #"
+                    value={newMapping.hashtag}
+                    onChange={(e) => setNewMapping({ ...newMapping, hashtag: e.target.value })}
                     disabled={loading}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="alias-name">Name</Label>
-                  <Input
-                    id="alias-name"
-                    placeholder="Enter name"
-                    value={newAlias.name}
-                    onChange={(e) => setNewAlias({ ...newAlias, name: e.target.value })}
-                    disabled={loading}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="parent-id">Parent Canonical</Label>
+                  <Label htmlFor="new-show-tag">Canonical Tag</Label>
                   <select
-                    id="parent-id"
-                    value={newAlias.parentId}
-                    onChange={(e) => setNewAlias({ ...newAlias, parentId: e.target.value })}
+                    id="new-show-tag"
+                    value={newMapping.showTagId}
+                    onChange={(e) => setNewMapping({ ...newMapping, showTagId: e.target.value })}
                     className="w-full p-2 border rounded-md"
                     disabled={loading}
                   >
@@ -347,358 +680,100 @@ export default function TagManager({ initialTags = [] }: TagManagerProps) {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <Label>RSS Feeds</Label>
-                  <div className="space-y-2">
-                    {newAliasRssUrls.map((url, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <Input
-                          placeholder="Enter RSS URL"
-                          value={url}
-                          onChange={(e) => {
-                            const updated = [...newAliasRssUrls]
-                            updated[index] = e.target.value
-                            setNewAliasRssUrls(updated)
-                          }}
-                          disabled={loading}
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setNewAliasRssUrls(newAliasRssUrls.filter((_, i) => i !== index))}
-                          disabled={loading}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNewAliasRssUrls([...newAliasRssUrls, ""])}
-                      disabled={loading}
-                    >
-                      + Add RSS Feed
-                    </Button>
-                  </div>
-                </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => {setShowAddAlias(false); setNewAliasRssUrls([]);}} disabled={loading}>Cancel</Button>
-                <Button onClick={handleAddAlias} disabled={loading || !newAlias.tag || !newAlias.name || !newAlias.parentId}>Add</Button>
+                <Button variant="outline" onClick={() => {setShowAddMapping(false); setNewMapping({ hashtag: '', showTagId: '' });}} disabled={loading}>Cancel</Button>
+                <Button onClick={handleAddMapping} disabled={loading || !newMapping.hashtag || !newMapping.showTagId}>Add</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
-      </div>
-      <p className="text-sm text-muted-foreground mb-4">
-        These define creator subdomains and are the final rendering destination.
-      </p>
-      {canonical.length === 0 && !loading ? (
-        <p className="text-muted-foreground">No canonical tags found. Add one to get started.</p>
-      ) : (
-        canonical.map(tag => {
-          const childAliases = aliasesByParent[tag.id] || []
-          return (
-            <div key={tag.id} className="mb-4 border rounded-lg">
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="font-medium"><Badge variant="secondary">{tag.tag}</Badge></div>
-                  <div className="text-xs text-muted-foreground">
-                    {childAliases.length} alias{childAliases.length === 1 ? '' : 'es'}
-                  </div>
-                </div>
-                <div className="space-x-2">
-                  <Dialog open={editingTag?.id === tag.id} onOpenChange={() => {setEditingTag(null); setEditingRss([]);}}>
-                    <DialogTrigger asChild>
+        {filteredMappings.length === 0 && !loading ? (
+          <p className="text-muted-foreground">No mappings found. Add one to get started.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Hashtag</TableHead>
+                <TableHead>Mapped To</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredMappings.map(mapping => (
+                <TableRow key={mapping.id}>
+                  <TableCell>
+                    {editingMappingId === mapping.id ? (
+                      <Input
+                        value={editingMappingHashtag}
+                        onChange={(e) => setEditingMappingHashtag(e.target.value)}
+                        onBlur={() => setEditingMappingId(null)}
+                      />
+                    ) : (
+                      <Badge variant="secondary" onClick={() => {
+                        setEditingMappingId(mapping.id)
+                        setEditingMappingHashtag(mapping.hashtag)
+                        setEditingMappingShowTagId(mapping.show_tag_id)
+                      }} className="cursor-pointer">#{mapping.hashtag}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingMappingId === mapping.id ? (
+                      <select
+                        value={editingMappingShowTagId}
+                        onChange={(e) => setEditingMappingShowTagId(e.target.value)}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="">Select Canonical</option>
+                        {canonical.map(c => (
+                          <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
+                        ))}
+                      </select>
+                    ) : (
+                      mapping.show_tags?.name || 'Unknown'
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-x-1">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setEditingTag(tag)
-                          setEditingRss(tag.user_rss_feeds?.map(f => f.rss_url) || [])
+                          setEditingMappingId(mapping.id)
+                          setEditingMappingHashtag(mapping.hashtag)
+                          setEditingMappingShowTagId(mapping.show_tag_id)
                         }}
                         disabled={loading}
                       >
                         Edit
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit {tag.tag}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="edit-tag">Tag</Label>
-                          <Input
-                            id="edit-tag"
-                            placeholder="Enter tag"
-                            value={editingTag?.tag || ""}
-                            onChange={(e) => setEditingTag(editingTag ? { ...editingTag, tag: e.target.value } : null)}
-                            disabled={loading}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="edit-name">Name</Label>
-                          <Input
-                            id="edit-name"
-                            placeholder="Enter name"
-                            value={editingTag?.name || ""}
-                            onChange={(e) => setEditingTag(editingTag ? { ...editingTag, name: e.target.value } : null)}
-                            disabled={loading}
-                          />
-                        </div>
-                        <div>
-                          <Label>RSS Feeds</Label>
-                          <div className="space-y-2">
-                            {editingRss.map((url, index) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <Input
-                                  placeholder="Enter RSS URL"
-                                  value={url}
-                                  onChange={(e) => {
-                                    const updated = [...editingRss]
-                                    updated[index] = e.target.value
-                                    setEditingRss(updated)
-                                  }}
-                                  disabled={loading}
-                                />
-                                <Button
-                                  type="button"
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => setEditingRss(editingRss.filter((_, i) => i !== index))}
-                                  disabled={loading}
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setEditingRss([...editingRss, ""])}
-                              disabled={loading}
-                            >
-                              + Add RSS Feed
-                            </Button>
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="parent-id">Canonical Parent (Alias of)</Label>
-                          <select
-                            id="parent-id"
-                            value={editingTag?.parent_tag_id || ""}
-                            onChange={(e) => setEditingTag(editingTag ? { ...editingTag, parent_tag_id: e.target.value || null } : null)}
-                            className="w-full p-2 border rounded-md"
-                            disabled={loading}
-                          >
-                            <option value="">Canonical (no parent)</option>
-                            {canonical.filter(c => c.id !== editingTag?.id).map(c => (
-                              <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => {setEditingTag(null); setEditingRss([]);}} disabled={loading}>Cancel</Button>
-                        <Button onClick={() => handleEditTag(tag)} disabled={loading || !editingTag?.tag || !editingTag?.name}>Save</Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" disabled={loading}>Delete</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Canonical Tag?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {childAliases.length > 0
-                            ? `This will delete "${tag.tag}" and all ${childAliases.length} associated aliases. This action cannot be undone.`
-                            : `This will permanently delete "${tag.tag}". This action cannot be undone.`}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteTag(tag.id, childAliases.length > 0)} disabled={loading}>
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-
-              <div className="p-4 border-t space-y-3">
-                <Label>Canonical Tag</Label>
-                <Input value={tag.tag} readOnly className="mb-4" />
-
-                <div className="space-y-2">
-                  <Label>RSS Feeds</Label>
-                  {tag.user_rss_feeds && tag.user_rss_feeds.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {tag.user_rss_feeds.map((feed) => (
-                        <Badge key={feed.rss_url} variant="outline">{feed.rss_url}</Badge>
-                      ))}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" disabled={loading}>Delete</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Mapping?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the mapping for "#{mapping.hashtag}". This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteMapping(mapping.id)} disabled={loading}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No RSS feeds</p>
-                  )}
-                </div>
-
-                {childAliases.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Aliases</div>
-                    {childAliases.map(alias => {
-                      const childRss = alias.user_rss_feeds || []
-                      return (
-                        <div key={alias.id} className="pl-4 border-l flex justify-between items-center py-2">
-                          <div className="flex-1 mr-2">
-                            <Badge variant="secondary">{alias.tag}</Badge>
-                          </div>
-                          <div className="space-x-1">
-                            <Dialog open={editingTag?.id === alias.id} onOpenChange={() => {setEditingTag(null); setEditingRss([]);}}>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setEditingTag(alias)
-                                    setEditingRss(alias.user_rss_feeds?.map(f => f.rss_url) || [])
-                                  }}
-                                  disabled={loading}
-                                >
-                                  Edit
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Edit {alias.tag}</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="edit-alias-tag">Tag</Label>
-                                    <Input
-                                      id="edit-alias-tag"
-                                      placeholder="Enter tag"
-                                      value={editingTag?.tag || ""}
-                                      onChange={(e) => setEditingTag(editingTag ? { ...editingTag, tag: e.target.value } : null)}
-                                      disabled={loading}
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="edit-alias-name">Name</Label>
-                                    <Input
-                                      id="edit-alias-name"
-                                      placeholder="Enter name"
-                                      value={editingTag?.name || ""}
-                                      onChange={(e) => setEditingTag(editingTag ? { ...editingTag, name: e.target.value } : null)}
-                                      disabled={loading}
-                                    />
-                                  </div>
-                                  <div>
-                                    <Label>RSS Feeds</Label>
-                                    <div className="space-y-2">
-                                      {editingRss.map((url, index) => (
-                                        <div key={index} className="flex items-center space-x-2">
-                                          <Input
-                                            placeholder="Enter RSS URL"
-                                            value={url}
-                                            onChange={(e) => {
-                                              const updated = [...editingRss]
-                                              updated[index] = e.target.value
-                                              setEditingRss(updated)
-                                            }}
-                                            disabled={loading}
-                                          />
-                                          <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => setEditingRss(editingRss.filter((_, i) => i !== index))}
-                                            disabled={loading}
-                                          >
-                                            Remove
-                                          </Button>
-                                        </div>
-                                      ))}
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setEditingRss([...editingRss, ""])}
-                                        disabled={loading}
-                                      >
-                                        + Add RSS Feed
-                                      </Button>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <Label htmlFor="alias-parent-id">Canonical Parent</Label>
-                                    <select
-                                      id="alias-parent-id"
-                                      value={editingTag?.parent_tag_id || ""}
-                                      onChange={(e) => setEditingTag(editingTag ? { ...editingTag, parent_tag_id: e.target.value || null } : null)}
-                                      className="w-full p-2 border rounded-md"
-                                      disabled={loading}
-                                    >
-                                      <option value="">Canonical (no parent)</option>
-                                      {canonical.filter(c => c.id !== editingTag?.id).map(c => (
-                                        <option key={c.id} value={c.id}>{c.tag} ({c.name})</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => {setEditingTag(null); setEditingRss([]);}} disabled={loading}>Cancel</Button>
-                                  <Button onClick={() => handleEditTag(alias)} disabled={loading || !editingTag?.tag || !editingTag?.name}>Save</Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm" disabled={loading}>Delete</Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Alias?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete the alias "{alias.tag}". This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteTag(alias.id, false)} disabled={loading}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                          {childRss.length > 0 && (
-                            <div className="pl-4 space-y-2 mt-2 w-full">
-                              <Label className="text-sm">RSS Feeds for {alias.tag}</Label>
-                              <div className="flex flex-wrap gap-1">
-                                {childRss.map((feed: { rss_url: string }) => (
-                                  <Badge key={feed.rss_url} variant="outline">{feed.rss_url}</Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })
-      )}
-    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </TabsContent>
+    </Tabs>
   )
 }

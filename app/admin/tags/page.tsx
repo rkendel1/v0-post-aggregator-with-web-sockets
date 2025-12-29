@@ -1,14 +1,16 @@
-import React { useState } from "react"
+"use client";
+
+import React, { useState } from "react"
 import type { ShowTag } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 type TagManagerProps = {
-  initialTags: ShowTag[]
+  initialTags?: ShowTag[]
 }
 
-export function TagManager({ initialTags }: TagManagerProps) {
+export default function TagManager({ initialTags = [] }: TagManagerProps) {
   const [tags, setTags] = useState<ShowTag[]>(initialTags)
 
   // Separate canonical creators and aliases

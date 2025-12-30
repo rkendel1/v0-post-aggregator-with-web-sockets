@@ -32,7 +32,7 @@ export function useFeedManager(initialShowTags: ShowTag[]): FeedManager {
 
       if (user) {
         const [followsResult, rssFeedsResult] = await Promise.all([
-          supabase.from("tag_follows").select(`*, show_tags (*)`).eq("user_id", user.id),
+          supabase.from("tag_follows").select(`*, show_tags (*, subdomain_mappings(subdomain))`).eq("user_id", user.id),
           supabase.from("user_rss_feeds").select("*").eq("user_id", user.id).order("title"),
         ])
 

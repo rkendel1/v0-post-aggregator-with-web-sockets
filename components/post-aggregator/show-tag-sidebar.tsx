@@ -45,6 +45,8 @@ export function ShowTagSidebar({
     return a.localeCompare(b)
   })
 
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "podbridge.app"
+
   return (
     <div className="w-64 border-r bg-card flex flex-col h-full">
       <div className="p-4 border-b">
@@ -115,35 +117,39 @@ export function ShowTagSidebar({
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-1">
-                        {groupedTags[category].map((tag) => (
-                          <div key={tag.id} className="flex items-center w-full group pr-2">
-                            <Button
-                              variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
-                              className={cn(
-                                "flex-1 justify-start font-mono h-auto py-1.5 text-left min-w-0",
-                                selectedFeedId === tag.id && "bg-secondary",
-                              )}
-                              onClick={() => onSelectFeed(tag.id)}
-                            >
-                              <div className="flex flex-col items-start overflow-hidden">
-                                <span className="font-bold truncate">#{tag.tag}</span>
-                                <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
-                                  {tag.name}
-                                </span>
-                              </div>
-                            </Button>
-                            <Button
-                              asChild
-                              variant="ghost"
-                              size="icon-sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                            >
-                              <Link href={`/show/${tag.tag.toLowerCase()}`} title={`Go to #${tag.tag} page`}>
-                                <ExternalLink className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                          </div>
-                        ))}
+                        {groupedTags[category].map((tag) => {
+                          const subdomain = tag.subdomain_mappings?.[0]?.subdomain || tag.tag.toLowerCase()
+                          const href = `https://${subdomain}.${rootDomain}`
+                          return (
+                            <div key={tag.id} className="flex items-center w-full group pr-2">
+                              <Button
+                                variant={selectedFeedId === tag.id ? "secondary" : "ghost"}
+                                className={cn(
+                                  "flex-1 justify-start font-mono h-auto py-1.5 text-left min-w-0",
+                                  selectedFeedId === tag.id && "bg-secondary",
+                                )}
+                                onClick={() => onSelectFeed(tag.id)}
+                              >
+                                <div className="flex flex-col items-start overflow-hidden">
+                                  <span className="font-bold truncate">#{tag.tag}</span>
+                                  <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
+                                    {tag.name}
+                                  </span>
+                                </div>
+                              </Button>
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon-sm"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                              >
+                                <Link href={href} title={`Go to #${tag.tag} page`} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </div>
+                          )
+                        })}
                       </div>
                     </AccordionContent>
                   </AccordionItem>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
@@ -18,7 +18,7 @@ import { ClaimPageModal } from "./claim-page-modal"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
-  initialPosts: Post[]
+  initialPlatformPosts: Post[]
 }
 
 const POST_SELECT_QUERY = `
@@ -30,20 +30,24 @@ const POST_SELECT_QUERY = `
 `
 const POSTS_PER_PAGE = 20
 
-export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
-  const [allPosts, setAllPosts] = useState<Post[]>(initialPosts)
+export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps) {
+  const [platformPosts, setPlatformPosts] = useState<Post[]>(initialPlatformPosts)
+  const [officialPosts, setOfficialPosts] = useState<Post[]>([])
+  const [activeTab, setActiveTab] = useState("live-feed")
+
+  const [platformOffset, setPlatformOffset] = useState(initialPlatformPosts.length)
+  const [platformHasMore, setPlatformHasMore] = useState(initialPlatformPosts.length === POSTS_PER_PAGE)
+  const [isFetchingPlatform, setIsFetchingPlatform] = useState(false)
+
+  const [officialOffset, setOfficialOffset] = useState(0)
+  const [officialHasMore, setOfficialHasMore] = useState(true)
+  const [isFetchingOfficial, setIsFetchingOfficial] = useState(false)
+
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
-  const [isLoadingPosts, setIsLoadingPosts] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [supabase] = useState(() => createClient())
-  const [offset, setOffset] = useState(initialPosts.length)
-  const [hasMore, setHasMore] = useState(initialPosts.length === POSTS_PER_PAGE)
-  const [isFetchingMore, setIsFetchingMore] = useState(false)
-
-  const platformPosts = useMemo(() => allPosts.filter((p) => p.external_guid === null), [allPosts])
-  const officialPosts = useMemo(() => allPosts.filter((p) => p.external_guid !== null), [allPosts])
 
   useEffect(() => {
     const fetchInitialUser = async () => {
@@ -70,27 +74,47 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
     fetchProfile()
   }, [user, supabase])
 
-  const loadMorePosts = useCallback(async () => {
-    if (isFetchingMore || !hasMore) return
+  const fetchPosts = useCallback(async (type: 'platform' | 'official') => {
+    const isPlatform = type === 'platform'
+    const offset = isPlatform ? platformOffset : officialOffset
+    const setFetching = isPlatform ? setIsFetchingPlatform : setIsFetchingOfficial
+    
+    setFetching(true)
 
-    setIsFetchingMore(true)
-
-    const { data } = await supabase
+    const query = supabase
       .from("posts")
       .select(POST_SELECT_QUERY)
       .eq("show_tag_id", showTag.id)
       .order("created_at", { ascending: false })
       .range(offset, offset + POSTS_PER_PAGE - 1)
 
+    if (isPlatform) {
+      query.is("external_guid", null)
+    } else {
+      query.not("external_guid", "is", null)
+    }
+
+    const { data } = await query
+
     if (data) {
-      setAllPosts((prev) => [...prev, ...(data as Post[])])
-      setOffset((prev) => prev + data.length)
-      if (data.length < POSTS_PER_PAGE) {
-        setHasMore(false)
+      if (isPlatform) {
+        setPlatformPosts(prev => [...prev, ...data as Post[]])
+        setPlatformOffset(prev => prev + data.length)
+        if (data.length < POSTS_PER_PAGE) setPlatformHasMore(false)
+      } else {
+        setOfficialPosts(prev => [...prev, ...data as Post[]])
+        setOfficialOffset(prev => prev + data.length)
+        if (data.length < POSTS_PER_PAGE) setOfficialHasMore(false)
       }
     }
-    setIsFetchingMore(false)
-  }, [isFetchingMore, hasMore, offset, showTag.id, supabase])
+    setFetching(false)
+  }, [showTag.id, supabase, platformOffset, officialOffset])
+
+  useEffect(() => {
+    if (activeTab === 'official-feed' && officialPosts.length === 0) {
+      fetchPosts('official')
+    }
+  }, [activeTab, officialPosts.length, fetchPosts])
 
   useEffect(() => {
     const handleInsert = async (payload: any) => {
@@ -100,11 +124,13 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
         .eq("id", payload.new.id)
         .single()
       if (data) {
-        setAllPosts((current) => {
-          if (current.some((post) => post.id === data.id)) {
-            return current
-          }
-          return [data as Post, ...current]
+        const post = data as Post
+        const isPlatformPost = post.external_guid === null
+        const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
+        
+        setPosts((current) => {
+          if (current.some((p) => p.id === post.id)) return current
+          return [post, ...current]
         })
       }
     }
@@ -119,13 +145,15 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
     }
   }, [showTag.id, supabase])
 
-  const handlePostDeleted = (postId: string) => {
-    setAllPosts((current) => current.filter((post) => post.id !== postId))
+  const handlePostDeleted = (postId: string, isPlatformPost: boolean) => {
+    const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
+    setPosts((current) => current.filter((post) => post.id !== postId))
   }
 
-  const handlePostHidden = async (postId: string) => {
+  const handlePostHidden = async (postId: string, isPlatformPost: boolean) => {
     if (!user) return
-    setAllPosts((current) => current.filter((post) => post.id !== postId))
+    const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
+    setPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")
     await supabase.from("hidden_posts").insert({ user_id: user.id, post_id: postId })
   }
@@ -182,7 +210,7 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
         </div>
       </header>
 
-      <Tabs defaultValue="live-feed" className="flex-1 flex flex-col overflow-hidden">
+      <Tabs defaultValue="live-feed" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 pt-4 border-b">
           <TabsList>
             <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
@@ -193,27 +221,27 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
         <TabsContent value="live-feed" className="flex-1 overflow-hidden">
           <PostFeed
             posts={platformPosts}
-            isLoading={isLoadingPosts}
+            isLoading={false} // Initial load is handled by server
             currentUser={user}
-            onPostDeleted={handlePostDeleted}
-            onPostHidden={handlePostHidden}
+            onPostDeleted={(postId) => handlePostDeleted(postId, true)}
+            onPostHidden={(postId) => handlePostHidden(postId, true)}
             onInteractionAttempt={() => { /* Not implemented for this view */ }}
-            loadMorePosts={loadMorePosts}
-            hasMore={hasMore}
-            isFetchingMore={isFetchingMore}
+            loadMorePosts={() => fetchPosts('platform')}
+            hasMore={platformHasMore}
+            isFetchingMore={isFetchingPlatform}
           />
         </TabsContent>
         <TabsContent value="official-feed" className="flex-1 overflow-hidden">
           <PostFeed
             posts={officialPosts}
-            isLoading={isLoadingPosts}
+            isLoading={officialPosts.length === 0 && isFetchingOfficial}
             currentUser={user}
-            onPostDeleted={handlePostDeleted}
-            onPostHidden={handlePostHidden}
+            onPostDeleted={(postId) => handlePostDeleted(postId, false)}
+            onPostHidden={(postId) => handlePostHidden(postId, false)}
             onInteractionAttempt={() => { /* Not implemented for this view */ }}
-            loadMorePosts={loadMorePosts}
-            hasMore={hasMore}
-            isFetchingMore={isFetchingMore}
+            loadMorePosts={() => fetchPosts('official')}
+            hasMore={officialHasMore}
+            isFetchingMore={isFetchingOfficial}
           />
         </TabsContent>
         <TabsContent value="catalog" className="flex-1 overflow-hidden">
@@ -223,7 +251,7 @@ export function ShowTagFeed({ showTag, initialPosts }: ShowTagFeedProps) {
 
       {isComposerOpen && user && profile && (
         <PostComposer showTag={showTag} profile={profile} onClose={() => setIsComposerOpen(false)} onPostCreated={(newPost) => {
-          setAllPosts((current) => [newPost, ...current])
+          setPlatformPosts((current) => [newPost, ...current])
           setIsComposerOpen(false)
         }} />
       )}

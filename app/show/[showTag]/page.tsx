@@ -61,18 +61,19 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
     )
   }
 
-  // Step 3: Fetch posts using the canonical tag's ID.
-  const { data: initialPosts } = await supabase
+  // Step 3: Fetch posts for the default "Live Feed" tab (user-generated content).
+  const { data: initialPlatformPosts } = await supabase
     .from("posts")
     .select(POST_SELECT_QUERY)
     .eq("show_tag_id", canonicalTag.id)
+    .is("external_guid", null) // Fetch only user-generated posts
     .order("created_at", { ascending: false })
     .range(0, POSTS_PER_PAGE - 1)
 
   // Render the feed using the canonical tag's data. The URL in the browser remains the alias.
   return (
     <main className="min-h-screen bg-background">
-      <ShowTagFeed showTag={canonicalTag} initialPosts={(initialPosts as Post[]) || []} />
+      <ShowTagFeed showTag={canonicalTag} initialPlatformPosts={(initialPlatformPosts as Post[]) || []} />
     </main>
   )
 }

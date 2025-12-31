@@ -22,7 +22,7 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
   // Step 1: Find the requested tag by its slug, case-insensitively.
   const { data: requestedTag } = await supabase
     .from("show_tags")
-    .select(`*`)
+    .select(`*, show_community_links(*)`)
     .ilike("tag", tagSlug)
     .single()
 
@@ -33,7 +33,7 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
     if (requestedTag.parent_tag_id) {
       const { data: parentTagData } = await supabase
         .from("show_tags")
-        .select(`*`)
+        .select(`*, show_community_links(*)`)
         .eq("id", requestedTag.parent_tag_id)
         .single()
       

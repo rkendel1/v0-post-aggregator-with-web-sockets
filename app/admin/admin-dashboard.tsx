@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { ShowTag, HashtagMapping } from "@/lib/types"
+import type { ShowTag, HashtagMapping, ShowCommunityLink } from "@/lib/types"
 import {
   Table,
   TableBody,
@@ -27,26 +27,26 @@ import { Loader2, Pencil, Trash2, PlusCircle } from "lucide-react"
 import toast, { Toaster } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
 
-// Add the new type for our global RSS feeds
 interface ShowRssFeed {
   rss_url: string
 }
 
-// Update ShowTag to include the new feed type
-type ShowTagWithFeeds = ShowTag & {
+type ShowTagWithDetails = ShowTag & {
   show_rss_feeds: ShowRssFeed[]
+  show_community_links: ShowCommunityLink[]
 }
 
 interface AdminDashboardProps {
-  initialTags: ShowTagWithFeeds[]
+  initialTags: ShowTagWithDetails[]
   initialMappings: HashtagMapping[]
 }
 
-type EditableTag = Partial<ShowTagWithFeeds> & { subdomain?: string | null; rss_urls?: string[] }
+type EditableTag = Partial<ShowTagWithDetails> & { subdomain?: string | null; rss_urls?: string[] }
 
 export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardProps) {
-  const [tags, setTags] = useState<ShowTagWithFeeds[]>(initialTags)
+  const [tags, setTags] = useState<ShowTagWithDetails[]>(initialTags)
   const [mappings, setMappings] = useState<HashtagMapping[]>(initialMappings)
   const [isEditing, setIsEditing] = useState(false)
   const [currentTag, setCurrentTag] = useState<EditableTag | null>(null)
@@ -62,10 +62,11 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [canonicalTags, currentTag])
 
-  const handleEdit = (tag: ShowTagWithFeeds) => {
+  const handleEdit = (tag: ShowTagWithDetails) => {
     const subdomain = tag.subdomain_mappings && tag.subdomain_mappings.length > 0 ? tag.subdomain_mappings[0].subdomain : ""
     const rss_urls = tag.show_rss_feeds ? tag.show_rss_feeds.map(f => f.rss_url) : []
-    setCurrentTag({ ...tag, subdomain, rss_urls })
+    const community_links = tag.show_community_links || []
+    setCurrentTag({ ...tag, subdomain, rss_urls, show_community_links: community_links })
     setIsEditing(true)
   }
 
@@ -122,7 +123,16 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
         if (feedError) throw new Error(`Failed to save RSS feeds: ${feedError.message}`)
       }
 
-      toast.success(`Tag ${isNew ? 'created' : 'updated'} successfully. The system will poll for new episodes shortly.`)
+      // Handle Community Links
+      const communityLinks = currentTag.show_community_links?.filter(l => l.name && l.url) || []
+      await supabase.from('show_community_links').delete().eq('show_tag_id', savedTag.id)
+      if (communityLinks.length > 0) {
+        const linksToInsert = communityLinks.map(({ id, ...rest }) => ({ ...rest, show_tag_id: savedTag.id }))
+        const { error: linkError } = await supabase.from('show_community_links').insert(linksToInsert)
+        if (linkError) throw new Error(`Failed to save community links: ${linkError.message}`)
+      }
+
+      toast.success(`Tag ${isNew ? 'created' : 'updated'} successfully.`)
       await refreshData()
       setIsEditing(false)
       setCurrentTag(null)
@@ -151,14 +161,14 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
     const [tagsResult, mappingsResult] = await Promise.all([
       supabase
         .from("show_tags")
-        .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain)")
+        .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
         .order("tag", { ascending: true }),
       supabase
         .from("hashtag_mappings")
         .select("*, show_tags(*)")
         .order("hashtag", { ascending: true }),
     ])
-    setTags((tagsResult.data as ShowTagWithFeeds[]) || [])
+    setTags((tagsResult.data as ShowTagWithDetails[]) || [])
     setMappings((mappingsResult.data as HashtagMapping[]) || [])
   }
 
@@ -177,7 +187,7 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
         </TabsList>
         <TabsContent value="tags" className="mt-4">
           <div className="flex justify-end mb-4">
-            <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [] }); setIsEditing(true) }}>
+            <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [], show_community_links: [] }); setIsEditing(true) }}>
               <PlusCircle className="h-4 w-4 mr-2" />
               New Tag
             </Button>
@@ -190,14 +200,14 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
                   <TableHead>Name</TableHead>
                   <TableHead>Type / Parent</TableHead>
                   <TableHead>Subdomain</TableHead>
-                  <TableHead>Associated RSS</TableHead>
+                  <TableHead>RSS</TableHead>
+                  <TableHead>Links</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {tags.map((tag) => {
                   const parent = getParentTag(tag.parent_tag_id)
-                  const rssFeeds = tag.show_rss_feeds || []
                   const subdomain = tag.subdomain_mappings?.[0]?.subdomain || null
                   return (
                     <TableRow key={tag.id}>
@@ -219,9 +229,8 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
                           <span className="text-muted-foreground">None</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {rssFeeds.length > 0 ? `${rssFeeds.length} feed(s)` : <span className="text-muted-foreground">None</span>}
-                      </TableCell>
+                      <TableCell>{tag.show_rss_feeds.length > 0 ? `${tag.show_rss_feeds.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
+                      <TableCell>{tag.show_community_links.length > 0 ? `${tag.show_community_links.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" onClick={() => handleEdit(tag)}>
                           <Pencil className="h-4 w-4" />
@@ -251,88 +260,48 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4 overflow-y-auto pr-4">
+            {/* Tag and Name Inputs */}
             {!currentTag?.id && (
               <div className="space-y-2">
                 <Label htmlFor="tag">Tag (slug)</Label>
-                <Input
-                  id="tag"
-                  value={currentTag?.tag || ""}
-                  onChange={(e) => setCurrentTag(prev => ({ ...prev!, tag: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-                  placeholder="e.g., huberman-lab"
-                />
+                <Input id="tag" value={currentTag?.tag || ""} onChange={(e) => setCurrentTag(prev => ({ ...prev!, tag: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))} placeholder="e.g., huberman-lab" />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={currentTag?.name || ""}
-                onChange={(e) => setCurrentTag(prev => ({ ...prev!, name: e.target.value }))}
-              />
+              <Input id="name" value={currentTag?.name || ""} onChange={(e) => setCurrentTag(prev => ({ ...prev!, name: e.target.value }))} />
             </div>
+            {/* Subdomain and Parent Inputs */}
             <div className="space-y-2">
               <Label htmlFor="subdomain">Subdomain</Label>
-              <Input
-                id="subdomain"
-                value={currentTag?.subdomain || ""}
-                onChange={(e) => setCurrentTag(prev => ({ ...prev!, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-                placeholder="e.g., huberman-lab"
-                disabled={!!currentTag?.parent_tag_id}
-              />
+              <Input id="subdomain" value={currentTag?.subdomain || ""} onChange={(e) => setCurrentTag(prev => ({ ...prev!, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))} placeholder="e.g., huberman-lab" disabled={!!currentTag?.parent_tag_id} />
               {!!currentTag?.parent_tag_id && <p className="text-xs text-muted-foreground">Subdomains can only be set on canonical (non-alias) tags.</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="parent">Canonical Parent (makes this an alias)</Label>
-              <Combobox
-                options={tagOptions}
-                value={currentTag?.parent_tag_id || ""}
-                onChange={(value) => setCurrentTag(prev => ({ ...prev!, parent_tag_id: value || null, subdomain: "" }))}
-                placeholder="Select a parent tag..."
-              />
-               {currentTag?.parent_tag_id && (
-                <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setCurrentTag(prev => ({ ...prev!, parent_tag_id: null }))}>
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Clear parent (make canonical)
-                </Button>
-              )}
+              <Combobox options={tagOptions} value={currentTag?.parent_tag_id || ""} onChange={(value) => setCurrentTag(prev => ({ ...prev!, parent_tag_id: value || null, subdomain: "" }))} placeholder="Select a parent tag..." />
+              {currentTag?.parent_tag_id && (<Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setCurrentTag(prev => ({ ...prev!, parent_tag_id: null }))}><Trash2 className="h-3 w-3 mr-1" />Clear parent (make canonical)</Button>)}
             </div>
+            {/* RSS Feeds */}
             <div className="space-y-2">
               <Label>Associated RSS Feeds</Label>
-              {currentTag?.rss_urls?.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Input
-                    value={url}
-                    onChange={(e) => {
-                      setCurrentTag(prev => {
-                        if (!prev) return null;
-                        const newUrls = [...(prev.rss_urls || [])];
-                        newUrls[index] = e.target.value;
-                        return { ...prev, rss_urls: newUrls };
-                      });
-                    }}
-                    placeholder="https://..."
-                  />
-                  <Button variant="ghost" size="icon-sm" onClick={() => {
-                    setCurrentTag(prev => {
-                      if (!prev) return null;
-                      const newUrls = (prev.rss_urls || []).filter((_, i) => i !== index);
-                      return { ...prev, rss_urls: newUrls };
-                    });
-                  }}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+              {currentTag?.rss_urls?.map((url, index) => (<div key={index} className="flex items-center gap-2"><Input value={url} onChange={(e) => {setCurrentTag(prev => {if (!prev) return null; const newUrls = [...(prev.rss_urls || [])]; newUrls[index] = e.target.value; return { ...prev, rss_urls: newUrls };});}} placeholder="https://..." /><Button variant="ghost" size="icon-sm" onClick={() => {setCurrentTag(prev => {if (!prev) return null; const newUrls = (prev.rss_urls || []).filter((_, i) => i !== index); return { ...prev, rss_urls: newUrls };});}}><Trash2 className="h-4 w-4 text-destructive" /></Button></div>))}
+              <Button variant="outline" size="sm" onClick={() => {setCurrentTag(prev => {if (!prev) return null; const newUrls = [...(prev.rss_urls || []), '']; return { ...prev, rss_urls: newUrls };});}}><PlusCircle className="h-4 w-4 mr-2" />Add RSS Feed</Button>
+            </div>
+            {/* Community Links */}
+            <div className="space-y-2">
+              <Label>Community Links (e.g., Discord)</Label>
+              {currentTag?.show_community_links?.map((link, index) => (
+                <div key={index} className="flex items-end gap-2 border p-2 rounded-md">
+                  <div className="grid grid-cols-2 gap-2 flex-1">
+                    <div className="space-y-1 col-span-2"><Label htmlFor={`link-name-${index}`} className="text-xs">Name</Label><Input id={`link-name-${index}`} value={link.name} onChange={(e) => setCurrentTag(prev => { const newLinks = [...(prev!.show_community_links || [])]; newLinks[index].name = e.target.value; return { ...prev!, show_community_links: newLinks } })} /></div>
+                    <div className="space-y-1 col-span-2"><Label htmlFor={`link-url-${index}`} className="text-xs">URL</Label><Input id={`link-url-${index}`} value={link.url} onChange={(e) => setCurrentTag(prev => { const newLinks = [...(prev!.show_community_links || [])]; newLinks[index].url = e.target.value; return { ...prev!, show_community_links: newLinks } })} /></div>
+                    <div className="space-y-1 col-span-2"><Label htmlFor={`link-desc-${index}`} className="text-xs">Description</Label><Textarea id={`link-desc-${index}`} value={link.description || ""} onChange={(e) => setCurrentTag(prev => { const newLinks = [...(prev!.show_community_links || [])]; newLinks[index].description = e.target.value; return { ...prev!, show_community_links: newLinks } })} rows={2} /></div>
+                  </div>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setCurrentTag(prev => ({ ...prev!, show_community_links: prev!.show_community_links!.filter((_, i) => i !== index) }))}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={() => {
-                setCurrentTag(prev => {
-                  if (!prev) return null;
-                  const newUrls = [...(prev.rss_urls || []), ''];
-                  return { ...prev, rss_urls: newUrls };
-                });
-              }}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add RSS Feed
-              </Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentTag(prev => ({ ...prev!, show_community_links: [...(prev!.show_community_links || []), { id: `new-${Date.now()}`, show_tag_id: prev!.id || 'temp', created_at: new Date().toISOString(), platform: 'discord', name: '', url: '', description: '' }] }))}><PlusCircle className="h-4 w-4 mr-2" />Add Link</Button>
             </div>
           </div>
           <DialogFooter>

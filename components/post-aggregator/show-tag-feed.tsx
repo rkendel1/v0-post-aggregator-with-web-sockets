@@ -6,7 +6,7 @@ import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Rss, Home, BadgeCheck } from "lucide-react"
+import { PlusCircle, Rss, Home, BadgeCheck, Users } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Toaster, toast } from "react-hot-toast"
@@ -169,44 +169,56 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
   return (
     <div className="flex flex-col h-screen">
       <Toaster position="bottom-right" />
-      <header className="border-b bg-card p-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:block">
-            <Logo />
+      <header className="border-b bg-card p-4 sticky top-0 z-10">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="hidden sm:block">
+              <Logo />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <span>#{showTag.tag}</span>
+                {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
+                <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+                  <Rss className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </h1>
+              <p className="text-sm text-muted-foreground">{showTag.name}</p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {showTag.show_community_links?.map(link => (
+                  <Button asChild variant="outline" size="sm" key={link.id}>
+                    <a href={link.url} target="_blank" rel="noopener noreferrer" title={link.description || undefined}>
+                      <Users className="h-4 w-4 mr-2" />
+                      {link.name}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <span>#{showTag.tag}</span>
-              {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
-              <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                <Rss className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {user && !showTag.claimed_by_user_id && (
+              <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)}>
+                Claim this page
               </Button>
-            </h1>
-            <p className="text-sm text-muted-foreground">{showTag.name}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {user && !showTag.claimed_by_user_id && (
-            <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)}>
-              Claim this page
+            )}
+            {user && <TagFollowButton showTagId={showTag.id} />}
+            <Button asChild variant="outline" size="sm">
+              <a href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'}`}>
+                <Home className="h-4 w-4 mr-2" />
+                Main Feed
+              </a>
             </Button>
-          )}
-          {user && <TagFollowButton showTagId={showTag.id} />}
-          <Button asChild variant="outline" size="sm">
-            <a href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'}`}>
-              <Home className="h-4 w-4 mr-2" />
-              Main Feed
-            </a>
-          </Button>
-          <Button
-            onClick={() => setIsComposerOpen(true)}
-            size="sm"
-            className="gap-2"
-            disabled={!user}
-          >
-            <PlusCircle className="h-4 w-4" />
-            New Post
-          </Button>
+            <Button
+              onClick={() => setIsComposerOpen(true)}
+              size="sm"
+              className="gap-2"
+              disabled={!user}
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Post
+            </Button>
+          </div>
         </div>
       </header>
 

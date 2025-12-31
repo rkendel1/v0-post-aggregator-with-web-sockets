@@ -1,3 +1,13 @@
+export interface ShowCommunityLink {
+  id: string
+  show_tag_id: string
+  platform: string
+  name: string
+  description: string | null
+  url: string
+  created_at: string
+}
+
 export interface ShowTag {
   id: string
   tag: string
@@ -8,6 +18,7 @@ export interface ShowTag {
   parent_tag_id?: string | null
   user_rss_feeds?: { rss_url: string }[] | null
   subdomain_mappings?: { subdomain: string }[] | null
+  show_community_links?: ShowCommunityLink[]
 }
 
 export interface Source {

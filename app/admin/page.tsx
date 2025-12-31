@@ -19,7 +19,7 @@ export default async function AdminPage() {
   const [tagsResult, mappingsResult] = await Promise.all([
     supabase
       .from("show_tags")
-      .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain)")
+      .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
       .order("tag", { ascending: true }),
     supabase
       .from("hashtag_mappings")

@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
 import { EpisodeListItem } from "./episode-list-item"
+import { Accordion } from "@/components/ui/accordion"
 
 interface EpisodeCatalogProps {
   showTagId: string
@@ -61,17 +62,22 @@ export function EpisodeCatalog({ showTagId, showTagSlug }: EpisodeCatalogProps) 
   return (
     <ScrollArea className="h-full">
       <div className="max-w-2xl mx-auto p-4 space-y-2">
-        {episodes.map((episode) => (
-          <EpisodeListItem key={episode.id} episode={episode} showTagSlug={showTagSlug} />
-        ))}
-        {isLoading && (
+        <Accordion type="single" collapsible className="w-full space-y-2">
+          {episodes.map((episode) => (
+            <EpisodeListItem key={episode.id} episode={episode} showTagSlug={showTagSlug} />
+          ))}
+        </Accordion>
+        {isLoading && episodes.length === 0 && (
           <div className="flex justify-center py-4">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
         {!isLoading && hasMore && (
           <div className="flex justify-center py-4">
-            <Button onClick={loadMore} variant="outline">Load More Episodes</Button>
+            <Button onClick={loadMore} variant="outline" disabled={isLoading}>
+              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Load More Episodes
+            </Button>
           </div>
         )}
         {!isLoading && episodes.length === 0 && (

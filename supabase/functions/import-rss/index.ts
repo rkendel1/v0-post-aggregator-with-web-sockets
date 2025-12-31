@@ -93,6 +93,15 @@ serve(async (req: Request) => {
         if (tagError) throw new Error(`Failed to create tag: ${tagError.message}`)
         const show_tag_id = tagData.id
 
+        // Create a default subdomain mapping for the new tag
+        const { error: subdomainError } = await supabase
+          .from('subdomain_mappings')
+          .upsert({ subdomain: tagSlug, show_tag_id: show_tag_id }, { onConflict: 'subdomain' })
+
+        if (subdomainError) {
+          console.warn(`Could not create subdomain mapping for ${tagSlug}: ${subdomainError.message}`)
+        }
+
         await supabase.from('tag_follows').upsert({ user_id, show_tag_id }, { onConflict: 'user_id,show_tag_id' })
         
         // Update the user_rss_feeds table with the show_tag_id
@@ -100,7 +109,7 @@ serve(async (req: Request) => {
           user_id, 
           rss_url: url, 
           title: feedTitle,
-          show_tag_id: show_tag_id, // This is the new line
+          show_tag_id: show_tag_id,
           last_fetched_at: new Date().toISOString()
         }, { onConflict: 'user_id,rss_url' })
 

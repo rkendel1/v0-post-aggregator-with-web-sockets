@@ -18,8 +18,9 @@ interface RssImportManagerProps {
   initialRssFeeds: UserRssFeed[]
 }
 
-// Hardcoded Edge Function URL structure
-const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
+// Hardcoded Edge Function URLs
+const IMPORT_RSS_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
+const FIND_RSS_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/find-rss-from-url`
 
 const topPodcasts = [
   { name: "The Daily", url: "https://feeds.simplecast.com/54nAGcIl" },
@@ -67,7 +68,7 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
       }
 
       const importPromises = urls.map(url => 
-        fetch(EDGE_FUNCTION_URL, {
+        fetch(IMPORT_RSS_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,10 +132,74 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
     reader.readAsText(file)
   }
 
-  const handleSingleRssSubmit = (e: React.FormEvent) => {
+  const handleSingleRssSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (singleRssUrl.trim()) {
-      handleImportRss([singleRssUrl.trim()])
+    const urlToProcess = singleRssUrl.trim()
+    if (!urlToProcess) return
+
+    setIsImporting(true)
+    const loadingToast = toast.loading("Processing URL...")
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("You must be logged in.")
+
+      let finalRssUrl = urlToProcess
+
+      // Step 1: Try to auto-discover the RSS feed from the URL
+      try {
+        toast.loading("Searching for RSS feed link...", { id: loadingToast })
+        const findResponse = await fetch(FIND_RSS_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ pageUrl: urlToProcess }),
+        })
+
+        if (findResponse.ok) {
+          const { rssUrl } = await findResponse.json()
+          if (rssUrl) {
+            finalRssUrl = rssUrl
+            toast.success("Found RSS feed!", { id: loadingToast })
+          }
+        }
+      } catch (findError) {
+        console.warn("Could not auto-discover RSS feed, proceeding with original URL.", findError)
+      }
+
+      // Step 2: Import the (potentially discovered) RSS feed
+      toast.loading(`Importing from ${new URL(finalRssUrl).hostname}...`, { id: loadingToast })
+      
+      const importResponse = await fetch(IMPORT_RSS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ rssUrls: [finalRssUrl] }),
+      })
+
+      const importData = await importResponse.json()
+      if (!importResponse.ok) {
+        throw new Error(importData.error || `Failed to process ${finalRssUrl}`)
+      }
+
+      const result = importData.results[0]
+      if (result.status === 'failed') {
+        throw new Error(result.message || `Failed to import ${finalRssUrl}`)
+      }
+
+      toast.success(`Successfully imported "${result.title}".`, { id: loadingToast })
+      router.refresh()
+
+    } catch (error) {
+      console.error("Import process error:", error)
+      toast.error(error instanceof Error ? error.message : "An unknown error occurred.", { id: loadingToast })
+    } finally {
+      setIsImporting(false)
+      setSingleRssUrl("")
     }
   }
 
@@ -198,12 +263,12 @@ export function RssImportManager({ initialRssFeeds }: RssImportManagerProps) {
           {/* Single RSS Paste */}
           <form onSubmit={handleSingleRssSubmit} className="space-y-2 border p-4 rounded-lg">
             <Label htmlFor="single-rss" className="flex items-center gap-2 font-medium">
-              <Link2 className="h-4 w-4" /> Import Single RSS URL
+              <Link2 className="h-4 w-4" /> Import from Website or RSS URL
             </Label>
             <div className="flex gap-2">
               <Input
                 id="single-rss"
-                placeholder="Paste RSS feed URL here"
+                placeholder="Paste website or RSS feed URL here"
                 value={singleRssUrl}
                 onChange={(e) => setSingleRssUrl(e.target.value)}
                 disabled={isImporting}

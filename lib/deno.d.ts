@@ -19,6 +19,18 @@ declare module 'https://esm.sh/rss-parser@3.13.0' {
   export default Parser;
 }
 
+declare module 'https://esm.sh/deno-dom@v0.1.45' {
+  export class DOMParser {
+    parseFromString(html: string, type: "text/html"): Document | null;
+  }
+  export interface Document {
+    querySelector(selector: string): Element | null;
+  }
+  export interface Element {
+    getAttribute(name: string): string | null;
+  }
+}
+
 // Fix for relative import path in Deno environment
 declare module '../_shared/auth.ts' {
   export * from './_shared/auth';

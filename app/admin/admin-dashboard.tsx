@@ -36,6 +36,8 @@ interface AdminDashboardProps {
 
 type EditableTag = Partial<ShowTag> & { subdomain?: string | null; rss_urls?: string[] }
 
+const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
+
 export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardProps) {
   const [tags, setTags] = useState<ShowTag[]>(initialTags)
   const [mappings, setMappings] = useState<HashtagMapping[]>(initialMappings)
@@ -104,18 +106,43 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
         if (subdomainError) throw new Error(`Subdomain '${newSubdomain}' is already taken or invalid.`)
       }
 
-      // Handle RSS feeds
-      await supabase.from('user_rss_feeds').delete().eq('show_tag_id', savedTag.id)
+      // Handle RSS feeds and trigger import
       const rssUrls = currentTag.rss_urls?.filter(url => url.trim()) || []
       if (rssUrls.length > 0) {
-        const { data: user } = await supabase.auth.getUser()
-        const newFeeds = rssUrls.map(url => ({ 
-          rss_url: url.trim(), 
-          show_tag_id: savedTag.id,
-          title: savedTag.name, // Use tag name as a default title
-          user_id: user.user?.id // Associate with the admin user
-        }))
-        await supabase.from('user_rss_feeds').insert(newFeeds)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          toast.error("Authentication session not found. Cannot trigger import.")
+        } else {
+          // Save the feed associations first
+          await supabase.from('user_rss_feeds').delete().eq('show_tag_id', savedTag.id)
+          const newFeeds = rssUrls.map(url => ({ 
+            rss_url: url.trim(), 
+            show_tag_id: savedTag.id,
+            title: savedTag.name,
+            user_id: session.user.id
+          }))
+          await supabase.from('user_rss_feeds').insert(newFeeds)
+
+          // Now trigger the import
+          toast.loading("Tag saved. Triggering feed import...", { id: 'import-toast' })
+          const response = await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ rssUrls }),
+          })
+          
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.error || "Failed to trigger RSS import.")
+          }
+          toast.success("Feed import triggered successfully!", { id: 'import-toast' })
+        }
+      } else {
+        // If there are no RSS URLs, ensure any existing ones are deleted
+        await supabase.from('user_rss_feeds').delete().eq('show_tag_id', savedTag.id)
       }
 
       toast.success(`Tag ${isNew ? 'created' : 'updated'} successfully.`)

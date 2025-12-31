@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { AdminDashboard } from "./admin-dashboard"
-import type { ShowTag, HashtagMapping } from "@/lib/types"
+import type { ShowTag } from "@/lib/types"
 
 export default async function AdminPage() {
   const cookieStore = await cookies()
@@ -16,16 +16,10 @@ export default async function AdminPage() {
     redirect("/auth/login")
   }
 
-  const [tagsResult, mappingsResult] = await Promise.all([
-    supabase
-      .from("show_tags")
-      .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
-      .order("tag", { ascending: true }),
-    supabase
-      .from("hashtag_mappings")
-      .select("*, show_tags(*)")
-      .order("hashtag", { ascending: true }),
-  ])
+  const { data: tagsResult } = await supabase
+    .from("show_tags")
+    .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
+    .order("tag", { ascending: true })
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,10 +30,7 @@ export default async function AdminPage() {
         </div>
       </header>
       <main className="max-w-7xl mx-auto p-4">
-        <AdminDashboard
-          initialTags={(tagsResult.data as any[]) || []}
-          initialMappings={(mappingsResult.data as HashtagMapping[]) || []}
-        />
+        <AdminDashboard initialTags={(tagsResult as any[]) || []} />
       </main>
     </div>
   )

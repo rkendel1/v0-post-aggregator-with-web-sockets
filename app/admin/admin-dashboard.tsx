@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { ShowTag, HashtagMapping, ShowCommunityLink } from "@/lib/types"
+import type { ShowTag, ShowCommunityLink } from "@/lib/types"
 import {
   Table,
   TableBody,
@@ -40,14 +40,12 @@ type ShowTagWithDetails = ShowTag & {
 
 interface AdminDashboardProps {
   initialTags: ShowTagWithDetails[]
-  initialMappings: HashtagMapping[]
 }
 
 type EditableTag = Partial<ShowTagWithDetails> & { subdomain?: string | null; rss_urls?: string[] }
 
-export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardProps) {
+export function AdminDashboard({ initialTags }: AdminDashboardProps) {
   const [tags, setTags] = useState<ShowTagWithDetails[]>(initialTags)
-  const [mappings, setMappings] = useState<HashtagMapping[]>(initialMappings)
   const [isEditing, setIsEditing] = useState(false)
   const [currentTag, setCurrentTag] = useState<EditableTag | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -72,8 +70,26 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
 
   const handleSave = async () => {
     if (!currentTag) return
-    setIsSaving(true)
 
+    // Add uniqueness check for new tags
+    if (!currentTag.id) {
+      if (!currentTag.tag || currentTag.tag.trim() === '') {
+        toast.error("Tag slug cannot be empty.");
+        return;
+      }
+      const { data: existingTag } = await supabase
+        .from('show_tags')
+        .select('id')
+        .eq('tag', currentTag.tag.trim())
+        .single();
+
+      if (existingTag) {
+        toast.error(`Tag #${currentTag.tag.trim()} already exists.`);
+        return;
+      }
+    }
+
+    setIsSaving(true)
     const isNew = !currentTag.id
 
     try {
@@ -158,18 +174,12 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
   }
 
   const refreshData = async () => {
-    const [tagsResult, mappingsResult] = await Promise.all([
-      supabase
-        .from("show_tags")
-        .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
-        .order("tag", { ascending: true }),
-      supabase
-        .from("hashtag_mappings")
-        .select("*, show_tags(*)")
-        .order("hashtag", { ascending: true }),
-    ])
-    setTags((tagsResult.data as ShowTagWithDetails[]) || [])
-    setMappings((mappingsResult.data as HashtagMapping[]) || [])
+    const { data: tagsResult } = await supabase
+      .from("show_tags")
+      .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain), show_community_links(*)")
+      .order("tag", { ascending: true })
+    
+    setTags((tagsResult as ShowTagWithDetails[]) || [])
   }
 
   const getParentTag = (parentId: string | null | undefined) => {
@@ -180,76 +190,65 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
   return (
     <>
       <Toaster position="bottom-right" />
-      <Tabs defaultValue="tags">
-        <TabsList>
-          <TabsTrigger value="tags">Show Tags</TabsTrigger>
-          <TabsTrigger value="mappings">Hashtag Mappings</TabsTrigger>
-        </TabsList>
-        <TabsContent value="tags" className="mt-4">
-          <div className="flex justify-end mb-4">
-            <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [], show_community_links: [] }); setIsEditing(true) }}>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              New Tag
-            </Button>
-          </div>
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tag</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Type / Parent</TableHead>
-                  <TableHead>Subdomain</TableHead>
-                  <TableHead>RSS</TableHead>
-                  <TableHead>Links</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+      <div className="flex justify-end mb-4">
+        <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [], show_community_links: [] }); setIsEditing(true) }}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          New Tag
+        </Button>
+      </div>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tag</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Type / Parent</TableHead>
+              <TableHead>Subdomain</TableHead>
+              <TableHead>RSS</TableHead>
+              <TableHead>Links</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {tags.map((tag) => {
+              const parent = getParentTag(tag.parent_tag_id)
+              const subdomain = tag.subdomain_mappings?.[0]?.subdomain || null
+              return (
+                <TableRow key={tag.id}>
+                  <TableCell className="font-mono">#{tag.tag}</TableCell>
+                  <TableCell>{tag.name}</TableCell>
+                  <TableCell>
+                    {parent ? (
+                      <Badge variant="outline">Alias of #{parent.tag}</Badge>
+                    ) : (
+                      <Badge variant="secondary">Canonical</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {subdomain ? (
+                      <a href={`https://${subdomain}.podbridge.app`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        {subdomain}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">None</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{tag.show_rss_feeds.length > 0 ? `${tag.show_rss_feeds.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell>{tag.show_community_links.length > 0 ? `${tag.show_community_links.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(tag)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(tag.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tags.map((tag) => {
-                  const parent = getParentTag(tag.parent_tag_id)
-                  const subdomain = tag.subdomain_mappings?.[0]?.subdomain || null
-                  return (
-                    <TableRow key={tag.id}>
-                      <TableCell className="font-mono">#{tag.tag}</TableCell>
-                      <TableCell>{tag.name}</TableCell>
-                      <TableCell>
-                        {parent ? (
-                          <Badge variant="outline">Alias of #{parent.tag}</Badge>
-                        ) : (
-                          <Badge variant="secondary">Canonical</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {subdomain ? (
-                          <a href={`https://${subdomain}.podbridge.app`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                            {subdomain}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">None</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{tag.show_rss_feeds.length > 0 ? `${tag.show_rss_feeds.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
-                      <TableCell>{tag.show_community_links.length > 0 ? `${tag.show_community_links.length}` : <span className="text-muted-foreground">0</span>}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(tag)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDelete(tag.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-        <TabsContent value="mappings">
-          <p className="text-muted-foreground">Hashtag mappings management coming soon.</p>
-        </TabsContent>
-      </Tabs>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </div>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="grid grid-rows-[auto_1fr_auto] max-h-[90vh]">

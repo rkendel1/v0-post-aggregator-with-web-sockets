@@ -31,17 +31,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 // @ts-ignore: Deno global
 const CRON_SECRET = Deno.env.get('CRON_SECRET')!
 
-const sanitizeForTag = (title: string) => {
-  return title
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '')
-    .slice(0, 50)
-}
-
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -58,53 +47,39 @@ serve(async (req: Request) => {
   })
   const parser = new Parser()
 
-  // Get all unique RSS feed URLs from the system
+  // Get all official RSS feed URLs from the new table
   const { data: feeds, error: feedsError } = await supabase
-    .from('user_rss_feeds')
-    .select('rss_url, user_id, title')
+    .from('show_rss_feeds')
+    .select('rss_url, show_tags (*)')
 
   if (feedsError) {
     console.error("Error fetching feeds:", feedsError)
     return new Response(JSON.stringify({ error: 'Failed to fetch feeds' }), { status: 500, headers: corsHeaders })
   }
   if (!feeds || feeds.length === 0) {
-    return new Response(JSON.stringify({ message: 'No feeds to process' }), { status: 200, headers: corsHeaders })
+    return new Response(JSON.stringify({ message: 'No official feeds to process' }), { status: 200, headers: corsHeaders })
   }
 
-  const uniqueUrls = [...new Map(feeds.map(item => [item.rss_url, item])).values()]
   let totalNewPosts = 0
 
-  for (const feedInfo of uniqueUrls) {
+  for (const feedInfo of feeds) {
+    const showTag: any = feedInfo.show_tags
+    if (!showTag) continue
+
     const url = feedInfo.rss_url
     try {
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Failed to fetch RSS feed: ${response.status}`)
       const xmlString = await response.text()
       const feed = await parser.parseString(xmlString)
-      const feedTitle = feed.title || feedInfo.title || 'Untitled Feed'
+      const feedTitle = feed.title || showTag.name || 'Untitled Feed'
       // @ts-ignore: Property 'image' might not exist on feed
       const feedImage = feed.itunes?.image || feed.image?.url || null
-
-      const tagSlug = sanitizeForTag(feedTitle)
-      const { data: tagData, error: tagError } = await supabase
-        .from('show_tags')
-        .upsert({ tag: tagSlug, name: feedTitle, category: 'RSS Imports' }, { onConflict: 'tag' })
-        .select()
-        .single()
-      
-      if (tagError) throw new Error(`Tag creation failed: ${tagError.message}`)
-      const show_tag_id = tagData.id
-
-      // Self-healing: Ensure all records for this RSS URL are linked to the correct show tag.
-      await supabase
-        .from('user_rss_feeds')
-        .update({ show_tag_id: show_tag_id })
-        .eq('rss_url', url);
 
       const { data: existingPosts } = await supabase
         .from('posts')
         .select('external_guid')
-        .eq('show_tag_id', show_tag_id)
+        .eq('show_tag_id', showTag.id)
         .not('external_guid', 'is', null)
       
       const existingGuids = new Set(existingPosts?.map(p => p.external_guid) || [])
@@ -114,13 +89,13 @@ serve(async (req: Request) => {
           const guid = item.guid || item.link
           if (!guid || existingGuids.has(guid) || !item.title) return null
           
-          const postContent = [`#${tagData.tag} ${item.title}`, item.contentSnippet ? `\n\n${item.contentSnippet.split('\n')[0]}`: ''].join('');
+          const postContent = [`#${showTag.tag} ${item.title}`, item.contentSnippet ? `\n\n${item.contentSnippet.split('\n')[0]}`: ''].join('');
 
           return {
             content: postContent,
             author_name: item.creator || feedTitle,
-            show_tag_id: show_tag_id,
-            user_id: feedInfo.user_id, // Attribute post to the user who added the feed
+            show_tag_id: showTag.id,
+            user_id: showTag.claimed_by_user_id || null, // Attribute post to the claimed user, if any
             created_at: item.isoDate ? new Date(item.isoDate).toISOString() : new Date().toISOString(),
             external_guid: guid,
             external_url: item.link || null,
@@ -137,9 +112,10 @@ serve(async (req: Request) => {
       }
 
       await supabase
-        .from('user_rss_feeds')
+        .from('show_rss_feeds')
         .update({ last_fetched_at: new Date().toISOString() })
         .eq('rss_url', url)
+        .eq('show_tag_id', showTag.id)
 
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : String(e)

@@ -19,7 +19,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,17 +28,25 @@ import toast, { Toaster } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+// Add the new type for our global RSS feeds
+interface ShowRssFeed {
+  rss_url: string
+}
+
+// Update ShowTag to include the new feed type
+type ShowTagWithFeeds = ShowTag & {
+  show_rss_feeds: ShowRssFeed[]
+}
+
 interface AdminDashboardProps {
-  initialTags: ShowTag[]
+  initialTags: ShowTagWithFeeds[]
   initialMappings: HashtagMapping[]
 }
 
-type EditableTag = Partial<ShowTag> & { subdomain?: string | null; rss_urls?: string[] }
-
-const EDGE_FUNCTION_URL = `https://bbjlqpsvdjaobcjuvbag.supabase.co/functions/v1/import-rss`
+type EditableTag = Partial<ShowTagWithFeeds> & { subdomain?: string | null; rss_urls?: string[] }
 
 export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardProps) {
-  const [tags, setTags] = useState<ShowTag[]>(initialTags)
+  const [tags, setTags] = useState<ShowTagWithFeeds[]>(initialTags)
   const [mappings, setMappings] = useState<HashtagMapping[]>(initialMappings)
   const [isEditing, setIsEditing] = useState(false)
   const [currentTag, setCurrentTag] = useState<EditableTag | null>(null)
@@ -55,9 +62,9 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
       .sort((a, b) => a.label.localeCompare(b.label))
   }, [canonicalTags, currentTag])
 
-  const handleEdit = (tag: ShowTag) => {
+  const handleEdit = (tag: ShowTagWithFeeds) => {
     const subdomain = tag.subdomain_mappings && tag.subdomain_mappings.length > 0 ? tag.subdomain_mappings[0].subdomain : ""
-    const rss_urls = tag.user_rss_feeds ? tag.user_rss_feeds.map(f => f.rss_url) : []
+    const rss_urls = tag.show_rss_feeds ? tag.show_rss_feeds.map(f => f.rss_url) : []
     setCurrentTag({ ...tag, subdomain, rss_urls })
     setIsEditing(true)
   }
@@ -106,46 +113,16 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
         if (subdomainError) throw new Error(`Subdomain '${newSubdomain}' is already taken or invalid.`)
       }
 
-      // Handle RSS feeds and trigger import
-      const rssUrls = currentTag.rss_urls?.filter(url => url.trim()) || []
+      // Handle Official RSS feeds
+      const rssUrls = currentTag.rss_urls?.map(url => url.trim()).filter(Boolean) || []
+      await supabase.from('show_rss_feeds').delete().eq('show_tag_id', savedTag.id)
       if (rssUrls.length > 0) {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-          toast.error("Authentication session not found. Cannot trigger import.")
-        } else {
-          // Save the feed associations first
-          await supabase.from('user_rss_feeds').delete().eq('show_tag_id', savedTag.id)
-          const newFeeds = rssUrls.map(url => ({ 
-            rss_url: url.trim(), 
-            show_tag_id: savedTag.id,
-            title: savedTag.name,
-            user_id: session.user.id
-          }))
-          await supabase.from('user_rss_feeds').insert(newFeeds)
-
-          // Now trigger the import
-          toast.loading("Tag saved. Triggering feed import...", { id: 'import-toast' })
-          const response = await fetch(EDGE_FUNCTION_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ rssUrls }),
-          })
-          
-          if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || "Failed to trigger RSS import.")
-          }
-          toast.success("Feed import triggered successfully!", { id: 'import-toast' })
-        }
-      } else {
-        // If there are no RSS URLs, ensure any existing ones are deleted
-        await supabase.from('user_rss_feeds').delete().eq('show_tag_id', savedTag.id)
+        const newFeeds = rssUrls.map(url => ({ rss_url: url, show_tag_id: savedTag.id }))
+        const { error: feedError } = await supabase.from('show_rss_feeds').insert(newFeeds)
+        if (feedError) throw new Error(`Failed to save RSS feeds: ${feedError.message}`)
       }
 
-      toast.success(`Tag ${isNew ? 'created' : 'updated'} successfully.`)
+      toast.success(`Tag ${isNew ? 'created' : 'updated'} successfully. The system will poll for new episodes shortly.`)
       await refreshData()
       setIsEditing(false)
       setCurrentTag(null)
@@ -159,7 +136,6 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
   const handleDelete = async (tagId: string) => {
     const loadingToast = toast.loading("Deleting tag...")
     try {
-      // Supabase cascade delete should handle related records
       const { error } = await supabase.from("show_tags").delete().eq("id", tagId)
       if (error) throw error
       toast.success("Tag deleted.")
@@ -175,14 +151,14 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
     const [tagsResult, mappingsResult] = await Promise.all([
       supabase
         .from("show_tags")
-        .select("*, user_rss_feeds(rss_url), subdomain_mappings(subdomain)")
+        .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain)")
         .order("tag", { ascending: true }),
       supabase
         .from("hashtag_mappings")
         .select("*, show_tags(*)")
         .order("hashtag", { ascending: true }),
     ])
-    setTags((tagsResult.data as ShowTag[]) || [])
+    setTags((tagsResult.data as ShowTagWithFeeds[]) || [])
     setMappings((mappingsResult.data as HashtagMapping[]) || [])
   }
 
@@ -221,7 +197,7 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
               <TableBody>
                 {tags.map((tag) => {
                   const parent = getParentTag(tag.parent_tag_id)
-                  const rssFeeds = tag.user_rss_feeds || []
+                  const rssFeeds = tag.show_rss_feeds || []
                   const subdomain = tag.subdomain_mappings?.[0]?.subdomain || null
                   return (
                     <TableRow key={tag.id}>
@@ -262,7 +238,6 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
           </div>
         </TabsContent>
         <TabsContent value="mappings">
-          {/* Hashtag Mappings Manager will go here */}
           <p className="text-muted-foreground">Hashtag mappings management coming soon.</p>
         </TabsContent>
       </Tabs>
@@ -282,7 +257,7 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
                 <Input
                   id="tag"
                   value={currentTag?.tag || ""}
-                  onChange={(e) => setCurrentTag({ ...currentTag, tag: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                  onChange={(e) => setCurrentTag(prev => ({ ...prev!, tag: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                   placeholder="e.g., huberman-lab"
                 />
               </div>
@@ -292,7 +267,7 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
               <Input
                 id="name"
                 value={currentTag?.name || ""}
-                onChange={(e) => setCurrentTag({ ...currentTag, name: e.target.value })}
+                onChange={(e) => setCurrentTag(prev => ({ ...prev!, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
@@ -300,7 +275,7 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
               <Input
                 id="subdomain"
                 value={currentTag?.subdomain || ""}
-                onChange={(e) => setCurrentTag({ ...currentTag, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                onChange={(e) => setCurrentTag(prev => ({ ...prev!, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
                 placeholder="e.g., huberman-lab"
                 disabled={!!currentTag?.parent_tag_id}
               />
@@ -311,11 +286,11 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
               <Combobox
                 options={tagOptions}
                 value={currentTag?.parent_tag_id || ""}
-                onChange={(value) => setCurrentTag({ ...currentTag, parent_tag_id: value || null, subdomain: "" })}
+                onChange={(value) => setCurrentTag(prev => ({ ...prev!, parent_tag_id: value || null, subdomain: "" }))}
                 placeholder="Select a parent tag..."
               />
                {currentTag?.parent_tag_id && (
-                <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setCurrentTag({ ...currentTag, parent_tag_id: null })}>
+                <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => setCurrentTag(prev => ({ ...prev!, parent_tag_id: null }))}>
                   <Trash2 className="h-3 w-3 mr-1" />
                   Clear parent (make canonical)
                 </Button>
@@ -328,23 +303,32 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
                   <Input
                     value={url}
                     onChange={(e) => {
-                      const newUrls = [...(currentTag.rss_urls || [])]
-                      newUrls[index] = e.target.value
-                      setCurrentTag({ ...currentTag, rss_urls: newUrls })
+                      setCurrentTag(prev => {
+                        if (!prev) return null;
+                        const newUrls = [...(prev.rss_urls || [])];
+                        newUrls[index] = e.target.value;
+                        return { ...prev, rss_urls: newUrls };
+                      });
                     }}
                     placeholder="https://..."
                   />
                   <Button variant="ghost" size="icon-sm" onClick={() => {
-                    const newUrls = (currentTag.rss_urls || []).filter((_, i) => i !== index)
-                    setCurrentTag({ ...currentTag, rss_urls: newUrls })
+                    setCurrentTag(prev => {
+                      if (!prev) return null;
+                      const newUrls = (prev.rss_urls || []).filter((_, i) => i !== index);
+                      return { ...prev, rss_urls: newUrls };
+                    });
                   }}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={() => {
-                const newUrls = [...(currentTag?.rss_urls || []), '']
-                setCurrentTag({ ...currentTag, rss_urls: newUrls })
+                setCurrentTag(prev => {
+                  if (!prev) return null;
+                  const newUrls = [...(prev.rss_urls || []), ''];
+                  return { ...prev, rss_urls: newUrls };
+                });
               }}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Add RSS Feed

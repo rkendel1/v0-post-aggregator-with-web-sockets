@@ -16,18 +16,10 @@ export default async function AdminPage() {
     redirect("/auth/login")
   }
 
-  // In a real app, you'd have role-based access control.
-  // For now, we'll just check if the user is logged in.
-  // A simple check could be against a list of admin user IDs.
-  // const ADMIN_USER_IDS = ['...'];
-  // if (!ADMIN_USER_IDS.includes(user.id)) {
-  //   redirect('/');
-  // }
-
   const [tagsResult, mappingsResult] = await Promise.all([
     supabase
       .from("show_tags")
-      .select("*, user_rss_feeds(rss_url), subdomain_mappings(subdomain)")
+      .select("*, show_rss_feeds(rss_url), subdomain_mappings(subdomain)")
       .order("tag", { ascending: true }),
     supabase
       .from("hashtag_mappings")
@@ -45,7 +37,7 @@ export default async function AdminPage() {
       </header>
       <main className="max-w-7xl mx-auto p-4">
         <AdminDashboard
-          initialTags={(tagsResult.data as ShowTag[]) || []}
+          initialTags={(tagsResult.data as any[]) || []}
           initialMappings={(mappingsResult.data as HashtagMapping[]) || []}
         />
       </main>

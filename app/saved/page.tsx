@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { QueueFeed } from "../../components/queue/queue-feed"
+import { SavedPostsFeed } from "@/components/queue/saved-posts-feed"
 import type { Post } from "@/lib/types"
 import { Toaster } from "react-hot-toast"
 import Link from "next/link"
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { cookies } from "next/headers"
 
-export default async function QueuePage() {
+export default async function SavedPage() {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
 
@@ -20,7 +20,7 @@ export default async function QueuePage() {
     redirect("/auth/login")
   }
 
-  const { data: queuedPostsData, error } = await supabase
+  const { data: savedPostsData, error } = await supabase
     .from("saved_posts")
     .select(
       `
@@ -33,15 +33,15 @@ export default async function QueuePage() {
     `,
     )
     .eq("user_id", user.id)
-    .not("queue_position", "is", null) // Fetch only items with a queue position
-    .order("queue_position", { ascending: true })
+    .is("queue_position", null) // Fetch only saved, not queued, items
+    .order("created_at", { ascending: false })
 
   if (error) {
-    console.error("Error fetching queued posts:", error)
+    console.error("Error fetching saved posts:", error)
   }
 
-  const queuedPosts = queuedPostsData as ({ posts: Post | null })[] | null
-  const posts = queuedPosts?.map((sp) => sp.posts).filter((p): p is Post => p !== null) || []
+  const savedPosts = savedPostsData as ({ posts: Post | null })[] | null
+  const posts = savedPosts?.map((sp) => sp.posts).filter((p): p is Post => p !== null) || []
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,14 +54,14 @@ export default async function QueuePage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">My Queue</h1>
-              <p className="text-sm text-muted-foreground">You have {posts.length} item(s) in your queue. Drag to reorder.</p>
+              <h1 className="text-2xl font-bold text-foreground">Saved Posts</h1>
+              <p className="text-sm text-muted-foreground">You have {posts.length} item(s) saved.</p>
             </div>
           </div>
         </div>
       </header>
       <div className="max-w-2xl mx-auto p-4">
-        <QueueFeed initialPosts={posts} />
+        <SavedPostsFeed initialPosts={posts} />
       </div>
       <Toaster position="bottom-right" />
     </div>

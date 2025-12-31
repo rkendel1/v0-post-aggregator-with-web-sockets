@@ -4,7 +4,7 @@ import type { ShowTag, UserProfile } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic, ExternalLink } from "lucide-react"
+import { TrendingUp, ListPlus, Rss, LayoutGrid, ListMusic, Bookmark, ExternalLink } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -92,6 +92,12 @@ export function ShowTagSidebar({
             <Link href="/queue">
               <ListMusic className="h-4 w-4 mr-2" />
               My Queue
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="w-full justify-start">
+            <Link href="/saved">
+              <Bookmark className="h-4 w-4 mr-2" />
+              Saved Posts
             </Link>
           </Button>
 

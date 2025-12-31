@@ -1,14 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-function matchesPath(pattern: string, path: string) {
-  if (pattern === '/*') return true
-  if (pattern.endsWith('/*')) {
-    return path.startsWith(pattern.replace('/*', ''))
-  }
-  return pattern === path
-}
-
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -54,25 +46,9 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  const { data: adminRoute } = await supabase
-    .from('admin_routes')
-    .select('*')
-    .eq('hostname', hostname)
-    .eq('status', 'active')
-    .order('priority', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (adminRoute && matchesPath(adminRoute.path_pattern, pathname)) {
-    return NextResponse.rewrite(
-      new URL(`${adminRoute.rewrite_to}${pathname}`, request.url),
-      response
-    )
-  }
-
   const subdomain = hostname.replace(`.${rootDomain}`, '')
   if (subdomain) {
-    // 1. Check for a direct subdomain mapping
+    // 1. Check for a direct subdomain mapping to a canonical tag
     const { data: mapping } = await supabase
       .from('subdomain_mappings')
       .select('show_tags(tag)')
@@ -80,12 +56,11 @@ export async function middleware(request: NextRequest) {
       .single()
 
     const mappedTagSlug = (mapping as any)?.show_tags?.tag
-
     if (mappedTagSlug) {
       return NextResponse.rewrite(new URL(`/show/${mappedTagSlug}${pathname}`, request.url), response)
     }
 
-    // 2. If no mapping, check if the subdomain is an alias tag
+    // 2. If no mapping, check if the subdomain matches an alias tag
     const { data: tagData } = await supabase
       .from('show_tags')
       .select('tag, parent:parent_tag_id(tag)')
@@ -93,16 +68,15 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (tagData) {
-      // The parent relationship is returned as an array, so we access the first element.
-      if (tagData.parent?.[0]?.tag) {
-        // It's an alias, rewrite to the parent's slug
-        return NextResponse.rewrite(new URL(`/show/${tagData.parent[0].tag}${pathname}`, request.url), response)
+      // If it's an alias with a parent, rewrite to the parent's slug
+      if (tagData.parent && (tagData.parent as any).tag) {
+        return NextResponse.rewrite(new URL(`/show/${(tagData.parent as any).tag}${pathname}`, request.url), response)
       }
-      // It's a canonical tag without a mapping, rewrite to its own slug
+      // Otherwise, it's a canonical tag, rewrite to its own slug
       return NextResponse.rewrite(new URL(`/show/${tagData.tag}${pathname}`, request.url), response)
     }
     
-    // 3. Fallback: if no mapping and no tag found, let the page show "Not Found"
+    // 3. Fallback: if no mapping and no tag found, let the page handle the "Not Found" state
     return NextResponse.rewrite(new URL(`/show/${subdomain}${pathname}`, request.url), response)
   }
 

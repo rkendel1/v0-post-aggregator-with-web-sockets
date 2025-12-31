@@ -30,6 +30,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 // @ts-ignore: Deno global
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const ROOT_DOMAIN = 'podbridge.app' // Hardcoded root domain for check
 
 const sanitizeForTag = (title: string) => {
   return title
@@ -69,6 +70,11 @@ serve(async (req: Request) => {
 
     for (const url of rssUrls) {
       try {
+        // Prevent circular imports from our own domain
+        if (new URL(url).hostname.endsWith(ROOT_DOMAIN)) {
+          throw new Error('Cannot import a feed from PodBridge itself. Please use the original source RSS feed URL.')
+        }
+
         const response = await fetch(url)
         if (!response.ok) throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`)
         const xmlString = await response.text()

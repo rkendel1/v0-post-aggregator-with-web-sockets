@@ -51,7 +51,7 @@ export function ShowTagSidebar({
     <div className="w-64 border-r bg-card flex flex-col h-full">
       <div className="p-4 border-b">
         {profile ? (
-          <Link href="/settings">
+          <Link href={`/${profile.username}`}>
             <Avatar className="h-10 w-10">
               <AvatarImage src={profile.avatar_url || undefined} />
               <AvatarFallback>{profile.display_name?.slice(0, 2).toUpperCase() || "??"}</AvatarFallback>

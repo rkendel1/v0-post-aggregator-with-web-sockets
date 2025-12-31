@@ -95,6 +95,12 @@ serve(async (req: Request) => {
       if (tagError) throw new Error(`Tag creation failed: ${tagError.message}`)
       const show_tag_id = tagData.id
 
+      // Self-healing: Ensure all records for this RSS URL are linked to the correct show tag.
+      await supabase
+        .from('user_rss_feeds')
+        .update({ show_tag_id: show_tag_id })
+        .eq('rss_url', url);
+
       const { data: existingPosts } = await supabase
         .from('posts')
         .select('external_guid')

@@ -241,14 +241,14 @@ export function AdminDashboard({ initialTags, initialMappings }: AdminDashboardP
       </Tabs>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent>
+        <DialogContent className="grid grid-rows-[auto_1fr_auto] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{currentTag?.id ? `Edit Tag: #${currentTag.tag}` : 'Create New Tag'}</DialogTitle>
             <DialogDescription>
               Manage tag details, hierarchy, subdomain, and associated RSS feeds.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+          <div className="py-4 space-y-4 overflow-y-auto pr-4">
             {!currentTag?.id && (
               <div className="space-y-2">
                 <Label htmlFor="tag">Tag (slug)</Label>

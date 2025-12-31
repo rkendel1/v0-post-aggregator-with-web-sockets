@@ -95,11 +95,12 @@ serve(async (req: Request) => {
 
         await supabase.from('tag_follows').upsert({ user_id, show_tag_id }, { onConflict: 'user_id,show_tag_id' })
         
-        // Update the user_rss_feeds table with the last_fetched_at timestamp
+        // Update the user_rss_feeds table with the show_tag_id
         await supabase.from('user_rss_feeds').upsert({ 
           user_id, 
           rss_url: url, 
           title: feedTitle,
+          show_tag_id: show_tag_id, // This is the new line
           last_fetched_at: new Date().toISOString()
         }, { onConflict: 'user_id,rss_url' })
 

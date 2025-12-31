@@ -44,11 +44,11 @@ export function ProfileSetupModal({ onSave }: ProfileSetupModalProps) {
       return
     }
 
-    // Check if username is unique
+    // Check if username is unique (case-insensitive)
     const { data: existingUser, error: checkError } = await supabase
       .from('user_profiles')
       .select('id')
-      .eq('username', values.username)
+      .ilike('username', values.username) // Use ilike for case-insensitive check
       .not('id', 'eq', user.id)
       .single()
 

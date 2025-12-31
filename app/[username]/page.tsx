@@ -22,6 +22,7 @@ export default async function ProfilePage({ params }: { params: { username: stri
     .from("user_profiles")
     .select(`*, user_follow_counts (*)`)
     .ilike("username", username)
+    .limit(1) // Be resilient to potential duplicates
     .single()
 
   if (!profile) {

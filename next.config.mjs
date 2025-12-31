@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Updated to force cache invalidation
+  // Updated again to force cache invalidation
   typescript: {
     ignoreBuildErrors: true,
   },

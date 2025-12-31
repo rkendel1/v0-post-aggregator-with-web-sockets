@@ -19,7 +19,7 @@ declare module 'https://esm.sh/rss-parser@3.13.0' {
   export default Parser;
 }
 
-declare module 'https://esm.sh/deno-dom@v0.1.45' {
+declare module 'https://deno.land/x/deno_dom/deno-dom-wasm.ts' {
   export class DOMParser {
     parseFromString(html: string, type: "text/html"): Document | null;
   }

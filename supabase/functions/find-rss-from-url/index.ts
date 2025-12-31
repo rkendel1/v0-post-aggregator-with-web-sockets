@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 // @ts-ignore: Deno relative import
 import { verifyJwt } from '../_shared/auth.ts'
-import { DOMParser } from "https://esm.sh/deno-dom@v0.1.45"
+import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

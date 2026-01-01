@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import type { Post } from "@/lib/types"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SavePostButton } from "./save-post-button"
 import { generateDiscordThreadName } from "@/lib/utils/slugs"
+import { DiscordEmbedModal } from "./discord-embed-modal"
 
 interface EpisodeListItemProps {
   episode: Post
@@ -23,6 +25,7 @@ interface EpisodeListItemProps {
 export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: EpisodeListItemProps) {
   const { playTrack, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer()
   const isCurrentlyPlaying = currentTrack?.id === episode.id
+  const [isDiscordModalOpen, setIsDiscordModalOpen] = useState(false)
 
   const handlePlayClick = (e: React.MouseEvent) => {
     e.stopPropagation() // Prevent accordion from toggling
@@ -78,11 +81,14 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
               </Button>
             )}
             {discordUrl && (
-              <Button variant="outline" size="sm" asChild>
-                <a href={discordUrl} target="_blank" rel="noopener noreferrer" title={`Discuss: ${discordThreadName}`}>
-                  <MessageCircle className="h-4 w-4 mr-2 text-[#5865F2]" />
-                  Discord Discussion
-                </a>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsDiscordModalOpen(true)}
+                title={`Discuss: ${discordThreadName}`}
+              >
+                <MessageCircle className="h-4 w-4 mr-2 text-[#5865F2]" />
+                Discord Discussion
               </Button>
             )}
           </div>
@@ -91,6 +97,15 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
           </p>
         </div>
       </AccordionContent>
+
+      {isDiscordModalOpen && discordUrl && (
+        <DiscordEmbedModal
+          isOpen={isDiscordModalOpen}
+          onClose={() => setIsDiscordModalOpen(false)}
+          discordUrl={discordUrl}
+          serverName={`${title} Discussion`}
+        />
+      )}
     </AccordionItem>
   )
 }

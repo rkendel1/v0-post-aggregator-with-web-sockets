@@ -98,7 +98,7 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
         </div>
       </AccordionContent>
 
-      {discordUrl && (
+      {isDiscordModalOpen && discordUrl && (
         <DiscordEmbedModal
           isOpen={isDiscordModalOpen}
           onClose={() => setIsDiscordModalOpen(false)}

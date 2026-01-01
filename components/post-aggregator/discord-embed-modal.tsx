@@ -17,8 +17,8 @@ interface DiscordEmbedModalProps {
  */
 function extractDiscordServerId(url: string): string | null {
   try {
-    // Handle discord.com/channels/server-id/channel-id format
-    const channelMatch = url.match(/discord\.com\/channels\/(\d+)/)
+    // Handle discord.com/channels/server-id or discord.com/channels/server-id/channel-id format
+    const channelMatch = url.match(/discord\.com\/channels\/(\d+)(?:\/\d+)?/)
     if (channelMatch) {
       return channelMatch[1]
     }

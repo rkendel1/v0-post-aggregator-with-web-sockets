@@ -90,18 +90,60 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
     }
   }
 
+  const renderContentWithHashtags = (content: string) => {
+    const parts = content.split(/(#[\w-]+)/g)
+    return parts.map((part, index) => {
+      if (part.startsWith('#')) {
+        const tag = part.slice(1).toLowerCase()
+        return (
+          <span
+            key={index}
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/show/${tag}`)
+            }}
+            className="text-primary hover:underline cursor-pointer"
+          >
+            {part}
+          </span>
+        )
+      }
+      return <span key={index}>{part}</span>
+    })
+  }
+
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={post.author_avatar || undefined} />
-          <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <button
+          onClick={() => {
+            if (post.user_profiles?.username) {
+              router.push(`/${post.user_profiles.username}`)
+            }
+          }}
+          className="cursor-pointer"
+          disabled={!post.user_profiles?.username}
+        >
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={post.author_avatar || undefined} />
+            <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </button>
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-sm">{post.author_name}</p>
+                <button
+                  onClick={() => {
+                    if (post.user_profiles?.username) {
+                      router.push(`/${post.user_profiles.username}`)
+                    }
+                  }}
+                  className="font-semibold text-sm hover:underline cursor-pointer"
+                  disabled={!post.user_profiles?.username}
+                >
+                  {post.author_name}
+                </button>
                 <p className="text-xs text-muted-foreground">{timeAgo}</p>
               </div>
               {currentUser && <FederatedPostStatus postId={post.id} />}
@@ -117,17 +159,24 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
           </div>
 
           <div className="space-y-3 mt-1">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{post.content}</p>
-            {post.image_url && (
-              <div className="rounded-lg border overflow-hidden">
-                <img
-                  src={post.image_url}
-                  alt={post.content.substring(0, 50)}
-                  className="aspect-video w-full object-cover"
-                  onError={(e) => (e.currentTarget.style.display = "none")}
-                />
-              </div>
-            )}
+            <div 
+              onClick={() => router.push(`/post/${post.id}`)}
+              className="cursor-pointer"
+            >
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {renderContentWithHashtags(post.content)}
+              </p>
+              {post.image_url && (
+                <div className="rounded-lg border overflow-hidden">
+                  <img
+                    src={post.image_url}
+                    alt={post.content.substring(0, 50)}
+                    className="aspect-video w-full object-cover"
+                    onError={(e) => (e.currentTarget.style.display = "none")}
+                  />
+                </div>
+              )}
+            </div>
             {post.external_url && (
               <Button variant="outline" size="sm" asChild>
                 <a href={post.external_url} target="_blank" rel="noopener noreferrer">

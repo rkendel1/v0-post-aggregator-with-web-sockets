@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
 import { ClaimPageModal } from "./claim-page-modal"
 import { JoinConversationDropdown } from "./join-conversation-dropdown"
+import { MobileNav } from "./mobile-nav"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -27,7 +28,8 @@ const POST_SELECT_QUERY = `
   show_tags (*),
   sources (*),
   comment_counts (*),
-  reaction_counts (*, reaction_types (*))
+  reaction_counts (*, reaction_types (*)),
+  user_profiles (*)
 `
 const POSTS_PER_PAGE = 20
 
@@ -168,12 +170,12 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen pb-14 md:pb-0">
       <Toaster position="bottom-right" />
       <header className="border-b bg-card p-4 sticky top-0 z-10">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className="hidden sm:block">
+            <div className="flex items-center justify-center">
               <Logo />
             </div>
             <div>
@@ -194,21 +196,6 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
               </Button>
             )}
             {user && <TagFollowButton showTagId={showTag.id} />}
-            <Button asChild variant="outline" size="sm">
-              <a href={`https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'}`}>
-                <Home className="h-4 w-4 mr-2" />
-                Main Feed
-              </a>
-            </Button>
-            <Button
-              onClick={() => setIsComposerOpen(true)}
-              size="sm"
-              className="gap-2"
-              disabled={!user}
-            >
-              <PlusCircle className="h-4 w-4" />
-              New Post
-            </Button>
           </div>
         </div>
       </header>
@@ -279,6 +266,18 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
           user={user}
         />
       )}
+
+      {user && (
+        <Button
+          onClick={() => setIsComposerOpen(true)}
+          size="icon"
+          className="rounded-full h-14 w-14 fixed bottom-20 right-4 z-40 md:hidden"
+        >
+          <PlusCircle className="h-6 w-6" />
+        </Button>
+      )}
+
+      <MobileNav />
     </div>
   )
 }

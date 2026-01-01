@@ -9,7 +9,8 @@ const POST_SELECT_QUERY = `
   show_tags (*),
   sources (*),
   comment_counts (*),
-  reaction_counts (*, reaction_types (*))
+  reaction_counts (*, reaction_types (*)),
+  user_profiles (*)
 `
 
 export default async function ProfilePage({ params }: { params: { username: string } }) {

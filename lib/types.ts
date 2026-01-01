@@ -6,6 +6,8 @@ export interface ShowCommunityLink {
   description: string | null
   url: string
   created_at: string
+  is_discord?: boolean
+  discord_server_id?: string | null
 }
 
 export interface ShowTag {
@@ -42,6 +44,7 @@ export interface Post {
   image_url?: string | null
   external_url?: string | null
   audio_url?: string | null
+  episode_slug?: string | null
   show_tags?: ShowTag
   sources?: Source
   comment_counts?: CommentCount

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { Post } from "@/lib/types"
+import type { Post, ShowCommunityLink } from "@/lib/types"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
@@ -12,16 +12,23 @@ import { Accordion } from "@/components/ui/accordion"
 interface EpisodeCatalogProps {
   showTagId: string
   showTagSlug: string
+  communityLinks?: ShowCommunityLink[]
 }
 
 const EPISODES_PER_PAGE = 25
 
-export function EpisodeCatalog({ showTagId, showTagSlug }: EpisodeCatalogProps) {
+export function EpisodeCatalog({ showTagId, showTagSlug, communityLinks = [] }: EpisodeCatalogProps) {
   const [episodes, setEpisodes] = useState<Post[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
   const [offset, setOffset] = useState(0)
   const [supabase] = useState(() => createClient())
+
+  // Find the primary Discord server URL
+  const discordLink = communityLinks.find(
+    link => link.platform.toLowerCase() === 'discord' || link.is_discord
+  )
+  const discordServerUrl = discordLink?.url || null
 
   const fetchEpisodes = useCallback(async (currentOffset: number) => {
     setIsLoading(true)
@@ -64,7 +71,12 @@ export function EpisodeCatalog({ showTagId, showTagSlug }: EpisodeCatalogProps) 
       <div className="max-w-2xl mx-auto p-4 space-y-2">
         <Accordion type="single" collapsible className="w-full space-y-2">
           {episodes.map((episode) => (
-            <EpisodeListItem key={episode.id} episode={episode} showTagSlug={showTagSlug} />
+            <EpisodeListItem 
+              key={episode.id} 
+              episode={episode} 
+              showTagSlug={showTagSlug}
+              discordServerUrl={discordServerUrl}
+            />
           ))}
         </Accordion>
         {isLoading && episodes.length === 0 && (

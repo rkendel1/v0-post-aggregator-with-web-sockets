@@ -48,19 +48,49 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
     setIsLoading(true)
 
     if (isInQueue) {
-      // Remove from queue (set queue_position to null)
-      const { error } = await supabase
+      // Remove from queue - check if post is also saved
+      const { data: existingEntry } = await supabase
         .from("saved_posts")
-        .update({ queue_position: null })
+        .select("id, is_saved")
         .eq("user_id", user.id)
         .eq("post_id", postId)
+        .not("queue_position", "is", null)
+        .limit(1)
 
-      if (!error) {
-        setIsInQueue(false)
-        onToggle?.(false)
-        toast.success("Removed from queue")
-      } else {
-        toast.error("Failed to remove from queue")
+      if (existingEntry && existingEntry.length > 0) {
+        const entry = existingEntry[0]
+        
+        if (entry.is_saved) {
+          // Post is saved, so just set queue_position to null
+          const { error } = await supabase
+            .from("saved_posts")
+            .update({ queue_position: null })
+            .eq("user_id", user.id)
+            .eq("post_id", postId)
+
+          if (!error) {
+            setIsInQueue(false)
+            onToggle?.(false)
+            toast.success("Removed from queue")
+          } else {
+            toast.error("Failed to remove from queue")
+          }
+        } else {
+          // Post is not saved, so delete the record
+          const { error } = await supabase
+            .from("saved_posts")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("post_id", postId)
+
+          if (!error) {
+            setIsInQueue(false)
+            onToggle?.(false)
+            toast.success("Removed from queue")
+          } else {
+            toast.error("Failed to remove from queue")
+          }
+        }
       }
     } else {
       // Helper function to get next queue position
@@ -102,13 +132,14 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
           toast.error("Failed to add to queue")
         }
       } else {
-        // Create new saved post with queue position
+        // Create new saved post with queue position (not explicitly saved)
         const newPosition = await getNextQueuePosition()
 
         const { error } = await supabase.from("saved_posts").insert({
           user_id: user.id,
           post_id: postId,
           queue_position: newPosition,
+          is_saved: false,
         })
 
         if (!error) {

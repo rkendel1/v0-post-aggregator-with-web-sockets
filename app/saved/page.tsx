@@ -35,7 +35,7 @@ export default async function SavedPage() {
     `,
     )
     .eq("user_id", user.id)
-    .is("queue_position", null) // Fetch only saved, not queued, items
+    .eq("is_saved", true)
     .order("created_at", { ascending: false })
 
   if (error) {

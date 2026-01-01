@@ -63,6 +63,19 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
         toast.error("Failed to remove from queue")
       }
     } else {
+      // Helper function to get next queue position
+      const getNextQueuePosition = async () => {
+        const { data: maxPosition } = await supabase
+          .from("saved_posts")
+          .select("queue_position")
+          .eq("user_id", user.id)
+          .not("queue_position", "is", null)
+          .order("queue_position", { ascending: false })
+          .limit(1)
+
+        return (maxPosition?.[0]?.queue_position || 0) + 1
+      }
+
       // Check if post is already saved
       const { data: existingSave } = await supabase
         .from("saved_posts")
@@ -73,15 +86,7 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
 
       if (existingSave && existingSave.length > 0) {
         // Update existing saved post with queue position
-        const { data: maxPosition } = await supabase
-          .from("saved_posts")
-          .select("queue_position")
-          .eq("user_id", user.id)
-          .not("queue_position", "is", null)
-          .order("queue_position", { ascending: false })
-          .limit(1)
-
-        const newPosition = maxPosition && maxPosition.length > 0 ? (maxPosition[0].queue_position || 0) + 1 : 1
+        const newPosition = await getNextQueuePosition()
 
         const { error } = await supabase
           .from("saved_posts")
@@ -98,15 +103,7 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
         }
       } else {
         // Create new saved post with queue position
-        const { data: maxPosition } = await supabase
-          .from("saved_posts")
-          .select("queue_position")
-          .eq("user_id", user.id)
-          .not("queue_position", "is", null)
-          .order("queue_position", { ascending: false })
-          .limit(1)
-
-        const newPosition = maxPosition && maxPosition.length > 0 ? (maxPosition[0].queue_position || 0) + 1 : 1
+        const newPosition = await getNextQueuePosition()
 
         const { error } = await supabase.from("saved_posts").insert({
           user_id: user.id,

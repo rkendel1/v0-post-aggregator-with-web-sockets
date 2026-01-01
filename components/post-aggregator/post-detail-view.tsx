@@ -146,7 +146,7 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
                   <span className="text-xs">{reactionCounts.reduce((sum, rc) => sum + rc.count, 0)}</span>
                 </Button>
               )}
-              <Button variant="ghost" size="sm" className="gap-2 h-8" disabled>
+              <Button variant="ghost" size="sm" className="gap-2 h-8" disabled aria-label={`Comments count: ${commentCount}`}>
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-xs">{commentCount}</span>
               </Button>

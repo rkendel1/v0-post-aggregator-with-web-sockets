@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MessageCircle, Users, ExternalLink } from "lucide-react"
 import type { ShowCommunityLink } from "@/lib/types"
+import { DiscordEmbedModal } from "./discord-embed-modal"
 
 interface JoinConversationDropdownProps {
   communityLinks: ShowCommunityLink[]
@@ -20,6 +21,7 @@ interface JoinConversationDropdownProps {
 
 export function JoinConversationDropdown({ communityLinks, showName }: JoinConversationDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedDiscord, setSelectedDiscord] = useState<ShowCommunityLink | null>(null)
 
   // Filter for Discord links
   const discordLinks = communityLinks.filter(
@@ -36,6 +38,7 @@ export function JoinConversationDropdown({ communityLinks, showName }: JoinConve
   }
 
   return (
+    <>
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
@@ -50,24 +53,23 @@ export function JoinConversationDropdown({ communityLinks, showName }: JoinConve
               Discord Communities
             </DropdownMenuLabel>
             {discordLinks.map((link) => (
-              <DropdownMenuItem key={link.id} asChild>
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Users className="h-4 w-4 text-[#5865F2]" />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{link.name}</div>
-                    {link.description && (
-                      <div className="text-xs text-muted-foreground truncate">
-                        {link.description}
-                      </div>
-                    )}
-                  </div>
-                  <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                </a>
+              <DropdownMenuItem 
+                key={link.id}
+                onClick={() => {
+                  setSelectedDiscord(link)
+                  setIsOpen(false)
+                }}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Users className="h-4 w-4 text-[#5865F2]" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{link.name}</div>
+                  {link.description && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {link.description}
+                    </div>
+                  )}
+                </div>
               </DropdownMenuItem>
             ))}
           </>
@@ -104,5 +106,15 @@ export function JoinConversationDropdown({ communityLinks, showName }: JoinConve
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+    
+    {selectedDiscord && (
+      <DiscordEmbedModal
+        isOpen={!!selectedDiscord}
+        onClose={() => setSelectedDiscord(null)}
+        discordUrl={selectedDiscord.url}
+        serverName={selectedDiscord.name}
+      />
+    )}
+  </>
   )
 }

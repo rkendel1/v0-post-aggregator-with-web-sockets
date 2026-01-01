@@ -6,7 +6,7 @@ import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Rss, Home, BadgeCheck, Users } from "lucide-react"
+import { PlusCircle, Rss, Home, BadgeCheck } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import { Toaster, toast } from "react-hot-toast"
@@ -15,6 +15,7 @@ import { User } from "@supabase/supabase-js"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
 import { ClaimPageModal } from "./claim-page-modal"
+import { JoinConversationDropdown } from "./join-conversation-dropdown"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -184,16 +185,6 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
                 </Button>
               </h1>
               <p className="text-sm text-muted-foreground">{showTag.name}</p>
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {showTag.show_community_links?.map(link => (
-                  <Button asChild variant="outline" size="sm" key={link.id}>
-                    <a href={link.url} target="_blank" rel="noopener noreferrer" title={link.description || undefined}>
-                      <Users className="h-4 w-4 mr-2" />
-                      {link.name}
-                    </a>
-                  </Button>
-                ))}
-              </div>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -224,11 +215,19 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
 
       <Tabs defaultValue="live-feed" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
         <div className="px-4 pt-4 border-b">
-          <TabsList>
-            <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
-            <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
-            <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between gap-2">
+            <TabsList>
+              <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
+              <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
+              <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
+            </TabsList>
+            {showTag.show_community_links && showTag.show_community_links.length > 0 && (
+              <JoinConversationDropdown 
+                communityLinks={showTag.show_community_links} 
+                showName={showTag.name}
+              />
+            )}
+          </div>
         </div>
         <TabsContent value="live-feed" className="flex-1 overflow-hidden">
           <PostFeed
@@ -257,7 +256,11 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
           />
         </TabsContent>
         <TabsContent value="catalog" className="flex-1 overflow-hidden">
-          <EpisodeCatalog showTagId={showTag.id} showTagSlug={showTag.tag} />
+          <EpisodeCatalog 
+            showTagId={showTag.id} 
+            showTagSlug={showTag.tag}
+            communityLinks={showTag.show_community_links}
+          />
         </TabsContent>
       </Tabs>
 

@@ -3,7 +3,7 @@
 import type { Post } from "@/lib/types"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { Button } from "@/components/ui/button"
-import { Play, Pause, ExternalLink } from "lucide-react"
+import { Play, Pause, ExternalLink, MessageCircle } from "lucide-react"
 import { format } from "date-fns"
 import {
   AccordionContent,
@@ -12,13 +12,15 @@ import {
 } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SavePostButton } from "./save-post-button"
+import { generateDiscordThreadName } from "@/lib/utils/slugs"
 
 interface EpisodeListItemProps {
   episode: Post
   showTagSlug: string
+  discordServerUrl?: string | null
 }
 
-export function EpisodeListItem({ episode, showTagSlug }: EpisodeListItemProps) {
+export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: EpisodeListItemProps) {
   const { playTrack, currentTrack, isPlaying, togglePlayPause } = useAudioPlayer()
   const isCurrentlyPlaying = currentTrack?.id === episode.id
 
@@ -35,6 +37,14 @@ export function EpisodeListItem({ episode, showTagSlug }: EpisodeListItemProps) 
   const title = episode.content.split('\n')[0].replace(`#${showTagSlug}`, '').trim()
   // The description is the rest of the content.
   const description = episode.content.split('\n').slice(1).join('\n').trim()
+
+  // Generate Discord thread name for this episode
+  const discordThreadName = generateDiscordThreadName(episode.created_at, title)
+  
+  // Generate Discord URL if we have a server URL and an episode slug
+  const discordUrl = discordServerUrl && episode.episode_slug 
+    ? `${discordServerUrl}?episode=${episode.episode_slug}`
+    : discordServerUrl
 
   return (
     <AccordionItem value={episode.id} className="border rounded-lg overflow-hidden">
@@ -57,13 +67,21 @@ export function EpisodeListItem({ episode, showTagSlug }: EpisodeListItemProps) 
       </AccordionTrigger>
       <AccordionContent className="p-4 bg-accent/20">
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <SavePostButton postId={episode.id} />
             {episode.external_url && (
               <Button variant="outline" size="sm" asChild>
                 <a href={episode.external_url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View Original
+                </a>
+              </Button>
+            )}
+            {discordUrl && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={discordUrl} target="_blank" rel="noopener noreferrer" title={`Discuss: ${discordThreadName}`}>
+                  <MessageCircle className="h-4 w-4 mr-2 text-[#5865F2]" />
+                  Discord Discussion
                 </a>
               </Button>
             )}

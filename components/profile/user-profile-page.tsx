@@ -97,22 +97,16 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
   return (
     <div className="min-h-screen bg-background pb-14 md:pb-0">
       <Toaster position="bottom-right" />
-      <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center gap-4 mb-8">
           <div className="flex items-center justify-center">
             <Logo />
           </div>
-          <div className="hidden md:block">
-            <h1 className="text-2xl font-bold text-foreground">{profile.display_name}</h1>
-            <p className="text-sm text-muted-foreground">@{profile.username}</p>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">{profile.display_name}</h1>
+            <p className="text-muted-foreground mt-1">@{profile.username}</p>
           </div>
         </div>
-        <div className="md:hidden mt-2">
-          <h1 className="text-xl font-bold text-foreground">{profile.display_name}</h1>
-          <p className="text-xs text-muted-foreground">@{profile.username}</p>
-        </div>
-      </header>
-      <main className="max-w-4xl mx-auto p-4">
         <div className="flex flex-col sm:flex-row gap-6 items-start mb-8">
           <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
             <AvatarImage src={profile.avatar_url || undefined} />
@@ -141,7 +135,7 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
         </div>
         
         <h3 className="text-lg font-semibold border-b pb-2 mb-4">Posts</h3>
-        <div className="max-w-2xl mx-auto -p-4 -space-y-4">
+        <div className="max-w-2xl mx-auto">
           <PostFeed
             posts={posts}
             isLoading={false}
@@ -154,7 +148,7 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
             isFetchingMore={isFetchingMore}
           />
         </div>
-      </main>
+      </div>
       <MobileNav />
       {authPrompt.open && (
         <AuthPromptModal

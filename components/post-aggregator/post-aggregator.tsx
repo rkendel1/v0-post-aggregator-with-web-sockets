@@ -32,7 +32,8 @@ const POST_SELECT_QUERY = `
   show_tags (*),
   sources (*),
   comment_counts (*),
-  reaction_counts (*, reaction_types (*))
+  reaction_counts (*, reaction_types (*)),
+  user_profiles (*)
 `
 const POSTS_PER_PAGE = 20
 
@@ -323,17 +324,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   </Link>
                 </Button>
               )}
-              <Button
-                onClick={() => {
-                  if (requireUser("create a new post")) setIsComposerOpen(true)
-                }}
-                size="sm"
-                className="gap-2 hidden md:flex"
-                disabled={!user || (activeFeed === "following" && !selectedTag)}
-              >
-                <Plus className="h-4 w-4" />
-                New Post
-              </Button>
             </div>
           </div>
           {user && (
@@ -360,19 +350,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
           />
         </div>
       </div>
-
-      {user && (
-        <Button
-          onClick={() => {
-            if (requireUser("create a new post")) setIsComposerOpen(true)
-          }}
-          size="icon"
-          className="rounded-full h-14 w-14 fixed bottom-20 right-4 z-40 md:hidden"
-          disabled={activeFeed === "following" && !selectedTag}
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
 
       <MobileNav />
 

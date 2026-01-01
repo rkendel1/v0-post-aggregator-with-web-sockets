@@ -49,6 +49,7 @@ export interface Post {
   sources?: Source
   comment_counts?: CommentCount
   reaction_counts?: ReactionCount[]
+  user_profiles?: UserProfile
 }
 
 export interface UserSubscription {

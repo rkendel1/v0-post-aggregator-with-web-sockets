@@ -109,7 +109,7 @@ export function JoinConversationDropdown({ communityLinks, showName }: JoinConve
     
     {selectedDiscord && (
       <DiscordEmbedModal
-        isOpen={!!selectedDiscord}
+        isOpen={true}
         onClose={() => setSelectedDiscord(null)}
         discordUrl={selectedDiscord.url}
         serverName={selectedDiscord.name}

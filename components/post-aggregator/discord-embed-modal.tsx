@@ -11,31 +11,20 @@ interface DiscordEmbedModalProps {
 }
 
 /**
- * Extracts Discord server ID from various Discord URL formats
- * Supports: discord.gg/invite, discord.com/invite/code, discord.com/channels/serverid
+ * Extracts Discord server ID from Discord URL
+ * Note: Only works with direct server/channel URLs (discord.com/channels/serverid)
+ * Invite links (discord.gg/xxx) don't expose the server ID, so they will return null
  */
 function extractDiscordServerId(url: string): string | null {
   try {
-    // Handle discord.gg/invite-code format
-    const inviteMatch = url.match(/discord\.gg\/([a-zA-Z0-9-]+)/)
-    if (inviteMatch) {
-      // For invite links, we can't extract server ID directly
-      // We'll return the invite code to use with Discord's widget
-      return inviteMatch[1]
-    }
-
-    // Handle discord.com/invite/code format
-    const inviteMatch2 = url.match(/discord\.com\/invite\/([a-zA-Z0-9-]+)/)
-    if (inviteMatch2) {
-      return inviteMatch2[1]
-    }
-
-    // Handle discord.com/channels/server-id format
+    // Handle discord.com/channels/server-id/channel-id format
     const channelMatch = url.match(/discord\.com\/channels\/(\d+)/)
     if (channelMatch) {
       return channelMatch[1]
     }
 
+    // Invite links (discord.gg and discord.com/invite) don't expose server IDs
+    // These will fall back to opening Discord externally
     return null
   } catch (e) {
     console.error("Error parsing Discord URL:", e)
@@ -46,8 +35,8 @@ function extractDiscordServerId(url: string): string | null {
 export function DiscordEmbedModal({ isOpen, onClose, discordUrl, serverName }: DiscordEmbedModalProps) {
   const serverId = extractDiscordServerId(discordUrl)
   
-  // Construct the Discord widget URL
-  // Discord provides an embeddable widget at https://discord.com/widget
+  // Construct the Discord widget URL if we have a valid server ID
+  // Discord widget API requires actual server IDs, not invite codes
   const widgetUrl = serverId 
     ? `https://discord.com/widget?id=${serverId}&theme=dark`
     : null
@@ -77,7 +66,8 @@ export function DiscordEmbedModal({ isOpen, onClose, discordUrl, serverName }: D
               <div>
                 <h3 className="font-semibold text-lg mb-2">Join the Discord Community</h3>
                 <p className="text-muted-foreground mb-4">
-                  Click the button below to join the Discord server in a new window.
+                  To embed Discord inside Podbridge, the server needs to enable the widget feature.
+                  Click the button below to join the Discord server.
                 </p>
                 <a
                   href={discordUrl}

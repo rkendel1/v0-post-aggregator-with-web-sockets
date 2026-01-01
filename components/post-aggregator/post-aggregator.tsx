@@ -127,7 +127,16 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       }
 
       if (isFeedLoading) return
-      if (activeFeed === "for-you" || !selectedFeedId) {
+
+      // For "For You" feed - not yet implemented
+      if (activeFeed === "for-you") {
+        setPosts([])
+        setIsLoadingPosts(false)
+        return
+      }
+
+      // For "Following" feed
+      if (!selectedFeedId) {
         setPosts([])
         setIsLoadingPosts(false)
         return
@@ -141,8 +150,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",") : []
-        if (tagIds.length > 0) query.in("show_tag_id", tagIds)
-        else {
+        if (tagIds.length > 0) {
+          query.in("show_tag_id", tagIds)
+        } else {
+          // User has no followed tags, show empty state
           setPosts([])
           setIsLoadingPosts(false)
           return
@@ -178,6 +189,12 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       if (hiddenPosts) hiddenPostIds = hiddenPosts.map((p) => p.post_id)
       if (hiddenPostIds.length > 0) query.not("id", "in", `(${hiddenPostIds.join(",")})`)
 
+      // For "For You" feed - not yet implemented, don't load more
+      if (activeFeed === "for-you") {
+        setIsFetchingMore(false)
+        return
+      }
+
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",") : []
         if (tagIds.length > 0) query.in("show_tag_id", tagIds)
@@ -194,7 +211,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       if (data.length < POSTS_PER_PAGE) setHasMore(false)
     }
     setIsFetchingMore(false)
-  }, [isFetchingMore, hasMore, offset, user, supabase, selectedFeedId, feedTagIds])
+  }, [isFetchingMore, hasMore, offset, user, supabase, selectedFeedId, feedTagIds, activeFeed])
 
   // Subscribe to real-time updates
   useEffect(() => {
@@ -337,17 +354,27 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         </header>
 
         <div className="flex-1 overflow-hidden pb-14 md:pb-0">
-          <PostFeed
-            posts={posts}
-            isLoading={isLoadingPosts}
-            currentUser={user}
-            onPostDeleted={handlePostDeleted}
-            onPostHidden={handlePostHidden}
-            onInteractionAttempt={requireUser}
-            loadMorePosts={loadMorePosts}
-            hasMore={hasMore}
-            isFetchingMore={isFetchingMore}
-          />
+          {activeFeed === "for-you" && user ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center p-8">
+                <p className="text-xl font-semibold text-muted-foreground mb-2">Coming Soon!</p>
+                <p className="text-sm text-muted-foreground">The "For You" feed is not yet available.</p>
+                <p className="text-sm text-muted-foreground mt-1">Switch to "Following" to see posts from tags you follow.</p>
+              </div>
+            </div>
+          ) : (
+            <PostFeed
+              posts={posts}
+              isLoading={isLoadingPosts}
+              currentUser={user}
+              onPostDeleted={handlePostDeleted}
+              onPostHidden={handlePostHidden}
+              onInteractionAttempt={requireUser}
+              loadMorePosts={loadMorePosts}
+              hasMore={hasMore}
+              isFetchingMore={isFetchingMore}
+            />
+          )}
         </div>
       </div>
 

@@ -85,7 +85,6 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   const handleInteraction = (message: string, e: React.MouseEvent) => {
     if (!currentUser) {
       e.preventDefault()
-      e.stopPropagation()
       onInteractionAttempt(message)
     }
   }
@@ -116,7 +115,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation()
             if (post.user_profiles?.username) {
               router.push(`/${post.user_profiles.username}`)
             }
@@ -134,7 +134,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             <div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation()
                     if (post.user_profiles?.username) {
                       router.push(`/${post.user_profiles.username}`)
                     }
@@ -189,7 +190,10 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
           <div className="flex items-center justify-between mt-3 -ml-2">
             <div className="flex items-center">
-              <div onClick={(e) => handleInteraction("react to a post", e)}>
+              <div onClick={(e) => {
+                e.stopPropagation()
+                handleInteraction("react to a post", e)
+              }}>
                 <ReactionPicker postId={post.id} reactionCounts={reactionCounts} />
               </div>
               <Button
@@ -197,6 +201,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                 size="sm"
                 className="gap-2 h-8"
                 onClick={(e) => {
+                  e.stopPropagation()
                   if (!currentUser) {
                     handleInteraction("comment on a post", e)
                   } else {
@@ -213,6 +218,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                   size="sm"
                   className="gap-2 h-8"
                   onClick={(e) => {
+                    e.stopPropagation()
                     if (!currentUser) {
                       handleInteraction("play audio", e)
                     } else {
@@ -225,7 +231,10 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
               )}
             </div>
             <div className="flex items-center">
-              <div onClick={(e) => handleInteraction("save this post", e)}>
+              <div onClick={(e) => {
+                e.stopPropagation()
+                handleInteraction("save this post", e)
+              }}>
                 <SavePostButton
                   postId={post.id}
                   showText={false}
@@ -237,14 +246,18 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                 />
               </div>
               {post.audio_url && (
-                <div onClick={(e) => handleInteraction("add to queue", e)}>
+                <div onClick={(e) => {
+                  e.stopPropagation()
+                  handleInteraction("add to queue", e)
+                }}>
                   <AddToQueueButton postId={post.id} showText={false} />
                 </div>
               )}
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation()
                   handleShare()
                 }}
               >

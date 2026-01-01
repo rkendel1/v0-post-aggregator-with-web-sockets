@@ -54,6 +54,7 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
         .select("id, is_saved")
         .eq("user_id", user.id)
         .eq("post_id", postId)
+        .not("queue_position", "is", null)
         .limit(1)
 
       if (existingEntry && existingEntry.length > 0) {

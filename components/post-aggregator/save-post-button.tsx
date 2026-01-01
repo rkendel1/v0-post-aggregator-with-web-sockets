@@ -53,6 +53,7 @@ export function SavePostButton({ postId, className, onToggle, showText = true }:
         .select("id, queue_position")
         .eq("user_id", user.id)
         .eq("post_id", postId)
+        .eq("is_saved", true)
         .limit(1)
 
       if (existingEntry && existingEntry.length > 0) {

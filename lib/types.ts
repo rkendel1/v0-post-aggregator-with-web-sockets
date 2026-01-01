@@ -153,6 +153,7 @@ export interface SavedPost {
   id: string
   user_id: string
   post_id: string
+  queue_position?: number | null
   created_at: string
 }
 

@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { MessageCircle, Share2, ExternalLink, Play, Pause } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { CommentsSection } from "./comments-section"
 import { ReactionPicker } from "./reaction-picker"
 import { SavePostButton } from "./save-post-button"
 import { AddToQueueButton } from "./add-to-queue-button"
@@ -16,19 +17,14 @@ import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
-import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
-interface PostCardProps {
+interface PostDetailViewProps {
   post: Post
   currentUser: User | null
-  onPostDeleted: (postId: string) => void
-  onPostHidden: (postId: string) => void
-  onInteractionAttempt: (message: string) => void
-  onPostUnsaved?: (postId: string) => void
 }
 
-export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt, onPostUnsaved }: PostCardProps) {
+export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
   const [reactionCounts, setReactionCounts] = useState<ReactionCount[]>(post.reaction_counts || [])
   const [commentCount, setCommentCount] = useState<number>(post.comment_counts?.count || 0)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
@@ -82,12 +78,14 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
     toast.success("Post link copied to clipboard!")
   }
 
-  const handleInteraction = (message: string, e: React.MouseEvent) => {
-    if (!currentUser) {
-      e.preventDefault()
-      e.stopPropagation()
-      onInteractionAttempt(message)
-    }
+  const handlePostDeleted = () => {
+    toast.success("Post deleted. Redirecting...")
+    router.push("/")
+  }
+
+  const handlePostHidden = () => {
+    toast.success("Post hidden. Redirecting...")
+    router.push("/")
   }
 
   return (
@@ -110,8 +108,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
               <PostActions
                 post={post}
                 isAuthor={isAuthor}
-                onPostDeleted={onPostDeleted}
-                onPostHidden={onPostHidden}
+                onPostDeleted={handlePostDeleted}
+                onPostHidden={handlePostHidden}
               />
             )}
           </div>
@@ -140,21 +138,15 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
           <div className="flex items-center justify-between mt-3 -ml-2">
             <div className="flex items-center">
-              <div onClick={(e) => handleInteraction("react to a post", e)}>
+              {currentUser ? (
                 <ReactionPicker postId={post.id} reactionCounts={reactionCounts} />
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 h-8"
-                onClick={(e) => {
-                  if (!currentUser) {
-                    handleInteraction("comment on a post", e)
-                  } else {
-                    router.push(`/post/${post.id}`)
-                  }
-                }}
-              >
+              ) : (
+                <Button variant="ghost" size="sm" className="gap-2 h-8" disabled>
+                  <span>👍</span>
+                  <span className="text-xs">{reactionCounts.reduce((sum, rc) => sum + rc.count, 0)}</span>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="gap-2 h-8" disabled>
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-xs">{commentCount}</span>
               </Button>
@@ -163,11 +155,11 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                   variant="ghost"
                   size="sm"
                   className="gap-2 h-8"
-                  onClick={(e) => {
-                    if (!currentUser) {
-                      handleInteraction("play audio", e)
-                    } else {
+                  onClick={() => {
+                    if (currentUser) {
                       playTrack(post)
+                    } else {
+                      toast.error("Please sign in to play audio")
                     }
                   }}
                 >
@@ -176,22 +168,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
               )}
             </div>
             <div className="flex items-center">
-              <div onClick={(e) => handleInteraction("save this post", e)}>
-                <SavePostButton
-                  postId={post.id}
-                  showText={false}
-                  onToggle={(isSaved) => {
-                    if (!isSaved) {
-                      onPostUnsaved?.(post.id)
-                    }
-                  }}
-                />
-              </div>
-              {post.audio_url && (
-                <div onClick={(e) => handleInteraction("add to queue", e)}>
-                  <AddToQueueButton postId={post.id} showText={false} />
-                </div>
-              )}
+              {currentUser && <SavePostButton postId={post.id} showText={false} />}
+              {currentUser && post.audio_url && <AddToQueueButton postId={post.id} showText={false} />}
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -204,6 +182,16 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             </div>
           </div>
         </div>
+      </div>
+      {/* Always show comments section on detail view */}
+      <div className="px-3 pb-3">
+        {currentUser ? (
+          <CommentsSection postId={post.id} />
+        ) : (
+          <div className="border-t pt-4 mt-4 text-center">
+            <p className="text-sm text-muted-foreground">Sign in to view and post comments</p>
+          </div>
+        )}
       </div>
     </Card>
   )

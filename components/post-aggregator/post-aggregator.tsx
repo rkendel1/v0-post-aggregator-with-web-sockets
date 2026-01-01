@@ -152,12 +152,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         const tagIds = feedTagIds ? feedTagIds.split(",") : []
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
-        } else {
-          // User has no followed tags, show empty state
-          setPosts([])
-          setIsLoadingPosts(false)
-          return
         }
+        // If user has no followed tags, show all posts (no filter applied)
       } else {
         query.eq("show_tag_id", selectedFeedId)
       }
@@ -218,9 +214,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     if (!user || activeFeed === "for-you" || !selectedFeedId) return
 
     const tagIds = feedTagIds ? feedTagIds.split(",") : []
-    if (selectedFeedId === "all" && tagIds.length === 0) return
-
-    const filter = selectedFeedId === "all" ? `show_tag_id=in.(${tagIds.join(",")})` : `show_tag_id=eq.${selectedFeedId}`
+    
+    // Determine the filter for real-time updates
+    let filter: string | undefined
+    if (selectedFeedId === "all") {
+      // If user has followed tags, filter by them; otherwise, subscribe to all posts (no filter)
+      if (tagIds.length > 0) {
+        filter = `show_tag_id=in.(${tagIds.join(",")})`
+      }
+      // If no tags, we don't set a filter (subscribe to all posts)
+    } else {
+      filter = `show_tag_id=eq.${selectedFeedId}`
+    }
 
     const handleInsert = async (payload: any) => {
       const { data } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
@@ -234,7 +239,12 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
     const channel = supabase
       .channel(`posts:${selectedFeedId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts", filter }, handleInsert)
+      .on("postgres_changes", { 
+        event: "INSERT", 
+        schema: "public", 
+        table: "posts", 
+        ...(filter ? { filter } : {})
+      }, handleInsert)
       .subscribe()
 
     return () => {

@@ -1,6 +1,9 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Root-level application routes that should not be rewritten on subdomains
+const ROOT_LEVEL_ROUTES = ['/queue', '/saved', '/settings', '/admin', '/auth', '/post']
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
@@ -48,6 +51,13 @@ export async function middleware(request: NextRequest) {
 
   const subdomain = hostname.replace(`.${rootDomain}`, '')
   if (subdomain) {
+    // Don't rewrite root-level application routes - these should work the same on subdomains
+    const isRootLevelRoute = ROOT_LEVEL_ROUTES.some(route => pathname.startsWith(route))
+    
+    if (isRootLevelRoute) {
+      return response
+    }
+
     // 1. Check for a direct subdomain mapping to a canonical tag
     const { data: mapping } = await supabase
       .from('subdomain_mappings')

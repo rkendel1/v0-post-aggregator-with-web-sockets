@@ -127,19 +127,21 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
         // Only navigate if we're not clicking on an interactive element
         const target = e.target
         
-        // Type guard to ensure target is an Element
-        if (!(target instanceof Element)) {
+        // Type guard to ensure target exists and is an Element
+        if (!target || !(target instanceof Element)) {
           return
         }
         
-        // Don't navigate if clicking on buttons or links
+        // Don't navigate if clicking on or inside interactive elements
         if (
           target.tagName === 'BUTTON' ||
           target.tagName === 'A' ||
           target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.closest('button') ||
-          target.closest('a')
+          target.closest('a') ||
+          target.closest('input') ||
+          target.closest('textarea')
         ) {
           return
         }

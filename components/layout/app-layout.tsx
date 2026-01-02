@@ -49,7 +49,7 @@ export function AppLayout({
       >
         <ShowTagSidebar
           feedTags={feedTags}
-          selectedFeedId={null}
+          selectedFeedId={null} // No selection - AppLayout sidebar is for navigation only, not feed filtering
           profile={profile}
           onSelectFeed={() => {
             setIsSidebarOpen(false)
@@ -104,8 +104,9 @@ export function AppLayout({
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
           migrateAnonymousFeed={async () => {
-            // Anonymous feed migration not needed in this context
-            // Users are authenticated when accessing pages with AppLayout
+            // No-op: Anonymous feed migration is handled in PostAggregator context.
+            // AppLayout is only used for authenticated pages (Queue, Saved, Settings, Show)
+            // where users are already logged in and migration is not applicable.
           }}
           addNewAvailableTag={addNewAvailableTag}
         />

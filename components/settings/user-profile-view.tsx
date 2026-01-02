@@ -18,6 +18,9 @@ export function UserProfileView({ profile }: UserProfileViewProps) {
       .slice(0, 2)
   }
 
+  const displayName = profile.display_name || profile.username || "User"
+  const username = profile.username || "username"
+
   return (
     <div className="space-y-6">
       <Card>
@@ -30,12 +33,12 @@ export function UserProfileView({ profile }: UserProfileViewProps) {
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
-              <AvatarImage src={profile.avatar_url || undefined} alt={profile.display_name || profile.handle} />
-              <AvatarFallback>{getInitials(profile.display_name || profile.handle)}</AvatarFallback>
+              <AvatarImage src={profile.avatar_url || undefined} alt={displayName} />
+              <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="text-xl font-bold">{profile.display_name || profile.handle}</h2>
-              <p className="text-muted-foreground">@{profile.handle}</p>
+              <h2 className="text-xl font-bold">{displayName}</h2>
+              <p className="text-muted-foreground">@{username}</p>
             </div>
           </div>
 

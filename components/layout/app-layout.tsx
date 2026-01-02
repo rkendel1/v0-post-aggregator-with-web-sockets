@@ -1,30 +1,37 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ReactNode } from "react"
 import { ShowTagSidebar } from "@/components/post-aggregator/show-tag-sidebar"
 import { MobileNav } from "@/components/post-aggregator/mobile-nav"
-import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/contexts/user-context"
 import { useFeedManager } from "@/lib/hooks/use-feed-manager"
 import type { ShowTag } from "@/lib/types"
 import { FeedManagementModal } from "@/components/post-aggregator/feed-management-modal"
-import { Logo } from "@/components/logo"
+import { PageHeader } from "./page-header"
 
 interface AppLayoutProps {
   children: React.ReactNode
   showTags?: ShowTag[]
+  pageTitle?: string | ReactNode
+  pageSubtitle?: string | ReactNode
+  pageTabs?: ReactNode
+  pageActions?: ReactNode
 }
 
 /**
  * AppLayout provides consistent navigation across all pages:
  * - Desktop: Sidebar always visible
  * - Mobile: Hamburger menu + bottom navigation
+ * - Consistent page header with title, tabs, and actions
  */
 export function AppLayout({ 
   children, 
-  showTags = []
+  showTags = [],
+  pageTitle,
+  pageSubtitle,
+  pageTabs,
+  pageActions,
 }: AppLayoutProps) {
   const { profile } = useUser()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -71,17 +78,16 @@ export function AppLayout({
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with hamburger menu - visible on mobile */}
-        <div className="md:hidden sticky top-0 z-30 bg-card border-b p-3 flex items-center justify-between gap-3">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-          <Logo />
-        </div>
+        {/* Page header with title, tabs, and actions */}
+        {pageTitle && (
+          <PageHeader
+            title={pageTitle}
+            subtitle={pageSubtitle}
+            tabs={pageTabs}
+            actions={pageActions}
+            onMenuClick={() => setIsSidebarOpen(true)}
+          />
+        )}
 
         {/* Page content */}
         <div className="flex-1 overflow-auto">

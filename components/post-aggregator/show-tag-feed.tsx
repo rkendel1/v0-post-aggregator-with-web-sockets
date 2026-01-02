@@ -14,11 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
 import { ClaimPageModal } from "./claim-page-modal"
 import { JoinConversationDropdown } from "./join-conversation-dropdown"
-import { Logo } from "@/components/logo"
+import { AppLayoutClient } from "@/components/layout/app-layout-client"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
   initialPlatformPosts: Post[]
+  showTags: ShowTag[]
 }
 
 const POST_SELECT_QUERY = `
@@ -31,7 +32,7 @@ const POST_SELECT_QUERY = `
 `
 const POSTS_PER_PAGE = 20
 
-export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps) {
+export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTagFeedProps) {
   const [platformPosts, setPlatformPosts] = useState<Post[]>(initialPlatformPosts)
   const [officialPosts, setOfficialPosts] = useState<Post[]>([])
   const [activeTab, setActiveTab] = useState("live-feed")
@@ -167,50 +168,57 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
     toast.success("RSS feed link copied to clipboard!")
   }
 
-  return (
-    <div className="flex flex-col h-full">
-      <Toaster position="bottom-right" />
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="p-4 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
-              <span>#{showTag.tag}</span>
-              {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
-              <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                <Rss className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </h1>
-            <p className="text-sm text-muted-foreground">{showTag.name}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {user && !showTag.claimed_by_user_id && (
-              <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)} className="hidden md:flex">
-                Claim this page
-              </Button>
-            )}
-            {user && <TagFollowButton showTagId={showTag.id} />}
-            <Logo />
-          </div>
-        </div>
-      </header>
+  // Build the title element with hashtag, badge, and RSS button
+  const titleElement = (
+    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
+      <span>#{showTag.tag}</span>
+      {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
+      <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+        <Rss className="h-4 w-4 text-muted-foreground" />
+      </Button>
+    </h1>
+  )
 
-      <Tabs defaultValue="live-feed" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 pt-4 border-b">
-          <div className="flex items-center justify-between gap-2">
-            <TabsList>
-              <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
-              <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
-              <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
-            </TabsList>
-            {showTag.show_community_links && showTag.show_community_links.length > 0 && (
-              <JoinConversationDropdown 
-                communityLinks={showTag.show_community_links} 
-                showName={showTag.name}
-              />
-            )}
-          </div>
-        </div>
-        <TabsContent value="live-feed" className="flex-1 overflow-hidden">
+  // Build the actions for the header
+  const headerActions = (
+    <>
+      {user && !showTag.claimed_by_user_id && (
+        <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)} className="hidden md:flex">
+          Claim this page
+        </Button>
+      )}
+      {user && <TagFollowButton showTagId={showTag.id} />}
+    </>
+  )
+
+  // Build the tabs with join conversation dropdown
+  const tabsElement = (
+    <div className="flex items-center justify-between gap-2 w-full">
+      <TabsList>
+        <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
+        <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
+        <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
+      </TabsList>
+      {showTag.show_community_links && showTag.show_community_links.length > 0 && (
+        <JoinConversationDropdown 
+          communityLinks={showTag.show_community_links} 
+          showName={showTag.name}
+        />
+      )}
+    </div>
+  )
+
+  return (
+    <AppLayoutClient
+      showTags={showTags}
+      pageTitle={titleElement}
+      pageSubtitle={showTag.name}
+      pageTabs={tabsElement}
+      pageActions={headerActions}
+    >
+      <Toaster position="bottom-right" />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <TabsContent value="live-feed" className="flex-1 overflow-hidden mt-0">
           <PostFeed
             posts={platformPosts}
             isLoading={false} // Initial load is handled by server
@@ -223,7 +231,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
             isFetchingMore={isFetchingPlatform}
           />
         </TabsContent>
-        <TabsContent value="official-feed" className="flex-1 overflow-hidden">
+        <TabsContent value="official-feed" className="flex-1 overflow-hidden mt-0">
           <PostFeed
             posts={officialPosts}
             isLoading={officialPosts.length === 0 && isFetchingOfficial}
@@ -236,7 +244,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
             isFetchingMore={isFetchingOfficial}
           />
         </TabsContent>
-        <TabsContent value="catalog" className="flex-1 overflow-hidden">
+        <TabsContent value="catalog" className="flex-1 overflow-hidden mt-0">
           <EpisodeCatalog 
             showTagId={showTag.id} 
             showTagSlug={showTag.tag}
@@ -270,6 +278,6 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
           <PlusCircle className="h-6 w-6" />
         </Button>
       )}
-    </div>
+    </AppLayoutClient>
   )
 }

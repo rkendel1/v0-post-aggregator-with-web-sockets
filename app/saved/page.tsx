@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { SavedPostsPageContent } from "@/components/queue/saved-posts-page-content"
-import type { Post } from "@/lib/types"
+import type { Post, ShowTag } from "@/lib/types"
 import { Toaster } from "react-hot-toast"
 import { cookies } from "next/headers"
-import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 
 export default async function SavedPage() {
   const cookieStore = await cookies()
@@ -41,10 +40,16 @@ export default async function SavedPage() {
   const savedPosts = savedPostsData as ({ posts: Post | null })[] | null
   const posts = savedPosts?.map((sp) => sp.posts).filter((p): p is Post => p !== null) || []
 
+  // Fetch all available show tags
+  const { data: showTags } = await supabase
+    .from("show_tags")
+    .select("*")
+    .order("name")
+
   return (
-    <AppLayoutWrapper>
-      <SavedPostsPageContent initialPosts={posts} />
+    <>
+      <SavedPostsPageContent initialPosts={posts} showTags={(showTags as ShowTag[]) || []} />
       <Toaster position="bottom-right" />
-    </AppLayoutWrapper>
+    </>
   )
 }

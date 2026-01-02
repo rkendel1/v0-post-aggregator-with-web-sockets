@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
-import { QueueFeed } from "../../components/queue/queue-feed"
-import type { Post } from "@/lib/types"
+import type { Post, ShowTag } from "@/lib/types"
 import { Toaster } from "react-hot-toast"
 import { cookies } from "next/headers"
-import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 import { QueuePageContent } from "@/components/queue/queue-page-content"
 
 export default async function QueuePage() {
@@ -42,10 +40,16 @@ export default async function QueuePage() {
   const queuedPosts = queuedPostsData as ({ posts: Post | null })[] | null
   const posts = queuedPosts?.map((sp) => sp.posts).filter((p): p is Post => p !== null) || []
 
+  // Fetch all available show tags
+  const { data: showTags } = await supabase
+    .from("show_tags")
+    .select("*")
+    .order("name")
+
   return (
-    <AppLayoutWrapper>
-      <QueuePageContent initialPosts={posts} />
+    <>
+      <QueuePageContent initialPosts={posts} showTags={(showTags as ShowTag[]) || []} />
       <Toaster position="bottom-right" />
-    </AppLayoutWrapper>
+    </>
   )
 }

@@ -123,7 +123,19 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   return (
     <Card 
       className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer"
-      onClick={() => router.push(`/post/${post.id}`)}
+      onClick={(e) => {
+        // Only navigate if we're not clicking on an interactive element
+        const target = e.target as HTMLElement
+        if (
+          target.tagName === 'BUTTON' ||
+          target.tagName === 'A' ||
+          target.closest('button') ||
+          target.closest('a')
+        ) {
+          return
+        }
+        router.push(`/post/${post.id}`)
+      }}
     >
       <div className="p-3 flex gap-3">
         <button

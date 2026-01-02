@@ -26,20 +26,19 @@ export function SettingsPageContent({
 }: SettingsPageContentProps) {
   const [activeTab, setActiveTab] = useState("settings")
 
-  const tabs = (
-    <TabsList>
-      <TabsTrigger value="settings">Settings</TabsTrigger>
-      <TabsTrigger value="profile">Profile</TabsTrigger>
-    </TabsList>
-  )
-
   return (
     <AppLayoutClient
       showTags={showTags}
       pageTitle="Settings"
-      pageTabs={tabs}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <div className="px-6 pt-4">
+          <TabsList>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+          </TabsList>
+        </div>
+        
         <TabsContent value="settings" className="flex-1 overflow-auto mt-0">
           <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
             <p className="text-muted-foreground mb-6">Manage your profile, connections, and content sources.</p>

@@ -191,33 +191,28 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
     </>
   )
 
-  // Build the tabs with join conversation dropdown
-  const tabsElement = (
-    <div className="flex items-center justify-between gap-2 w-full">
-      <TabsList>
-        <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
-        <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
-        <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
-      </TabsList>
-      {showTag.show_community_links && showTag.show_community_links.length > 0 && (
-        <JoinConversationDropdown 
-          communityLinks={showTag.show_community_links} 
-          showName={showTag.name}
-        />
-      )}
-    </div>
-  )
-
   return (
     <AppLayoutClient
       showTags={showTags}
       pageTitle={titleElement}
       pageSubtitle={showTag.name}
-      pageTabs={tabsElement}
       pageActions={headerActions}
     >
       <Toaster position="bottom-right" />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <div className="px-6 pt-4 flex items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="live-feed">Live Feed</TabsTrigger>
+            <TabsTrigger value="official-feed">Official Feed</TabsTrigger>
+            <TabsTrigger value="catalog">Episode Catalog</TabsTrigger>
+          </TabsList>
+          {showTag.show_community_links && showTag.show_community_links.length > 0 && (
+            <JoinConversationDropdown 
+              communityLinks={showTag.show_community_links} 
+              showName={showTag.name}
+            />
+          )}
+        </div>
         <TabsContent value="live-feed" className="flex-1 overflow-hidden mt-0">
           <PostFeed
             posts={platformPosts}

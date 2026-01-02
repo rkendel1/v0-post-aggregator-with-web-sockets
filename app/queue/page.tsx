@@ -5,6 +5,7 @@ import type { Post } from "@/lib/types"
 import { Toaster } from "react-hot-toast"
 import { cookies } from "next/headers"
 import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
+import { QueuePageContent } from "@/components/queue/queue-page-content"
 
 export default async function QueuePage() {
   const cookieStore = await cookies()
@@ -43,15 +44,7 @@ export default async function QueuePage() {
 
   return (
     <AppLayoutWrapper>
-      <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">My Queue</h1>
-          <p className="text-muted-foreground mt-1">You have {posts.length} item(s) in your queue. Drag to reorder.</p>
-        </div>
-        <div className="max-w-2xl mx-auto">
-          <QueueFeed initialPosts={posts} />
-        </div>
-      </div>
+      <QueuePageContent initialPosts={posts} />
       <Toaster position="bottom-right" />
     </AppLayoutWrapper>
   )

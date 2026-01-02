@@ -331,8 +331,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
                 <Menu className="h-6 w-6" />
               </Button>
-              <Logo />
-              <div className="hidden md:block">
+              <div className="md:block">
                 <h1 className="text-2xl font-bold text-foreground">
                   {!user
                     ? "Welcome"
@@ -355,6 +354,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   </Link>
                 </Button>
               )}
+              <Logo />
             </div>
           </div>
           {user && (

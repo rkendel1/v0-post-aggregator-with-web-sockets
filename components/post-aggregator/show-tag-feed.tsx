@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
 import { ClaimPageModal } from "./claim-page-modal"
 import { JoinConversationDropdown } from "./join-conversation-dropdown"
+import { Logo } from "@/components/logo"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -169,10 +170,10 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
   return (
     <div className="flex flex-col h-full">
       <Toaster position="bottom-right" />
-      <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <div className="flex items-start justify-between">
+      <header className="border-b bg-card sticky top-0 z-10">
+        <div className="p-4 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
               <span>#{showTag.tag}</span>
               {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
               <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
@@ -183,11 +184,12 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {user && !showTag.claimed_by_user_id && (
-              <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => setIsClaimModalOpen(true)} className="hidden md:flex">
                 Claim this page
               </Button>
             )}
             {user && <TagFollowButton showTagId={showTag.id} />}
+            <Logo />
           </div>
         </div>
       </header>

@@ -11,8 +11,8 @@ export function SavedPostsPageContent({ initialPosts }: SavedPostsPageContentPro
   return (
     <div className="flex flex-col h-full">
       <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-foreground">Saved Posts</h1>
-        <p className="text-muted-foreground mt-1">You have {initialPosts.length} item(s) saved.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Saved Posts</h1>
+        <p className="text-muted-foreground">You have {initialPosts.length} item(s) saved.</p>
       </header>
 
       <div className="flex-1 overflow-auto">

@@ -19,6 +19,9 @@ import { createClient } from "@/lib/supabase/client"
 import { cn, getPostNavigationPath } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
+// Interactive elements that should not trigger card navigation
+const INTERACTIVE_ELEMENTS = 'button, a, input, textarea'
+
 interface PostCardProps {
   post: Post
   currentUser: User | null
@@ -121,7 +124,22 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   const isAvatarClickable = getPostNavigationPath(post) !== null
 
   return (
-    <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
+    <Card 
+      className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer"
+      onClick={(e) => {
+        // Only navigate if we're not clicking on an interactive element
+        if (!e.target || !(e.target instanceof Element)) {
+          return
+        }
+        
+        // Don't navigate if clicking on or inside interactive elements
+        if (e.target.closest(INTERACTIVE_ELEMENTS)) {
+          return
+        }
+        
+        router.push(`/post/${post.id}`)
+      }}
+    >
       <div className="p-3 flex gap-3">
         <button
           onClick={(e) => {
@@ -165,10 +183,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
           </div>
 
           <div className="space-y-3 mt-1">
-            <div 
-              onClick={() => router.push(`/post/${post.id}`)}
-              className="cursor-pointer"
-            >
+            <div>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {renderContentWithHashtags(post.content)}
               </p>
@@ -185,7 +200,12 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             </div>
             {post.external_url && (
               <Button variant="outline" size="sm" asChild>
-                <a href={post.external_url} target="_blank" rel="noopener noreferrer">
+                <a 
+                  href={post.external_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   View Original
                 </a>

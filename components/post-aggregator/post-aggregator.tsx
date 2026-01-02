@@ -19,7 +19,6 @@ import { Toaster, toast } from "react-hot-toast"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { MobileNav } from "./mobile-nav"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Logo } from "@/components/logo"
 import { useUser } from "@/contexts/user-context"
 
@@ -349,22 +348,12 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <>
-                  <Button variant="ghost" size="icon" className="md:hidden" asChild>
-                    <Link href="/settings">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={profile?.avatar_url || undefined} />
-                        <AvatarFallback>{profile?.display_name?.slice(0, 1) || "?"}</AvatarFallback>
-                      </Avatar>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" size="sm" className="hidden md:flex">
-                    <Link href="/settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Link>
-                  </Button>
-                </>
+                <Button asChild variant="outline" size="sm" className="hidden md:flex">
+                  <Link href="/settings">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Link>
+                </Button>
               )}
             </div>
           </div>

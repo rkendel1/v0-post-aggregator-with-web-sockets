@@ -126,7 +126,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         return
       }
 
-      if (isFeedLoading) return
+      if (isFeedLoading) {
+        setIsLoadingPosts(false)
+        return
+      }
 
       // For "For You" feed - not yet implemented
       if (activeFeed === "for-you") {
@@ -150,13 +153,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
-        console.log("[Main Feed] Loading all feeds. Following tag IDs:", tagIds)
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
         }
         // If user has no followed tags, show all posts (no filter applied)
       } else {
-        console.log("[Main Feed] Loading single feed:", selectedFeedId)
         query.eq("show_tag_id", selectedFeedId)
       }
 
@@ -166,7 +167,6 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       if (error) {
         console.error("[Main Feed] Error fetching posts:", error)
       }
-      console.log("[Main Feed] Fetched posts count:", data?.length || 0)
       if (data) {
         setPosts(data as Post[])
         setOffset(data.length)

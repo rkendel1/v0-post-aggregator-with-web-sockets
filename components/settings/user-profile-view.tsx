@@ -9,6 +9,9 @@ interface UserProfileViewProps {
 }
 
 export function UserProfileView({ profile }: UserProfileViewProps) {
+  // Placeholder values for stats that will be implemented in the future
+  const PLACEHOLDER_COUNT = 0
+  
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -51,19 +54,19 @@ export function UserProfileView({ profile }: UserProfileViewProps) {
 
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{PLACEHOLDER_COUNT}</div>
               <div className="text-sm text-muted-foreground">Posts</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{PLACEHOLDER_COUNT}</div>
               <div className="text-sm text-muted-foreground">Reactions</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{PLACEHOLDER_COUNT}</div>
               <div className="text-sm text-muted-foreground">Following</div>
             </div>
             <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{PLACEHOLDER_COUNT}</div>
               <div className="text-sm text-muted-foreground">Followers</div>
             </div>
           </div>

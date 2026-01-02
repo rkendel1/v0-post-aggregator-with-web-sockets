@@ -14,20 +14,19 @@ interface QueuePageContentProps {
 export function QueuePageContent({ initialPosts, showTags }: QueuePageContentProps) {
   const [activeTab, setActiveTab] = useState("queue")
 
-  const tabs = (
-    <TabsList>
-      <TabsTrigger value="queue">Queue</TabsTrigger>
-      <TabsTrigger value="completed">Completed</TabsTrigger>
-    </TabsList>
-  )
-
   return (
     <AppLayoutClient 
       showTags={showTags}
       pageTitle="My Queue"
-      pageTabs={tabs}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <div className="px-6 pt-4">
+          <TabsList>
+            <TabsTrigger value="queue">Queue</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+        </div>
+        
         <TabsContent value="queue" className="flex-1 overflow-auto mt-0">
           <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
             <p className="text-muted-foreground mb-4">

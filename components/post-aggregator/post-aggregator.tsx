@@ -126,10 +126,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         return
       }
 
-      if (isFeedLoading) {
-        setIsLoadingPosts(false)
-        return
-      }
+      if (isFeedLoading) return
 
       // For "For You" feed - not yet implemented
       if (activeFeed === "for-you") {

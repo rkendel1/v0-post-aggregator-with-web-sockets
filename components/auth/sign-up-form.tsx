@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import toast from "react-hot-toast"
-import { GoogleIcon, AppleIcon, DiscordIcon } from "@/components/auth/oauth-icons"
+import { GoogleIcon, DiscordIcon } from "@/components/auth/oauth-icons"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -59,7 +59,7 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn, redirectTo }: SignUpFo
     }
   }
 
-  const handleOAuthSignUp = async (provider: "google" | "apple" | "discord") => {
+  const handleOAuthSignUp = async (provider: "google" | "discord") => {
     setIsLoading(true)
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -92,17 +92,6 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn, redirectTo }: SignUpFo
         >
           <GoogleIcon className="mr-2 h-4 w-4" />
           Sign up with Google
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => handleOAuthSignUp("apple")}
-          disabled={isLoading}
-        >
-          <AppleIcon className="mr-2 h-4 w-4" />
-          Sign up with Apple
         </Button>
 
         <Button

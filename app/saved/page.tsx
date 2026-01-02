@@ -4,11 +4,7 @@ import { SavedPostsFeed } from "@/components/queue/saved-posts-feed"
 import type { Post } from "@/lib/types"
 import { Toaster } from "react-hot-toast"
 import { cookies } from "next/headers"
-import { MobileNav } from "@/components/post-aggregator/mobile-nav"
-import { Logo } from "@/components/logo"
-import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
-import Link from "next/link"
+import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 
 export default async function SavedPage() {
   const cookieStore = await cookies()
@@ -46,16 +42,8 @@ export default async function SavedPage() {
   const posts = savedPosts?.map((sp) => sp.posts).filter((p): p is Post => p !== null) || []
 
   return (
-    <div className="min-h-screen bg-background pb-14 md:pb-0">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8 flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </Link>
-          <Logo />
-        </div>
+    <AppLayoutWrapper>
+      <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Saved Posts</h1>
           <p className="text-muted-foreground mt-1">You have {posts.length} item(s) saved.</p>
@@ -64,8 +52,7 @@ export default async function SavedPage() {
           <SavedPostsFeed initialPosts={posts} />
         </div>
       </div>
-      <MobileNav />
       <Toaster position="bottom-right" />
-    </div>
+    </AppLayoutWrapper>
   )
 }

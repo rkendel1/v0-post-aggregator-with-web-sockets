@@ -8,6 +8,9 @@ import type { UserProfile, UserRssFeed } from "@/lib/types"
 import { cookies } from "next/headers"
 import { MobileNav } from "@/components/post-aggregator/mobile-nav"
 import { Logo } from "@/components/logo"
+import { Button } from "@/components/ui/button"
+import { Menu } from "lucide-react"
+import Link from "next/link"
 
 export default async function SettingsPage() {
   const cookieStore = await cookies()
@@ -36,7 +39,12 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-screen bg-background pb-14 md:pb-0">
       <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8">
+        <div className="mb-8 flex items-center gap-4">
+          <Link href="/">
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </Link>
           <Logo />
         </div>
         <div className="mb-8">

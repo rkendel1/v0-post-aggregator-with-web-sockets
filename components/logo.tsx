@@ -12,8 +12,8 @@ export function Logo() {
       <Image
         src="/pb_black.PNG"
         alt="PodBridge Logo"
-        width={120}
-        height={36}
+        width={60}
+        height={18}
         className="dark:hidden"
         priority
         unoptimized
@@ -22,8 +22,8 @@ export function Logo() {
       <Image
         src="/pb_white.PNG"
         alt="PodBridge Logo"
-        width={120}
-        height={36}
+        width={60}
+        height={18}
         className="hidden dark:block"
         priority
         unoptimized

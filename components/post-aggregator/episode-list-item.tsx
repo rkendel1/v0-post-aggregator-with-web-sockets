@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/accordion"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { SavePostButton } from "./save-post-button"
+import { AddToQueueButton } from "./add-to-queue-button"
 import { generateDiscordThreadName } from "@/lib/utils/slugs"
 import { DiscordEmbedModal } from "./discord-embed-modal"
 
@@ -72,6 +73,9 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
         <div className="space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
             <SavePostButton postId={episode.id} />
+            {episode.audio_url && (
+              <AddToQueueButton postId={episode.id} />
+            )}
             {episode.external_url && (
               <Button variant="outline" size="sm" asChild>
                 <a href={episode.external_url} target="_blank" rel="noopener noreferrer">

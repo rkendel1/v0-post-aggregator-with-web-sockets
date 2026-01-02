@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils"
 
 export function MobileNav() {
   const pathname = usePathname()
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+  const baseUrl = `https://${rootDomain}`
 
   const navItems = [
-    { href: "/", icon: Home, label: "Home" },
+    { href: baseUrl, icon: Home, label: "Home" },
     { href: "/queue", icon: ListMusic, label: "Queue" },
     { href: "/saved", icon: Bookmark, label: "Saved" },
     { href: "/settings", icon: Settings, label: "Settings" },
@@ -19,7 +21,7 @@ export function MobileNav() {
     <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm md:hidden z-40">
       <nav className="flex justify-around items-center h-14">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          const isActive = pathname === item.href || (item.href === baseUrl && pathname === '/')
           return (
             <Link
               key={item.href}

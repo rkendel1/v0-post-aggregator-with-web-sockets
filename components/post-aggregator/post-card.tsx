@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { Post, ReactionCount, CommentCount } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Share2, ExternalLink, Play, Pause } from "lucide-react"
+import { MessageCircle, Share2, ExternalLink, Play, Pause, ChevronDown, ChevronUp } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ReactionPicker } from "./reaction-picker"
 import { SavePostButton } from "./save-post-button"
@@ -22,6 +22,11 @@ import { useRouter } from "next/navigation"
 // Interactive elements that should not trigger card navigation
 const INTERACTIVE_ELEMENTS = 'button, a, input, textarea'
 
+// Mobile card optimization constants
+const MOBILE_MAX_LINES = 6
+const LINE_HEIGHT_PX = 24
+const MOBILE_MAX_HEIGHT_PX = LINE_HEIGHT_PX * MOBILE_MAX_LINES // 144px
+
 interface PostCardProps {
   post: Post
   currentUser: User | null
@@ -34,6 +39,9 @@ interface PostCardProps {
 export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInteractionAttempt, onPostUnsaved }: PostCardProps) {
   const [reactionCounts, setReactionCounts] = useState<ReactionCount[]>(post.reaction_counts || [])
   const [commentCount, setCommentCount] = useState<number>(post.comment_counts?.count || 0)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [showExpandButton, setShowExpandButton] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
   const [supabase] = useState(() => createClient())
   const router = useRouter()
@@ -44,6 +52,14 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
   const isAuthor = currentUser?.id === post.user_id
   const isCurrentlyPlaying = currentTrack?.id === post.id && isPlaying
+
+  // Check if content should show expand button
+  useEffect(() => {
+    if (contentRef.current) {
+      const actualHeight = contentRef.current.scrollHeight
+      setShowExpandButton(actualHeight > MOBILE_MAX_HEIGHT_PX)
+    }
+  }, [post.content])
 
   useEffect(() => {
     const reactionChannel = supabase
@@ -125,7 +141,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
   return (
     <Card 
-      className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer"
+      className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer py-2.5 sm:py-3 gap-0"
       onClick={(e) => {
         // Only navigate if we're not clicking on an interactive element
         if (!e.target || !(e.target instanceof Element)) {
@@ -140,7 +156,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
         router.push(`/post/${post.id}`)
       }}
     >
-      <div className="p-3 flex gap-3">
+      <div className="flex gap-2.5 sm:gap-3 px-2.5 sm:px-3">
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -149,7 +165,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
           className={isAvatarClickable ? "cursor-pointer" : "cursor-default"}
           disabled={!isAvatarClickable}
         >
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
             <AvatarImage src={post.author_avatar || undefined} />
             <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -182,13 +198,38 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
             )}
           </div>
 
-          <div className="space-y-3 mt-1">
+          <div className="space-y-2 sm:space-y-3 mt-1">
             <div>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+              <div 
+                ref={contentRef}
+                className={cn(
+                  "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200",
+                  !isExpanded && showExpandButton && `sm:max-h-none max-h-[${MOBILE_MAX_HEIGHT_PX}px] overflow-hidden`
+                )}
+              >
                 {renderContentWithHashtags(post.content)}
-              </p>
+              </div>
+              {showExpandButton && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setIsExpanded(!isExpanded)
+                  }}
+                  className="sm:hidden text-xs text-primary hover:underline mt-1 flex items-center gap-1"
+                >
+                  {isExpanded ? (
+                    <>
+                      Show less <ChevronUp className="h-3 w-3" />
+                    </>
+                  ) : (
+                    <>
+                      Show more <ChevronDown className="h-3 w-3" />
+                    </>
+                  )}
+                </button>
+              )}
               {post.image_url && (
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-lg border overflow-hidden mt-2">
                   <img
                     src={post.image_url}
                     alt={post.content.substring(0, 50)}

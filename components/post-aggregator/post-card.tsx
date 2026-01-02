@@ -16,7 +16,7 @@ import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
-import { cn } from "@/lib/utils"
+import { cn, getPostNavigationPath } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 interface PostCardProps {
@@ -111,18 +111,25 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
     })
   }
 
+  const handleAvatarClick = () => {
+    const path = getPostNavigationPath(post)
+    if (path) {
+      router.push(path)
+    }
+  }
+
+  const isAvatarClickable = getPostNavigationPath(post) !== null
+
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
         <button
           onClick={(e) => {
             e.stopPropagation()
-            if (post.user_profiles?.username) {
-              router.push(`/${post.user_profiles.username}`)
-            }
+            handleAvatarClick()
           }}
-          className="cursor-pointer"
-          disabled={!post.user_profiles?.username}
+          className={isAvatarClickable ? "cursor-pointer" : "cursor-default"}
+          disabled={!isAvatarClickable}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.author_avatar || undefined} />
@@ -136,12 +143,10 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (post.user_profiles?.username) {
-                      router.push(`/${post.user_profiles.username}`)
-                    }
+                    handleAvatarClick()
                   }}
-                  className="font-semibold text-sm hover:underline cursor-pointer"
-                  disabled={!post.user_profiles?.username}
+                  className={`font-semibold text-sm ${isAvatarClickable ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                  disabled={!isAvatarClickable}
                 >
                   {post.author_name}
                 </button>

@@ -18,6 +18,7 @@ import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { getPostNavigationPath } from "@/lib/utils"
 
 interface PostDetailViewProps {
   post: Post
@@ -88,18 +89,39 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
     router.push("/")
   }
 
+  const handleAvatarClick = () => {
+    const path = getPostNavigationPath(post)
+    if (path) {
+      router.push(path)
+    }
+  }
+
+  const isAvatarClickable = getPostNavigationPath(post) !== null
+
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={post.author_avatar || undefined} />
-          <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <button
+          onClick={handleAvatarClick}
+          className={isAvatarClickable ? "cursor-pointer" : "cursor-default"}
+          disabled={!isAvatarClickable}
+        >
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={post.author_avatar || undefined} />
+            <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </button>
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-sm">{post.author_name}</p>
+                <button
+                  onClick={handleAvatarClick}
+                  className={`font-semibold text-sm ${isAvatarClickable ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                  disabled={!isAvatarClickable}
+                >
+                  {post.author_name}
+                </button>
                 <p className="text-xs text-muted-foreground">{timeAgo}</p>
               </div>
               {currentUser && <FederatedPostStatus postId={post.id} />}

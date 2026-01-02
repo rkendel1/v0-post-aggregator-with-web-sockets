@@ -149,18 +149,24 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       const query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
+        console.log("[Main Feed] Loading all feeds. Following tag IDs:", tagIds)
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
         }
         // If user has no followed tags, show all posts (no filter applied)
       } else {
+        console.log("[Main Feed] Loading single feed:", selectedFeedId)
         query.eq("show_tag_id", selectedFeedId)
       }
 
       if (hiddenPostIds.length > 0) query.not("id", "in", `(${hiddenPostIds.join(",")})`)
 
-      const { data } = await query.range(0, POSTS_PER_PAGE - 1)
+      const { data, error } = await query.range(0, POSTS_PER_PAGE - 1)
+      if (error) {
+        console.error("[Main Feed] Error fetching posts:", error)
+      }
+      console.log("[Main Feed] Fetched posts count:", data?.length || 0)
       if (data) {
         setPosts(data as Post[])
         setOffset(data.length)
@@ -192,7 +198,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       }
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
         if (tagIds.length > 0) query.in("show_tag_id", tagIds)
       } else if (selectedFeedId) {
         query.eq("show_tag_id", selectedFeedId)
@@ -213,7 +219,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   useEffect(() => {
     if (!user || activeFeed === "for-you" || !selectedFeedId) return
 
-    const tagIds = feedTagIds ? feedTagIds.split(",") : []
+    const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
     
     // Determine the filter for real-time updates
     let filter: string | undefined

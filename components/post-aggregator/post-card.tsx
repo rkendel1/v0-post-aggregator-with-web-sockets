@@ -133,16 +133,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
         }
         
         // Don't navigate if clicking on or inside interactive elements
-        if (
-          target.tagName === 'BUTTON' ||
-          target.tagName === 'A' ||
-          target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.closest('button') ||
-          target.closest('a') ||
-          target.closest('input') ||
-          target.closest('textarea')
-        ) {
+        if (target.closest('button, a, input, textarea')) {
           return
         }
         

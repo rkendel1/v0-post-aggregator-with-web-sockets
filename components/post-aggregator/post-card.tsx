@@ -22,6 +22,11 @@ import { useRouter } from "next/navigation"
 // Interactive elements that should not trigger card navigation
 const INTERACTIVE_ELEMENTS = 'button, a, input, textarea'
 
+// Mobile card optimization constants
+const MOBILE_MAX_LINES = 6
+const LINE_HEIGHT_PX = 24
+const MOBILE_MAX_HEIGHT_PX = LINE_HEIGHT_PX * MOBILE_MAX_LINES // 144px
+
 interface PostCardProps {
   post: Post
   currentUser: User | null
@@ -51,11 +56,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   // Check if content should show expand button
   useEffect(() => {
     if (contentRef.current) {
-      const lineHeight = 24 // approximate line height in pixels
-      const maxLines = 6
-      const maxHeight = lineHeight * maxLines
       const actualHeight = contentRef.current.scrollHeight
-      setShowExpandButton(actualHeight > maxHeight)
+      setShowExpandButton(actualHeight > MOBILE_MAX_HEIGHT_PX)
     }
   }, [post.content])
 
@@ -202,7 +204,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                 ref={contentRef}
                 className={cn(
                   "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200",
-                  !isExpanded && showExpandButton && "sm:max-h-none max-h-[144px] overflow-hidden"
+                  !isExpanded && showExpandButton && `sm:max-h-none max-h-[${MOBILE_MAX_HEIGHT_PX}px] overflow-hidden`
                 )}
               >
                 {renderContentWithHashtags(post.content)}

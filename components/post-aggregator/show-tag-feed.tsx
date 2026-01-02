@@ -173,21 +173,19 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
     <div className="flex flex-col h-screen pb-14 md:pb-0">
       <Toaster position="bottom-right" />
       <header className="border-b bg-card p-4 sticky top-0 z-10">
+        <div className="mb-4">
+          <Logo />
+        </div>
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex items-center justify-center">
-              <Logo />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <span>#{showTag.tag}</span>
-                {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
-                <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
-                  <Rss className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </h1>
-              <p className="text-sm text-muted-foreground">{showTag.name}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              <span>#{showTag.tag}</span>
+              {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
+              <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+                <Rss className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </h1>
+            <p className="text-sm text-muted-foreground">{showTag.name}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {user && !showTag.claimed_by_user_id && (

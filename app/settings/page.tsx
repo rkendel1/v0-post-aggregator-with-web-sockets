@@ -36,14 +36,12 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-screen bg-background pb-14 md:pb-0">
       <div className="max-w-4xl mx-auto p-6">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="flex items-center justify-center">
-            <Logo />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-            <p className="text-muted-foreground mt-1">Manage your profile, connections, and content sources.</p>
-          </div>
+        <div className="mb-8">
+          <Logo />
+        </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground mt-1">Manage your profile, connections, and content sources.</p>
         </div>
 
         <div className="space-y-8">

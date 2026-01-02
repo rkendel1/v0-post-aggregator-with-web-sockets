@@ -14,7 +14,6 @@ export function SavedPostsPageContent({ initialPosts, showTags }: SavedPostsPage
     <AppLayoutClient
       showTags={showTags}
       pageTitle="Saved Posts"
-      pageSubtitle={`You have ${initialPosts.length} item(s) saved.`}
     >
       <div className="flex-1 overflow-auto">
         <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">

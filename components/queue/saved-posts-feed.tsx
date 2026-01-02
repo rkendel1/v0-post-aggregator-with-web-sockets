@@ -38,6 +38,7 @@ export function SavedPostsFeed({ initialPosts }: SavedPostsFeedProps) {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">You have {posts.length} item(s) saved.</p>
       {posts.map((post) => (
         <PostCard
           key={post.id}

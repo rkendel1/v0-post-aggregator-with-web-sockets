@@ -72,7 +72,7 @@ export function AppLayout({
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header with hamburger menu - visible on mobile */}
-        <div className="md:hidden sticky top-0 z-30 bg-card border-b p-3 flex items-center gap-3">
+        <div className="md:hidden sticky top-0 z-30 bg-card border-b p-3 flex items-center justify-between gap-3">
           <Button 
             variant="ghost" 
             size="icon" 

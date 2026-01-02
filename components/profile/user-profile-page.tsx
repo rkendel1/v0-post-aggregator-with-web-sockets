@@ -2,20 +2,16 @@
 
 import { useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
-import type { UserProfile, Post } from "@/lib/types"
+import type { UserProfile, Post, ShowTag } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
 import { PostFeed } from "@/components/post-aggregator/post-feed"
 import { FollowButton } from "@/components/post-aggregator/follow-button"
 import { useUser } from "@/contexts/user-context"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { Toaster } from "react-hot-toast"
 import { AuthPromptModal } from "@/components/auth/auth-prompt-modal"
 import { GuestHandleModal } from "@/components/auth/guest-handle-modal"
 import { AuthModal } from "@/components/auth/auth-modal"
-import { MobileNav } from "@/components/post-aggregator/mobile-nav"
-import { Logo } from "@/components/logo"
+import { AppLayoutClient } from "@/components/layout/app-layout-client"
 
 const POST_SELECT_QUERY = `
   *,
@@ -29,9 +25,10 @@ const POSTS_PER_PAGE = 20
 interface UserProfilePageProps {
   profile: UserProfile
   initialPosts: Post[]
+  showTags: ShowTag[]
 }
 
-export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps) {
+export function UserProfilePage({ profile, initialPosts, showTags }: UserProfilePageProps) {
   const { user: currentUser, reloadProfile } = useUser()
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [offset, setOffset] = useState(initialPosts.length)
@@ -94,17 +91,18 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
     setPosts((current) => current.filter((post) => post.id !== postId))
   }
 
+  const titleElement = (
+    <h1 className="text-2xl md:text-3xl font-bold text-foreground">{profile.display_name}</h1>
+  )
+
   return (
-    <div className="min-h-screen bg-background pb-14 md:pb-0">
+    <AppLayoutClient
+      showTags={showTags}
+      pageTitle={titleElement}
+      pageSubtitle={`@${profile.username}`}
+    >
       <Toaster position="bottom-right" />
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8">
-          <Logo />
-        </div>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">{profile.display_name}</h1>
-          <p className="text-muted-foreground mt-1">@{profile.username}</p>
-        </div>
+      <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
         <div className="flex flex-col sm:flex-row gap-6 items-start mb-8">
           <Avatar className="h-24 w-24 sm:h-32 sm:w-32">
             <AvatarImage src={profile.avatar_url || undefined} />
@@ -147,7 +145,6 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
           />
         </div>
       </div>
-      <MobileNav />
       {authPrompt.open && (
         <AuthPromptModal
           isOpen={authPrompt.open}
@@ -159,6 +156,6 @@ export function UserProfilePage({ profile, initialPosts }: UserProfilePageProps)
       )}
       {isGuestModalOpen && <GuestHandleModal onSuccess={handleGuestSuccess} />}
       {isAuthModalOpen && <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />}
-    </div>
+    </AppLayoutClient>
   )
 }

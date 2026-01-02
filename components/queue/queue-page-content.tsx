@@ -3,44 +3,51 @@
 import { useState } from "react"
 import { QueueFeed } from "./queue-feed"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import type { Post } from "@/lib/types"
+import { AppLayoutClient } from "@/components/layout/app-layout-client"
+import type { Post, ShowTag } from "@/lib/types"
 
 interface QueuePageContentProps {
   initialPosts: Post[]
+  showTags: ShowTag[]
 }
 
-export function QueuePageContent({ initialPosts }: QueuePageContentProps) {
+export function QueuePageContent({ initialPosts, showTags }: QueuePageContentProps) {
   const [activeTab, setActiveTab] = useState("queue")
 
+  const tabs = (
+    <TabsList>
+      <TabsTrigger value="queue">Queue</TabsTrigger>
+      <TabsTrigger value="completed">Completed</TabsTrigger>
+    </TabsList>
+  )
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-      <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-foreground mb-2">My Queue</h1>
-        <TabsList>
-          <TabsTrigger value="queue">Queue</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-        </TabsList>
-      </header>
-
-      <TabsContent value="queue" className="flex-1 overflow-auto mt-0">
-        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-          <p className="text-muted-foreground mb-4">
-            You have {initialPosts.length} item(s) in your queue. Drag to reorder.
-          </p>
-          <div className="max-w-2xl mx-auto">
-            <QueueFeed initialPosts={initialPosts} />
+    <AppLayoutClient 
+      showTags={showTags}
+      pageTitle="My Queue"
+      pageTabs={tabs}
+    >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <TabsContent value="queue" className="flex-1 overflow-auto mt-0">
+          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+            <p className="text-muted-foreground mb-4">
+              You have {initialPosts.length} item(s) in your queue. Drag to reorder.
+            </p>
+            <div className="max-w-2xl mx-auto">
+              <QueueFeed initialPosts={initialPosts} />
+            </div>
           </div>
-        </div>
-      </TabsContent>
+        </TabsContent>
 
-      <TabsContent value="completed" className="flex-1 overflow-auto mt-0">
-        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">Completed episodes will appear here.</p>
-            <p className="text-sm text-muted-foreground mt-2">This feature will be implemented soon.</p>
+        <TabsContent value="completed" className="flex-1 overflow-auto mt-0">
+          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Completed episodes will appear here.</p>
+              <p className="text-sm text-muted-foreground mt-2">This feature will be implemented soon.</p>
+            </div>
           </div>
-        </div>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+      </Tabs>
+    </AppLayoutClient>
   )
 }

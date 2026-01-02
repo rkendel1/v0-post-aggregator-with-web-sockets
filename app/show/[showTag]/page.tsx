@@ -4,7 +4,6 @@ import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagFeed } from "@/components/post-aggregator/show-tag-feed"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 
 const POST_SELECT_QUERY = `
   *,
@@ -71,10 +70,12 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
     .order("created_at", { ascending: false })
     .range(0, POSTS_PER_PAGE - 1)
 
+  // Fetch all available show tags
+  const { data: showTags } = await supabase
+    .from("show_tags")
+    .select("*")
+    .order("name")
+
   // Render the feed using the canonical tag's data. The URL in the browser remains the alias.
-  return (
-    <AppLayoutWrapper>
-      <ShowTagFeed showTag={canonicalTag} initialPlatformPosts={(initialPlatformPosts as Post[]) || []} />
-    </AppLayoutWrapper>
-  )
+  return <ShowTagFeed showTag={canonicalTag} initialPlatformPosts={(initialPlatformPosts as Post[]) || []} showTags={(showTags as ShowTag[]) || []} />
 }

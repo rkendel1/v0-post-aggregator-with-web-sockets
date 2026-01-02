@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { notFound } from "next/navigation"
 import { UserProfilePage } from "@/components/profile/user-profile-page"
-import type { Post } from "@/lib/types"
+import type { Post, ShowTag } from "@/lib/types"
 
 const POST_SELECT_QUERY = `
   *,
@@ -30,13 +30,19 @@ export default async function ProfilePage({ params }: { params: { username: stri
     notFound()
   }
 
-  // Fetch the user's posts
-  const { data: posts } = await supabase
-    .from("posts")
-    .select(POST_SELECT_QUERY)
-    .eq("user_id", profile.id)
-    .order("created_at", { ascending: false })
-    .limit(20)
+  // Fetch the user's posts and show tags in parallel
+  const [postsResult, showTagsResult] = await Promise.all([
+    supabase
+      .from("posts")
+      .select(POST_SELECT_QUERY)
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase
+      .from("show_tags")
+      .select("*")
+      .order("name")
+  ])
 
-  return <UserProfilePage profile={profile} initialPosts={(posts as Post[]) || []} />
+  return <UserProfilePage profile={profile} initialPosts={(postsResult.data as Post[]) || []} showTags={(showTagsResult.data as ShowTag[]) || []} />
 }

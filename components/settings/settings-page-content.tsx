@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ConnectedAccountsManager } from "./connected-accounts-manager"
 import { ProfileSettings } from "./profile-settings"
 import { RssImportManager } from "./rss-import-manager"
-import type { UserProfile, UserRssFeed } from "@/lib/types"
+import { AppLayoutClient } from "@/components/layout/app-layout-client"
+import type { UserProfile, UserRssFeed, ShowTag } from "@/lib/types"
 import { UserProfileView } from "./user-profile-view"
 
 interface SettingsPageContentProps {
@@ -13,6 +14,7 @@ interface SettingsPageContentProps {
   connectedAccounts: any[]
   availablePlatforms: any[]
   rssFeeds: UserRssFeed[]
+  showTags: ShowTag[]
 }
 
 export function SettingsPageContent({
@@ -20,38 +22,44 @@ export function SettingsPageContent({
   connectedAccounts,
   availablePlatforms,
   rssFeeds,
+  showTags,
 }: SettingsPageContentProps) {
   const [activeTab, setActiveTab] = useState("settings")
 
+  const tabs = (
+    <TabsList>
+      <TabsTrigger value="settings">Settings</TabsTrigger>
+      <TabsTrigger value="profile">Profile</TabsTrigger>
+    </TabsList>
+  )
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-      <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-foreground mb-2">Settings</h1>
-        <TabsList>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-        </TabsList>
-      </header>
-
-      <TabsContent value="settings" className="flex-1 overflow-auto mt-0">
-        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-          <p className="text-muted-foreground mb-6">Manage your profile, connections, and content sources.</p>
-          <div className="space-y-8">
-            <ProfileSettings profile={profile} />
-            <ConnectedAccountsManager
-              connectedAccounts={connectedAccounts}
-              availablePlatforms={availablePlatforms}
-            />
-            <RssImportManager initialRssFeeds={rssFeeds} />
+    <AppLayoutClient
+      showTags={showTags}
+      pageTitle="Settings"
+      pageTabs={tabs}
+    >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+        <TabsContent value="settings" className="flex-1 overflow-auto mt-0">
+          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+            <p className="text-muted-foreground mb-6">Manage your profile, connections, and content sources.</p>
+            <div className="space-y-8">
+              <ProfileSettings profile={profile} />
+              <ConnectedAccountsManager
+                connectedAccounts={connectedAccounts}
+                availablePlatforms={availablePlatforms}
+              />
+              <RssImportManager initialRssFeeds={rssFeeds} />
+            </div>
           </div>
-        </div>
-      </TabsContent>
+        </TabsContent>
 
-      <TabsContent value="profile" className="flex-1 overflow-auto mt-0">
-        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-          <UserProfileView profile={profile} />
-        </div>
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="profile" className="flex-1 overflow-auto mt-0">
+          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+            <UserProfileView profile={profile} />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </AppLayoutClient>
   )
 }

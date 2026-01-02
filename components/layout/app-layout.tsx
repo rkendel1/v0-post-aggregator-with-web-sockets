@@ -103,7 +103,10 @@ export function AppLayout({
           profile={profile}
           addTagToFeed={addTagToFeed}
           removeTagFromFeed={removeTagFromFeed}
-          migrateAnonymousFeed={async () => {}}
+          migrateAnonymousFeed={async () => {
+            // Anonymous feed migration not needed in this context
+            // Users are authenticated when accessing pages with AppLayout
+          }}
           addNewAvailableTag={addNewAvailableTag}
         />
       )}

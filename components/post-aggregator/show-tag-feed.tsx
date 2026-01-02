@@ -263,7 +263,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
         <Button
           onClick={() => setIsComposerOpen(true)}
           size="icon"
-          className="rounded-full h-14 w-14 fixed bottom-20 right-4 z-40 md:bottom-6"
+          className="rounded-full h-14 w-14 fixed right-4 z-40 bottom-20 md:bottom-6"
         >
           <PlusCircle className="h-6 w-6" />
         </Button>

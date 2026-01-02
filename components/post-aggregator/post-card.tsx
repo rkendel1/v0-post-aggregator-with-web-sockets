@@ -111,18 +111,29 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
     })
   }
 
+  const handleAvatarClick = () => {
+    // User-generated posts: navigate to user profile
+    if (!post.external_guid && post.user_profiles?.username) {
+      router.push(`/${post.user_profiles.username}`)
+    }
+    // Official/external posts: navigate to show tag page
+    else if (post.external_guid && post.show_tags?.tag) {
+      router.push(`/show/${post.show_tags.tag}`)
+    }
+  }
+
+  const isAvatarClickable = (!post.external_guid && post.user_profiles?.username) || (post.external_guid && post.show_tags?.tag)
+
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
         <button
           onClick={(e) => {
             e.stopPropagation()
-            if (post.user_profiles?.username) {
-              router.push(`/${post.user_profiles.username}`)
-            }
+            handleAvatarClick()
           }}
-          className="cursor-pointer"
-          disabled={!post.user_profiles?.username}
+          className={isAvatarClickable ? "cursor-pointer" : "cursor-default"}
+          disabled={!isAvatarClickable}
         >
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.author_avatar || undefined} />
@@ -136,12 +147,10 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (post.user_profiles?.username) {
-                      router.push(`/${post.user_profiles.username}`)
-                    }
+                    handleAvatarClick()
                   }}
-                  className="font-semibold text-sm hover:underline cursor-pointer"
-                  disabled={!post.user_profiles?.username}
+                  className={`font-semibold text-sm ${isAvatarClickable ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                  disabled={!isAvatarClickable}
                 >
                   {post.author_name}
                 </button>

@@ -88,18 +88,43 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
     router.push("/")
   }
 
+  const handleAvatarClick = () => {
+    // User-generated posts: navigate to user profile
+    if (!post.external_guid && post.user_profiles?.username) {
+      router.push(`/${post.user_profiles.username}`)
+    }
+    // Official/external posts: navigate to show tag page
+    else if (post.external_guid && post.show_tags?.tag) {
+      router.push(`/show/${post.show_tags.tag}`)
+    }
+  }
+
+  const isAvatarClickable = (!post.external_guid && post.user_profiles?.username) || (post.external_guid && post.show_tags?.tag)
+
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">
       <div className="p-3 flex gap-3">
-        <Avatar className="h-10 w-10">
-          <AvatarImage src={post.author_avatar || undefined} />
-          <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
+        <button
+          onClick={handleAvatarClick}
+          className={isAvatarClickable ? "cursor-pointer" : "cursor-default"}
+          disabled={!isAvatarClickable}
+        >
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={post.author_avatar || undefined} />
+            <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </button>
         <div className="flex-1">
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-sm">{post.author_name}</p>
+                <button
+                  onClick={handleAvatarClick}
+                  className={`font-semibold text-sm ${isAvatarClickable ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                  disabled={!isAvatarClickable}
+                >
+                  {post.author_name}
+                </button>
                 <p className="text-xs text-muted-foreground">{timeAgo}</p>
               </div>
               {currentUser && <FederatedPostStatus postId={post.id} />}

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatDistanceToNow } from "date-fns"
 import { Send } from "lucide-react"
 import { ReactionPicker } from "./reaction-picker"
+import { useRouter } from "next/navigation"
 
 interface CommentsSectionProps {
   postId: string
@@ -21,6 +22,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
   const [supabase] = useState(() => createClient())
+  const router = useRouter()
 
   const fetchComments = useCallback(async () => {
     const { data } = await supabase
@@ -174,15 +176,35 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
           <div key={comment.id} className="space-y-2">
             {/* Main Comment */}
             <div className="flex gap-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={comment.user_profiles?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {comment.user_profiles?.display_name?.slice(0, 2).toUpperCase() || "??"}
-                </AvatarFallback>
-              </Avatar>
+              <button
+                onClick={() => {
+                  if (comment.user_profiles?.username) {
+                    router.push(`/${comment.user_profiles.username}`)
+                  }
+                }}
+                className={comment.user_profiles?.username ? "cursor-pointer" : "cursor-default"}
+                disabled={!comment.user_profiles?.username}
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={comment.user_profiles?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    {comment.user_profiles?.display_name?.slice(0, 2).toUpperCase() || "??"}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
               <div className="flex-1 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{comment.user_profiles?.display_name || "Anonymous"}</span>
+                  <button
+                    onClick={() => {
+                      if (comment.user_profiles?.username) {
+                        router.push(`/${comment.user_profiles.username}`)
+                      }
+                    }}
+                    className={`font-medium text-sm ${comment.user_profiles?.username ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                    disabled={!comment.user_profiles?.username}
+                  >
+                    {comment.user_profiles?.display_name || "Anonymous"}
+                  </button>
                   <span className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                   </span>
@@ -224,17 +246,35 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                   <div className="ml-6 mt-3 space-y-3 border-l-2 pl-3">
                     {comment.replies.map((reply) => (
                       <div key={reply.id} className="flex gap-3">
-                        <Avatar className="h-7 w-7">
-                          <AvatarImage src={reply.user_profiles?.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {reply.user_profiles?.display_name?.slice(0, 2).toUpperCase() || "??"}
-                          </AvatarFallback>
-                        </Avatar>
+                        <button
+                          onClick={() => {
+                            if (reply.user_profiles?.username) {
+                              router.push(`/${reply.user_profiles.username}`)
+                            }
+                          }}
+                          className={reply.user_profiles?.username ? "cursor-pointer" : "cursor-default"}
+                          disabled={!reply.user_profiles?.username}
+                        >
+                          <Avatar className="h-7 w-7">
+                            <AvatarImage src={reply.user_profiles?.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {reply.user_profiles?.display_name?.slice(0, 2).toUpperCase() || "??"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
                         <div className="flex-1 space-y-1">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">
+                            <button
+                              onClick={() => {
+                                if (reply.user_profiles?.username) {
+                                  router.push(`/${reply.user_profiles.username}`)
+                                }
+                              }}
+                              className={`font-medium text-sm ${reply.user_profiles?.username ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                              disabled={!reply.user_profiles?.username}
+                            >
                               {reply.user_profiles?.display_name || "Anonymous"}
-                            </span>
+                            </button>
                             <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
                             </span>

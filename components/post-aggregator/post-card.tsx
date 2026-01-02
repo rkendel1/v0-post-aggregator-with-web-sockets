@@ -120,12 +120,15 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
   const isAvatarClickable = getPostNavigationPath(post) !== null
 
+  // Interactive elements that should not trigger card navigation
+  const INTERACTIVE_ELEMENTS = 'button, a, input, textarea'
+
   return (
     <Card 
       className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer"
       onClick={(e) => {
         // Only navigate if we're not clicking on an interactive element
-        const target = e.target
+        const target = e.target as Element | null
         
         // Type guard to ensure target exists and is an Element
         if (!target || !(target instanceof Element)) {
@@ -133,7 +136,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
         }
         
         // Don't navigate if clicking on or inside interactive elements
-        if (target.closest('button, a, input, textarea')) {
+        if (target.closest(INTERACTIVE_ELEMENTS)) {
           return
         }
         

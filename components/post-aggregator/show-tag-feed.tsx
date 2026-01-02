@@ -6,9 +6,7 @@ import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
 import { PostComposer } from "./post-composer"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Rss, Home, BadgeCheck } from "lucide-react"
-import { Logo } from "@/components/logo"
-import Link from "next/link"
+import { PlusCircle, Rss, BadgeCheck } from "lucide-react"
 import { Toaster, toast } from "react-hot-toast"
 import { TagFollowButton } from "./tag-follow-button"
 import { User } from "@supabase/supabase-js"
@@ -16,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EpisodeCatalog } from "./episode-catalog"
 import { ClaimPageModal } from "./claim-page-modal"
 import { JoinConversationDropdown } from "./join-conversation-dropdown"
-import { MobileNav } from "./mobile-nav"
 
 interface ShowTagFeedProps {
   showTag: ShowTag
@@ -170,12 +167,9 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
   }
 
   return (
-    <div className="flex flex-col h-screen pb-14 md:pb-0">
+    <div className="flex flex-col h-full">
       <Toaster position="bottom-right" />
       <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <div className="mb-4">
-          <Logo />
-        </div>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -269,13 +263,11 @@ export function ShowTagFeed({ showTag, initialPlatformPosts }: ShowTagFeedProps)
         <Button
           onClick={() => setIsComposerOpen(true)}
           size="icon"
-          className="rounded-full h-14 w-14 fixed bottom-20 right-4 z-40 md:hidden"
+          className="rounded-full h-14 w-14 fixed right-4 z-40 bottom-20 md:bottom-6"
         >
           <PlusCircle className="h-6 w-6" />
         </Button>
       )}
-
-      <MobileNav />
     </div>
   )
 }

@@ -6,11 +6,7 @@ import { RssImportManager } from "@/components/settings/rss-import-manager"
 import { Toaster } from "react-hot-toast"
 import type { UserProfile, UserRssFeed } from "@/lib/types"
 import { cookies } from "next/headers"
-import { MobileNav } from "@/components/post-aggregator/mobile-nav"
-import { Logo } from "@/components/logo"
-import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
-import Link from "next/link"
+import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 
 export default async function SettingsPage() {
   const cookieStore = await cookies()
@@ -37,16 +33,8 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-14 md:pb-0">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-8 flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </Link>
-          <Logo />
-        </div>
+    <AppLayoutWrapper>
+      <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground mt-1">Manage your profile, connections, and content sources.</p>
@@ -63,8 +51,7 @@ export default async function SettingsPage() {
           />
         </div>
       </div>
-      <MobileNav />
       <Toaster position="bottom-right" />
-    </div>
+    </AppLayoutWrapper>
   )
 }

@@ -4,6 +4,7 @@ import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagFeed } from "@/components/post-aggregator/show-tag-feed"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { AppLayoutWrapper } from "@/components/layout/app-layout-wrapper"
 
 const POST_SELECT_QUERY = `
   *,
@@ -72,8 +73,8 @@ export default async function ShowTagPage({ params }: { params: Promise<{ showTa
 
   // Render the feed using the canonical tag's data. The URL in the browser remains the alias.
   return (
-    <main className="min-h-screen bg-background">
+    <AppLayoutWrapper>
       <ShowTagFeed showTag={canonicalTag} initialPlatformPosts={(initialPlatformPosts as Post[]) || []} />
-    </main>
+    </AppLayoutWrapper>
   )
 }

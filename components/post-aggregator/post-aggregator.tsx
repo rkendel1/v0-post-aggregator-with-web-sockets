@@ -326,18 +326,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       {isSidebarOpen && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
       <div className="flex-1 flex flex-col">
-        <header className="border-b bg-card p-3 sticky top-0 z-30 md:p-4 md:space-y-4">
+        <header className="border-b bg-card p-3 sticky top-0 z-30 md:p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:gap-4">
               <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={profile?.avatar_url || undefined} />
-                  <AvatarFallback>{profile?.display_name?.slice(0, 1) || "?"}</AvatarFallback>
-                </Avatar>
+                <Menu className="h-6 w-6" />
               </Button>
-              <div className="md:hidden">
-                <Logo />
-              </div>
+              <Logo />
               <div className="hidden md:block">
                 <h1 className="text-2xl font-bold text-foreground">
                   {!user
@@ -354,12 +349,22 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
             </div>
             <div className="flex items-center gap-2">
               {user && (
-                <Button asChild variant="outline" size="sm" className="hidden md:flex">
-                  <Link href="/settings">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="ghost" size="icon" className="md:hidden" asChild>
+                    <Link href="/settings">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={profile?.avatar_url || undefined} />
+                        <AvatarFallback>{profile?.display_name?.slice(0, 1) || "?"}</AvatarFallback>
+                      </Avatar>
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="hidden md:flex">
+                    <Link href="/settings">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           </div>

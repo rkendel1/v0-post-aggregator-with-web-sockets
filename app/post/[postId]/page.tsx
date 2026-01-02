@@ -42,16 +42,11 @@ export default async function PostDetailPage({ params }: { params: { postId: str
   return (
     <div className="min-h-screen bg-background pb-14 md:pb-0">
       <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <div className="flex items-center justify-center">
-            <Logo />
+        <div className="max-w-4xl mx-auto">
+          <Logo />
+          <div className="mt-2">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Post</h1>
           </div>
-          <div className="hidden md:block">
-            <h1 className="text-2xl font-bold text-foreground">Post</h1>
-          </div>
-        </div>
-        <div className="md:hidden mt-2">
-          <h1 className="text-xl font-bold text-foreground">Post</h1>
         </div>
       </header>
       <div className="max-w-2xl mx-auto p-4">

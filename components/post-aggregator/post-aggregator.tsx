@@ -202,8 +202,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       }
     }
 
-    const { data } = await query.range(offset, offset + POSTS_PER_PAGE - 1)
+    const { data, error } = await query.range(offset, offset + POSTS_PER_PAGE - 1)
 
+    if (error) {
+      console.error("[Main Feed] Error loading more posts:", error)
+    }
     if (data) {
       setPosts((prev) => [...prev, ...(data as Post[])])
       setOffset((prev) => prev + data.length)
@@ -231,7 +234,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     const handleInsert = async (payload: any) => {
-      const { data } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
+      const { data, error } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
+      if (error) {
+        console.error("[Main Feed] Error fetching new post in real-time:", error)
+        return
+      }
       if (data) {
         setPosts((current) => {
           if (current.some((post) => post.id === data.id)) return current

@@ -24,39 +24,34 @@ export function SettingsPageContent({
   const [activeTab, setActiveTab] = useState("settings")
 
   return (
-    <div className="flex flex-col h-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
       <header className="border-b bg-card p-4 sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Settings</h1>
+        <TabsList>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+        </TabsList>
       </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 pt-4 border-b">
-          <TabsList>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-          </TabsList>
+      <TabsContent value="settings" className="flex-1 overflow-auto mt-0">
+        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+          <p className="text-muted-foreground mb-6">Manage your profile, connections, and content sources.</p>
+          <div className="space-y-8">
+            <ProfileSettings profile={profile} />
+            <ConnectedAccountsManager
+              connectedAccounts={connectedAccounts}
+              availablePlatforms={availablePlatforms}
+            />
+            <RssImportManager initialRssFeeds={rssFeeds} />
+          </div>
         </div>
+      </TabsContent>
 
-        <TabsContent value="settings" className="flex-1 overflow-auto mt-0">
-          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-            <p className="text-muted-foreground mb-6">Manage your profile, connections, and content sources.</p>
-            <div className="space-y-8">
-              <ProfileSettings profile={profile} />
-              <ConnectedAccountsManager
-                connectedAccounts={connectedAccounts}
-                availablePlatforms={availablePlatforms}
-              />
-              <RssImportManager initialRssFeeds={rssFeeds} />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="profile" className="flex-1 overflow-auto mt-0">
-          <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
-            <UserProfileView profile={profile} />
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+      <TabsContent value="profile" className="flex-1 overflow-auto mt-0">
+        <div className="max-w-4xl mx-auto p-6 pb-14 md:pb-6">
+          <UserProfileView profile={profile} />
+        </div>
+      </TabsContent>
+    </Tabs>
   )
 }

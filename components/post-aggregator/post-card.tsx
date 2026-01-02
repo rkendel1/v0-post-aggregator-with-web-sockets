@@ -125,15 +125,25 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
       className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer"
       onClick={(e) => {
         // Only navigate if we're not clicking on an interactive element
-        const target = e.target as HTMLElement
+        const target = e.target
+        
+        // Type guard to ensure target is an Element
+        if (!(target instanceof Element)) {
+          return
+        }
+        
+        // Don't navigate if clicking on buttons or links
         if (
           target.tagName === 'BUTTON' ||
           target.tagName === 'A' ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
           target.closest('button') ||
           target.closest('a')
         ) {
           return
         }
+        
         router.push(`/post/${post.id}`)
       }}
     >

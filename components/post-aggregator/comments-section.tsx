@@ -10,6 +10,7 @@ import { formatDistanceToNow } from "date-fns"
 import { Send } from "lucide-react"
 import { ReactionPicker } from "./reaction-picker"
 import { useRouter } from "next/navigation"
+import { getUserProfileNavigationPath } from "@/lib/utils"
 
 interface CommentsSectionProps {
   postId: string
@@ -178,12 +179,11 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  if (comment.user_profiles?.username) {
-                    router.push(`/${comment.user_profiles.username}`)
-                  }
+                  const path = getUserProfileNavigationPath(comment.user_profiles)
+                  if (path) router.push(path)
                 }}
-                className={comment.user_profiles?.username ? "cursor-pointer" : "cursor-default"}
-                disabled={!comment.user_profiles?.username}
+                className={getUserProfileNavigationPath(comment.user_profiles) ? "cursor-pointer" : "cursor-default"}
+                disabled={!getUserProfileNavigationPath(comment.user_profiles)}
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={comment.user_profiles?.avatar_url || undefined} />
@@ -196,12 +196,11 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
-                      if (comment.user_profiles?.username) {
-                        router.push(`/${comment.user_profiles.username}`)
-                      }
+                      const path = getUserProfileNavigationPath(comment.user_profiles)
+                      if (path) router.push(path)
                     }}
-                    className={`font-medium text-sm ${comment.user_profiles?.username ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                    disabled={!comment.user_profiles?.username}
+                    className={`font-medium text-sm ${getUserProfileNavigationPath(comment.user_profiles) ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                    disabled={!getUserProfileNavigationPath(comment.user_profiles)}
                   >
                     {comment.user_profiles?.display_name || "Anonymous"}
                   </button>
@@ -248,12 +247,11 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                       <div key={reply.id} className="flex gap-3">
                         <button
                           onClick={() => {
-                            if (reply.user_profiles?.username) {
-                              router.push(`/${reply.user_profiles.username}`)
-                            }
+                            const path = getUserProfileNavigationPath(reply.user_profiles)
+                            if (path) router.push(path)
                           }}
-                          className={reply.user_profiles?.username ? "cursor-pointer" : "cursor-default"}
-                          disabled={!reply.user_profiles?.username}
+                          className={getUserProfileNavigationPath(reply.user_profiles) ? "cursor-pointer" : "cursor-default"}
+                          disabled={!getUserProfileNavigationPath(reply.user_profiles)}
                         >
                           <Avatar className="h-7 w-7">
                             <AvatarImage src={reply.user_profiles?.avatar_url || undefined} />
@@ -266,12 +264,11 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => {
-                                if (reply.user_profiles?.username) {
-                                  router.push(`/${reply.user_profiles.username}`)
-                                }
+                                const path = getUserProfileNavigationPath(reply.user_profiles)
+                                if (path) router.push(path)
                               }}
-                              className={`font-medium text-sm ${reply.user_profiles?.username ? "hover:underline cursor-pointer" : "cursor-default"}`}
-                              disabled={!reply.user_profiles?.username}
+                              className={`font-medium text-sm ${getUserProfileNavigationPath(reply.user_profiles) ? "hover:underline cursor-pointer" : "cursor-default"}`}
+                              disabled={!getUserProfileNavigationPath(reply.user_profiles)}
                             >
                               {reply.user_profiles?.display_name || "Anonymous"}
                             </button>

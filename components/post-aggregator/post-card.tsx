@@ -16,7 +16,7 @@ import { PostActions } from "./post-actions"
 import toast from "react-hot-toast"
 import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
-import { cn } from "@/lib/utils"
+import { cn, getPostNavigationPath } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 
 interface PostCardProps {
@@ -112,17 +112,13 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   }
 
   const handleAvatarClick = () => {
-    // User-generated posts: navigate to user profile
-    if (!post.external_guid && post.user_profiles?.username) {
-      router.push(`/${post.user_profiles.username}`)
-    }
-    // Official/external posts: navigate to show tag page
-    else if (post.external_guid && post.show_tags?.tag) {
-      router.push(`/show/${post.show_tags.tag}`)
+    const path = getPostNavigationPath(post)
+    if (path) {
+      router.push(path)
     }
   }
 
-  const isAvatarClickable = (!post.external_guid && post.user_profiles?.username) || (post.external_guid && post.show_tags?.tag)
+  const isAvatarClickable = getPostNavigationPath(post) !== null
 
   return (
     <Card className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t">

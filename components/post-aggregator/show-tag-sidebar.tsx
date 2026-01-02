@@ -81,81 +81,68 @@ export function ShowTagSidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
+          {feedTags.length > 0 && (
+            <Button
+              variant={selectedFeedId === "all" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => onSelectFeed("all")}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              All Feeds
+            </Button>
+          )}
+          <Button asChild variant="ghost" className="w-full justify-start">
+            <Link href="/queue">
+              <ListMusic className="h-4 w-4 mr-2" />
+              My Queue
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="w-full justify-start">
+            <Link href="/saved">
+              <Bookmark className="h-4 w-4 mr-2" />
+              Saved Posts
+            </Link>
+          </Button>
+
           {feedTags.length === 0 ? (
-            <>
-              <Button asChild variant="ghost" className="w-full justify-start">
-                <Link href="/queue">
-                  <ListMusic className="h-4 w-4 mr-2" />
-                  My Queue
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" className="w-full justify-start">
-                <Link href="/saved">
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Saved Posts
-                </Link>
-              </Button>
-              <div className="p-2 text-center text-xs text-muted-foreground">
-                No tags in your feed. Click the icon above to add some!
-              </div>
-            </>
+            <div className="p-2 text-center text-xs text-muted-foreground">
+              No tags in your feed. Click the icon above to add some!
+            </div>
           ) : (
-            <>
-              <Button
-                variant={selectedFeedId === "all" ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => onSelectFeed("all")}
-              >
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                All Feeds
-              </Button>
-              <Button asChild variant="ghost" className="w-full justify-start">
-                <Link href="/queue">
-                  <ListMusic className="h-4 w-4 mr-2" />
-                  My Queue
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" className="w-full justify-start">
-                <Link href="/saved">
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Saved Posts
-                </Link>
-              </Button>
-              <Accordion type="multiple" defaultValue={["Comedy"]} className="w-full">
-                {categories.map((category) => (
-                  <AccordionItem value={category} key={category}>
-                    <AccordionTrigger className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase hover:no-underline">
-                      {category}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-1">
-                        {groupedTags[category].map((tag) => {
-                          const subdomain = tag.subdomain_mappings?.[0]?.subdomain || tag.tag.toLowerCase()
-                          const href = `https://${subdomain}.${rootDomain}`
-                          return (
-                            <Button
-                              asChild
-                              key={tag.id}
-                              variant="ghost"
-                              className="w-full justify-start font-mono h-auto py-1.5 text-left min-w-0"
-                            >
-                              <Link href={href}>
-                                <div className="flex flex-col items-start overflow-hidden">
-                                  <span className="font-bold truncate">#{tag.tag}</span>
-                                  <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
-                                    {tag.name}
-                                  </span>
-                                </div>
-                              </Link>
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </>
+            <Accordion type="multiple" defaultValue={["Comedy"]} className="w-full">
+              {categories.map((category) => (
+                <AccordionItem value={category} key={category}>
+                  <AccordionTrigger className="px-2 py-1 text-xs font-semibold text-muted-foreground tracking-wider uppercase hover:no-underline">
+                    {category}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-1">
+                      {groupedTags[category].map((tag) => {
+                        const subdomain = tag.subdomain_mappings?.[0]?.subdomain || tag.tag.toLowerCase()
+                        const href = `https://${subdomain}.${rootDomain}`
+                        return (
+                          <Button
+                            asChild
+                            key={tag.id}
+                            variant="ghost"
+                            className="w-full justify-start font-mono h-auto py-1.5 text-left min-w-0"
+                          >
+                            <Link href={href}>
+                              <div className="flex flex-col items-start overflow-hidden">
+                                <span className="font-bold truncate">#{tag.tag}</span>
+                                <span className="text-xs text-muted-foreground font-sans whitespace-normal text-left">
+                                  {tag.name}
+                                </span>
+                              </div>
+                            </Link>
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           )}
         </div>
       </ScrollArea>

@@ -16,9 +16,11 @@ export function getPostNavigationPath(post: Post): string | null {
   if (!post.external_guid && post.user_profiles?.username) {
     return `/${post.user_profiles.username}`
   }
-  // Official/external posts: navigate to show tag page
+  // Official/external posts: navigate to show tag subdomain
   if (post.external_guid && post.show_tags?.tag) {
-    return `/show/${post.show_tags.tag}`
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+    const subdomain = post.show_tags.subdomain_mappings?.[0]?.subdomain || post.show_tags.tag.toLowerCase()
+    return `https://${subdomain}.${rootDomain}`
   }
   return null
 }

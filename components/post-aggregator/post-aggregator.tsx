@@ -149,7 +149,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       const query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
         }
@@ -160,7 +160,10 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       if (hiddenPostIds.length > 0) query.not("id", "in", `(${hiddenPostIds.join(",")})`)
 
-      const { data } = await query.range(0, POSTS_PER_PAGE - 1)
+      const { data, error } = await query.range(0, POSTS_PER_PAGE - 1)
+      if (error) {
+        console.error("[Main Feed] Error fetching posts:", error)
+      }
       if (data) {
         setPosts(data as Post[])
         setOffset(data.length)
@@ -192,15 +195,18 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       }
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",") : []
+        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
         if (tagIds.length > 0) query.in("show_tag_id", tagIds)
       } else if (selectedFeedId) {
         query.eq("show_tag_id", selectedFeedId)
       }
     }
 
-    const { data } = await query.range(offset, offset + POSTS_PER_PAGE - 1)
+    const { data, error } = await query.range(offset, offset + POSTS_PER_PAGE - 1)
 
+    if (error) {
+      console.error("[Main Feed] Error loading more posts:", error)
+    }
     if (data) {
       setPosts((prev) => [...prev, ...(data as Post[])])
       setOffset((prev) => prev + data.length)
@@ -213,7 +219,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   useEffect(() => {
     if (!user || activeFeed === "for-you" || !selectedFeedId) return
 
-    const tagIds = feedTagIds ? feedTagIds.split(",") : []
+    const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
     
     // Determine the filter for real-time updates
     let filter: string | undefined
@@ -228,7 +234,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     const handleInsert = async (payload: any) => {
-      const { data } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
+      const { data, error } = await supabase.from("posts").select(POST_SELECT_QUERY).eq("id", payload.new.id).single()
+      if (error) {
+        console.error("[Main Feed] Error fetching new post in real-time:", error)
+        return
+      }
       if (data) {
         setPosts((current) => {
           if (current.some((post) => post.id === data.id)) return current

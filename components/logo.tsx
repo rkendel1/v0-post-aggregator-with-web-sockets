@@ -3,14 +3,17 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 export function Logo() {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+  const baseUrl = `https://${rootDomain}`
+  
   return (
-    <Link href="/" className="flex items-center justify-center h-8">
+    <Link href={baseUrl} className="flex items-center justify-center h-8">
       {/* Light mode logo (black text on light background) */}
       <Image
         src="/pb_black.PNG"
         alt="PodBridge Logo"
-        width={80}
-        height={24}
+        width={120}
+        height={36}
         className="dark:hidden"
         priority
         unoptimized
@@ -19,8 +22,8 @@ export function Logo() {
       <Image
         src="/pb_white.PNG"
         alt="PodBridge Logo"
-        width={80}
-        height={24}
+        width={120}
+        height={36}
         className="hidden dark:block"
         priority
         unoptimized

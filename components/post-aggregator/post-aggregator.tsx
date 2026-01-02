@@ -335,7 +335,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
                   <AvatarFallback>{profile?.display_name?.slice(0, 1) || "?"}</AvatarFallback>
                 </Avatar>
               </Button>
-              <div className="md:hidden w-28">
+              <div className="md:hidden">
                 <Logo />
               </div>
               <div className="hidden md:block">

@@ -45,7 +45,7 @@ export default async function PostDetailPage({ params }: { params: { postId: str
         <div className="max-w-4xl mx-auto">
           <Logo />
           <div className="mt-2">
-            <h1 className="text-2xl md:text-xl font-bold text-foreground">Post</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Post</h1>
           </div>
         </div>
       </header>

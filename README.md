@@ -1,6 +1,13 @@
 # PodBridge – Your podcasts, unified.
 
-A real-time podcast aggregator platform that allows users to follow show and episode tags (like #JoeRogan, #JoeRogan:2000) and aggregate posts from multiple podcast platforms and social sources. Built with Next.js, Supabase, and WebSockets for instant updates.
+A real-time podcast aggregator platform that allows users to follow show and episode tags (like #JoeRogan, #HubermanLab) and engage with a community around their favorite podcasts. Built with Next.js, Supabase, and WebSockets for instant updates.
+
+## Quick Links
+
+- **[Development Guide](./DEVELOPMENT.md)** - Get started developing
+- **[Architecture Documentation](./ARCHITECTURE.md)** - System design and technical details
+- **[Technical Debt](./TECHNICAL_DEBT.md)** - Known issues and improvement areas
+- **[AI Rules](./AI_RULES.md)** - Guidelines for AI-assisted development
 
 ## Current Features
 
@@ -137,25 +144,27 @@ A real-time podcast aggregator platform that allows users to follow show and epi
 - [ ] **White Label**: Custom branding options
 - [ ] **Enterprise Features**: Team accounts and collaboration tools
 
-## Database Overview
+## Architecture
 
-### Core Tables
-- `posts`: User-generated content with show tag associations
-- `show_tags`: Tag definitions and metadata (formerly cash_tags)
-- `sources`: Content sources for each tag
-- `user_subscriptions`: User subscriptions to specific tags
+PodBridge uses a modern, real-time architecture:
 
-### Social Tables
-- `comments`: Threaded comments on posts
-- `reactions`: Emoji reactions on posts and comments
-- `post_follows`: Users following specific posts
-- `user_follows`: Users following other users
-- `tag_follows`: Users following show tags
+- **Show Tags**: Central organizing concept - each tag represents a podcast or creator
+- **Subdomain Routing**: Each show can have a branded subdomain (e.g., `huberman-lab.podbridge.app`)
+- **Real-time Updates**: WebSocket subscriptions keep all clients in sync
+- **Row Level Security**: Database-level access control for data privacy
 
-### Federation Tables
-- `connected_accounts`: External platform credentials
-- `federated_posts`: Outbound posts to external platforms
-- `aggregated_posts`: Inbound posts from external platforms
+### Database Schema
+
+See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for complete schema documentation.
+
+**Key Tables**:
+- `show_tags` - Podcast/creator definitions
+- `posts` - Content (user posts and podcast episodes)
+- `comments` - Threaded discussions
+- `reactions` - Emoji reactions
+- `saved_posts` - User's saved posts and playback queue
+- `connected_accounts` - External platform integrations (planned)
+- `show_community_links` - Discord and other community links
 
 ## Technical Stack
 
@@ -169,27 +178,47 @@ A real-time podcast aggregator platform that allows users to follow show and epi
 
 ## Getting Started
 
-### Prerequisites
-- Node.js 18+
-- Supabase account
-- Connected Supabase integration in v0
+### Quick Start
 
-### Installation
+```bash
+# Clone the repository
+git clone https://github.com/rkendel1/v0-post-aggregator-with-web-sockets.git
+cd v0-post-aggregator-with-web-sockets
 
-1. Run all SQL scripts in order:
-   ```
-   001_create_schema.sql
-   002_seed_data.sql
-   003_add_connected_accounts.sql
-   004_add_comments_replies.sql
-   005_add_reactions.sql
-   006_add_following_system.sql
-   007_add_post_federation.sql
-   ```
+# Install dependencies
+npm install
 
-2. The app will automatically use environment variables from your Supabase integration
+# Set up environment variables (see DEVELOPMENT.md)
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials
 
-3. Start developing - all changes sync in real-time!
+# Start development server
+npm run dev
+```
+
+### Database Setup
+
+Run all SQL migration scripts in order in your Supabase SQL Editor:
+
+```
+scripts/001_create_schema.sql
+scripts/002_seed_data.sql
+scripts/003_add_connected_accounts.sql
+scripts/004_add_comments_replies.sql
+scripts/005_add_reactions.sql
+scripts/006_add_following_system.sql
+scripts/007_add_post_federation.sql
+scripts/008_populate_more_shows.sql
+scripts/010_fix_show_tags_constraint.sql
+scripts/011_add_episode_slugs_and_discord.sql
+scripts/012_add_test_discord_links.sql
+scripts/013_add_is_saved_column.sql
+scripts/014_fix_user_profiles_foreign_keys.sql
+```
+
+**Important**: Run scripts in numerical order.
+
+For detailed setup instructions, see **[DEVELOPMENT.md](./DEVELOPMENT.md)**.
 
 ### Key Concepts
 
@@ -210,24 +239,91 @@ Posts can be published to multiple platforms with status tracking:
 
 ## Contributing
 
-This is a v0 project. To contribute:
-1. Download the ZIP or clone from GitHub
-2. Make your changes locally
-3. Test thoroughly with Supabase
-4. Submit pull requests via GitHub integration
+We welcome contributions! To get started:
+
+1. **Read the docs**:
+   - [DEVELOPMENT.md](./DEVELOPMENT.md) - Development setup and guidelines
+   - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
+   - [AI_RULES.md](./AI_RULES.md) - Coding standards and library usage
+
+2. **Set up your environment**:
+   - Fork the repository
+   - Follow setup instructions in DEVELOPMENT.md
+   - Create a feature branch
+
+3. **Make your changes**:
+   - Follow existing code patterns
+   - Use TypeScript, Tailwind CSS, and shadcn/ui components
+   - Test your changes thoroughly
+
+4. **Submit a pull request**:
+   - Describe your changes clearly
+   - Link any related issues
+   - Ensure all checks pass
+
+### Development Commands
+
+```bash
+npm run dev    # Start development server
+npm run build  # Build for production
+npm run lint   # Run ESLint
+```
 
 ## License
 
 MIT License - Feel free to use this project for personal or commercial purposes.
 
-## Support
+## Documentation
 
-For issues or questions:
-- Check the Supabase dashboard for database errors
-- Review the browser console for client-side errors
-- Ensure all SQL scripts have been executed in order
-- Verify environment variables are properly set
+### For Developers
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Complete development guide
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture and design
+- **[AI_RULES.md](./AI_RULES.md)** - AI-assisted development guidelines
+- **[TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md)** - Known issues and improvement areas
+
+### Implementation Guides
+- See `docs/guides/` for feature-specific documentation
+- Historical implementation notes in `docs/archive/`
+
+## Troubleshooting
+
+Common issues and solutions:
+
+**Database Connection Errors**
+- Verify environment variables in `.env.local`
+- Check Supabase project is active
+- Ensure all migrations have been run
+
+**Real-time Updates Not Working**
+- Verify Realtime is enabled for tables in Supabase
+- Check browser console for WebSocket errors
+- Ensure proper subscription cleanup in components
+
+**Build Errors**
+- Run `npm install` to ensure all dependencies are installed
+- Check TypeScript errors with `npx tsc --noEmit`
+- Clear `.next` cache: `rm -rf .next && npm run build`
+
+For more help, see [DEVELOPMENT.md](./DEVELOPMENT.md#troubleshooting) or create an issue.
+
+## Current Status
+
+**Active Features**: ✅
+- Real-time feed updates
+- Show tag following
+- Comments and reactions
+- User profiles and following
+- Audio episode playback
+- Save posts and queue management
+- Discord community integration
+
+**In Development**: 🚧
+- Automated content aggregation
+- External platform federation
+- OAuth for connected accounts
+
+See **[TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md)** for detailed status and roadmap.
 
 ---
 
-Built with ❤️ using v0, Next.js, and Supabase
+Built with ❤️ using Next.js, Supabase, and Tailwind CSS

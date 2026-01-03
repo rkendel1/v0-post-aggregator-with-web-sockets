@@ -92,7 +92,7 @@ export function QueueFeed({ initialPosts }: QueueFeedProps) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={posts} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-3">
           {posts.map((post) => (
             <SortablePostItem key={post.id} post={post} currentUser={currentUser} onUnsave={handleUnsave} />
           ))}

@@ -62,7 +62,7 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
     <Card className="rounded-lg border overflow-hidden">
       {/* Compact view - always visible */}
       <div 
-        className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent/50 transition-colors"
+        className="flex items-center gap-2 p-2 sm:p-3 cursor-pointer hover:bg-accent/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {/* Thumbnail - smaller on mobile */}
@@ -71,7 +71,7 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
             <img
               src={post.image_url}
               alt={post.content.substring(0, 50)}
-              className="h-12 w-12 sm:h-14 sm:w-14 object-cover rounded"
+              className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded"
               onError={(e) => {
                 e.currentTarget.style.display = "none"
                 const avatar = e.currentTarget.nextElementSibling as HTMLElement
@@ -79,7 +79,7 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
               }}
             />
           ) : (
-            <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
+            <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
               <AvatarImage src={post.author_avatar || undefined} />
               <AvatarFallback>{post.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -88,7 +88,7 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
 
         {/* Title and metadata */}
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm line-clamp-1 sm:line-clamp-2">
+          <p className="font-medium text-sm line-clamp-1 sm:line-clamp-2 mb-0.5">
             {post.content}
           </p>
           <p className="text-xs text-muted-foreground truncate">

@@ -28,6 +28,7 @@ import toast, { Toaster } from "react-hot-toast"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { BulkUploadCreators } from "@/components/admin/bulk-upload-creators"
 
 interface ShowRssFeed {
   rss_url: string
@@ -190,14 +191,21 @@ export function AdminDashboard({ initialTags }: AdminDashboardProps) {
   return (
     <>
       <Toaster position="bottom-right" />
-      <div className="flex justify-end mb-4">
-        <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [], show_community_links: [] }); setIsEditing(true) }}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          New Tag
-        </Button>
-      </div>
-      <div className="border rounded-lg">
-        <Table>
+      <Tabs defaultValue="manage" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="manage">Manage Tags</TabsTrigger>
+          <TabsTrigger value="bulk-upload">Bulk Upload</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="manage" className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => { setCurrentTag({ tag: '', name: '', parent_tag_id: null, subdomain: '', rss_urls: [], show_community_links: [] }); setIsEditing(true) }}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Tag
+            </Button>
+          </div>
+          <div className="border rounded-lg">
+            <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Tag</TableHead>
@@ -247,8 +255,14 @@ export function AdminDashboard({ initialTags }: AdminDashboardProps) {
               )
             })}
           </TableBody>
-        </Table>
-      </div>
+            </Table>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="bulk-upload">
+          <BulkUploadCreators />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent className="grid grid-rows-[auto_1fr_auto] max-h-[90vh]">

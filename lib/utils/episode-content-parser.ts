@@ -128,8 +128,14 @@ export function stripHtml(html: string): string {
     '&nbsp;': ' '
   }
   
-  for (const [entity, char] of Object.entries(entities)) {
-    text = text.replace(new RegExp(entity, 'gi'), char)
+  // Pre-compile regex patterns for better performance
+  const entityPatterns = Object.entries(entities).map(([entity, char]) => ({
+    pattern: new RegExp(entity, 'gi'),
+    replacement: char
+  }))
+  
+  for (const { pattern, replacement } of entityPatterns) {
+    text = text.replace(pattern, replacement)
   }
   
   // Decode numeric entities

@@ -7,13 +7,11 @@ import { cn } from "@/lib/utils"
 interface FormattedEpisodeContentProps {
   content: string
   className?: string
-  isExpanded?: boolean
 }
 
 export function FormattedEpisodeContent({ 
   content, 
-  className,
-  isExpanded = true 
+  className
 }: FormattedEpisodeContentProps) {
   const router = useRouter()
   

@@ -218,7 +218,6 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                   >
                     <FormattedEpisodeContent 
                       content={post.content}
-                      isExpanded={isExpanded}
                     />
                   </div>
                   {showExpandButton && (

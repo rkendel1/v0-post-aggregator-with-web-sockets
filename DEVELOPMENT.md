@@ -77,10 +77,13 @@ Create a `.env.local` file in the project root:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_ROOT_DOMAIN=podbridge.app
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-**Note**: If using Vercel or v0 integration, environment variables may be automatically configured.
+**Note**: 
+- `NEXT_PUBLIC_ROOT_DOMAIN` should be set to your root domain (e.g., `podbridge.app` for production, or can be omitted for localhost development)
+- If using Vercel or v0 integration, environment variables may be automatically configured.
 
 ### 5. Start Development Server
 

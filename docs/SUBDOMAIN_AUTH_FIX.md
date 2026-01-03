@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Users were consistently being logged out when navigating to subdomains (e.g., `latest-breaking-news-on-fox-news.podbridge.app`) and encountered authentication errors when trying to sign in with Google OAuth.
+Users were consistently being logged out when navigating to subdomains (e.g., `latest-breaking-news-on-fox-news.podbridge.app`) and encountered authentication errors when trying to sign in with Google OAuth. Additionally, authenticated users were being prompted to log in again when accessing protected pages like `/queue`, `/saved`, and `/settings`.
 
 ## Root Cause
 
@@ -12,11 +12,13 @@ The authentication issue occurred because:
 
 2. **Cross-Subdomain Cookie Issues**: While cookies were being set with `domain: .podbridge.app`, they lacked the explicit `path: '/'` attribute, which could cause compatibility issues in some browsers.
 
+3. **Environment Variable Inconsistency** (Fixed Jan 2026): Server-side Supabase client creation in `lib/supabase/server.ts` and `middleware.ts` was using `SUPABASE_URL` and `SUPABASE_ANON_KEY`, while client-side code used `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. When server-only env vars weren't set, server-side session validation failed, causing re-login prompts.
+
 ## Solution
 
 ### Overview
 
-The fix ensures that all OAuth authentication flows use the main domain (`podbridge.app`) for the callback URL, while preserving the user's current subdomain so they can be redirected back after successful authentication.
+The fix ensures that all OAuth authentication flows use the main domain (`podbridge.app`) for the callback URL, while preserving the user's current subdomain so they can be redirected back after successful authentication. All Supabase clients now use consistent environment variables to ensure reliable session management.
 
 ### Implementation Details
 
@@ -77,6 +79,32 @@ Added explicit `path: '/'` to all cookie operations in:
 - `middleware.ts`
 
 This ensures cookies work correctly across all subdomains.
+
+#### 6. Environment Variable Consistency (Jan 2026)
+
+Fixed environment variable inconsistency that was causing re-login prompts:
+
+**Before:**
+```typescript
+// lib/supabase/server.ts
+createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, ...)
+
+// middleware.ts
+createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, ...)
+```
+
+**After:**
+```typescript
+// lib/supabase/server.ts
+createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, ...)
+
+// middleware.ts
+createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, ...)
+```
+
+Also removed unreliable env variable mapping from `next.config.mjs` that was attempting to map `SUPABASE_URL` → `NEXT_PUBLIC_SUPABASE_URL`.
+
+This ensures consistent session validation across all server-side and client-side code, preventing authentication failures on protected pages.
 
 ## Authentication Flow
 
@@ -186,9 +214,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
 - `components/auth/sign-in-form.tsx` - Sign-in UI
 - `components/auth/sign-up-form.tsx` - Sign-up UI
 - `app/auth/callback/route.ts` - OAuth callback handler
-- `lib/supabase/client.ts` - Client-side Supabase config
-- `lib/supabase/server.ts` - Server-side Supabase config
-- `middleware.ts` - Next.js middleware for routing
+- `lib/supabase/client.ts` - Client-side Supabase config (uses `NEXT_PUBLIC_*` env vars)
+- `lib/supabase/server.ts` - Server-side Supabase config (uses `NEXT_PUBLIC_*` env vars)
+- `middleware.ts` - Next.js middleware for routing and session refresh (uses `NEXT_PUBLIC_*` env vars)
+- `next.config.mjs` - Next.js configuration (env mapping removed)
+- `DEVELOPMENT.md` - Environment variable documentation
 
 ## References
 

@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
     
+    // Store cookies to be set on the response
+    const cookiesToSet: Array<{ name: string; value: string; options: any }> = []
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,26 +24,28 @@ export async function GET(request: NextRequest) {
           getAll() {
             return cookieStore.getAll()
           },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                // Set domain to allow cookie sharing across subdomains
-                const cookieOptions = {
-                  ...options,
-                  domain: `.${rootDomain}`,
-                  path: '/', // Explicitly set path for better compatibility
-                }
+          setAll(cookieList) {
+            // Collect cookies to set them on the response later
+            cookieList.forEach(({ name, value, options }) => {
+              // Set domain to allow cookie sharing across subdomains
+              const cookieOptions = {
+                ...options,
+                domain: `.${rootDomain}`,
+                path: '/', // Explicitly set path for better compatibility
+              }
+              cookiesToSet.push({ name, value, options: cookieOptions })
+              // Also set on cookieStore for immediate availability
+              try {
                 cookieStore.set(name, value, cookieOptions)
-              })
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
+              } catch {
+                // Ignore errors from Server Component context
+              }
+            })
           },
         },
       }
     )
+    
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       // Validate the redirect URL to prevent open redirect attacks
@@ -60,7 +65,15 @@ export async function GET(request: NextRequest) {
         redirectUrl = `${origin}${next}`
       }
       
-      return NextResponse.redirect(redirectUrl)
+      // Create the redirect response
+      const response = NextResponse.redirect(redirectUrl)
+      
+      // Set all collected cookies on the response
+      cookiesToSet.forEach(({ name, value, options }) => {
+        response.cookies.set(name, value, options)
+      })
+      
+      return response
     }
   }
 

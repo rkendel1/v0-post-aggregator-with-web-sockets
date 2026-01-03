@@ -8,13 +8,18 @@ interface Item {
   title?: string;
   creator?: string;
   isoDate?: string;
+  content?: string;
   contentSnippet?: string;
+  description?: string;
+  'content:encoded'?: string;
   enclosure?: {
     url?: string;
     type?: string;
   };
   itunes?: {
     image?: string;
+    duration?: string;
+    summary?: string;
   };
 }
 
@@ -89,7 +94,12 @@ serve(async (req: Request) => {
           const guid = item.guid || item.link
           if (!guid || existingGuids.has(guid) || !item.title) return null
           
-          const postContent = [`#${showTag.tag} ${item.title}`, item.contentSnippet ? `\n\n${item.contentSnippet.split('\n')[0]}`: ''].join('');
+          // Get the richest content available - prefer full content over snippet
+          // RSS feeds often put timestamps and chapter markers in content/description
+          const episodeDescription = item['content:encoded'] || item.content || item.description || item.itunes?.summary || item.contentSnippet || '';
+          
+          // Build post content with title and full description
+          const postContent = [`#${showTag.tag} ${item.title}`, episodeDescription ? `\n\n${episodeDescription}` : ''].join('');
 
           return {
             content: postContent,

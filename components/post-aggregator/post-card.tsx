@@ -18,6 +18,7 @@ import { useAudioPlayer } from "@/contexts/audio-player-context"
 import { createClient } from "@/lib/supabase/client"
 import { cn, getPostNavigationPath } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import { FormattedEpisodeContent } from "./formatted-episode-content"
 
 // Interactive elements that should not trigger card navigation
 const INTERACTIVE_ELEMENTS = 'button, a, input, textarea'
@@ -143,7 +144,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
   return (
     <Card 
-      className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer py-2.5 sm:py-3 gap-0"
+      className="rounded-none border-x-0 border-t-0 sm:rounded-xl sm:border-t cursor-pointer py-2.5 sm:py-3 gap-0 overflow-hidden"
       onClick={(e) => {
         // Only navigate if we're not clicking on an interactive element
         if (!e.target || !(e.target instanceof Element)) {
@@ -158,7 +159,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
         router.push(`/post/${post.id}`)
       }}
     >
-      <div className="flex gap-2.5 sm:gap-3 px-2.5 sm:px-3">
+      <div className="flex gap-2.5 sm:gap-3 px-2.5 sm:px-3 min-w-0">
         <button
           onClick={(e) => {
             e.stopPropagation()
@@ -202,33 +203,81 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
 
           <div className="space-y-2 sm:space-y-3 mt-1">
             <div>
-              <div 
-                ref={contentRef}
-                className={cn(
-                  "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200",
-                  !isExpanded && showExpandButton && `sm:max-h-none max-h-[${MOBILE_MAX_HEIGHT_PX}px] overflow-hidden`
-                )}
-              >
-                {renderContentWithHashtags(post.content)}
-              </div>
-              {showExpandButton && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setIsExpanded(!isExpanded)
-                  }}
-                  className="sm:hidden text-xs text-primary hover:underline mt-1 flex items-center gap-1"
-                >
-                  {isExpanded ? (
-                    <>
-                      Show less <ChevronUp className="h-3 w-3" />
-                    </>
-                  ) : (
-                    <>
-                      Show more <ChevronDown className="h-3 w-3" />
-                    </>
+              {/* Use FormattedEpisodeContent for podcast episodes, regular rendering for other posts */}
+              {post.audio_url || post.external_guid ? (
+                <>
+                  <div 
+                    ref={contentRef}
+                    className={cn(
+                      "transition-all duration-200 overflow-hidden",
+                      !isExpanded && showExpandButton && "sm:max-h-none"
+                    )}
+                    style={{
+                      maxHeight: !isExpanded && showExpandButton ? `${MOBILE_MAX_HEIGHT_PX}px` : undefined
+                    }}
+                  >
+                    <FormattedEpisodeContent 
+                      content={post.content}
+                      isExpanded={isExpanded}
+                    />
+                  </div>
+                  {showExpandButton && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsExpanded(!isExpanded)
+                      }}
+                      className="sm:hidden text-xs text-primary hover:underline mt-1 flex items-center gap-1"
+                    >
+                      {isExpanded ? (
+                        <>
+                          Show less <ChevronUp className="h-3 w-3" />
+                        </>
+                      ) : (
+                        <>
+                          Show more <ChevronDown className="h-3 w-3" />
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
+                </>
+              ) : (
+                <>
+                  <div 
+                    ref={contentRef}
+                    className={cn(
+                      "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200 break-words",
+                      !isExpanded && showExpandButton && "sm:max-h-none"
+                    )}
+                    style={{
+                      maxHeight: !isExpanded && showExpandButton ? `${MOBILE_MAX_HEIGHT_PX}px` : undefined,
+                      overflow: !isExpanded && showExpandButton ? 'hidden' : 'visible',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'anywhere'
+                    }}
+                  >
+                    {renderContentWithHashtags(post.content)}
+                  </div>
+                  {showExpandButton && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setIsExpanded(!isExpanded)
+                      }}
+                      className="sm:hidden text-xs text-primary hover:underline mt-1 flex items-center gap-1"
+                    >
+                      {isExpanded ? (
+                        <>
+                          Show less <ChevronUp className="h-3 w-3" />
+                        </>
+                      ) : (
+                        <>
+                          Show more <ChevronDown className="h-3 w-3" />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
               )}
               {post.image_url && (
                 <div className="rounded-lg border overflow-hidden mt-2">

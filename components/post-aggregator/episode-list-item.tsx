@@ -16,6 +16,7 @@ import { SavePostButton } from "./save-post-button"
 import { AddToQueueButton } from "./add-to-queue-button"
 import { generateDiscordThreadName } from "@/lib/utils/slugs"
 import { DiscordEmbedModal } from "./discord-embed-modal"
+import { FormattedEpisodeContent } from "./formatted-episode-content"
 
 interface EpisodeListItemProps {
   episode: Post
@@ -62,7 +63,7 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
             <AvatarFallback>{episode.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="overflow-hidden text-left min-w-0 flex-1">
-            <p className="font-medium truncate text-sm sm:text-base" title={title}>{title}</p>
+            <p className="font-medium truncate text-sm sm:text-base break-words" title={title}>{title}</p>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {format(new Date(episode.created_at), "MMMM d, yyyy")}
             </p>
@@ -96,9 +97,14 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
               </Button>
             )}
           </div>
-          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-            {description || "No description available for this episode."}
-          </p>
+          {description ? (
+            <FormattedEpisodeContent 
+              content={description}
+              className="text-foreground/80"
+            />
+          ) : (
+            <p className="text-sm text-foreground/80">No description available for this episode.</p>
+          )}
         </div>
       </AccordionContent>
 

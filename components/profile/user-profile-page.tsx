@@ -18,6 +18,35 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { MessageSquare, Hash } from "lucide-react"
 
+/**
+ * Extended Comment type with nested post relationship for profile display
+ */
+interface CommentWithPost extends Comment {
+  posts?: {
+    id: string
+    content: string
+    show_tag_id: string
+    show_tags?: {
+      name: string
+    }
+  }
+}
+
+/**
+ * Extended Reaction type with nested post relationship for profile display
+ */
+interface ReactionWithPost extends Reaction {
+  posts?: {
+    id: string
+    content: string
+    author_name: string
+    show_tag_id: string
+    show_tags?: {
+      name: string
+    }
+  }
+}
+
 const POST_SELECT_QUERY = `
   *,
   show_tags (*),
@@ -43,12 +72,13 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
   const [supabase] = useState(() => createClient())
 
   // Activity states
-  const [comments, setComments] = useState<Comment[]>([])
+  const [comments, setComments] = useState<CommentWithPost[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
-  const [reactions, setReactions] = useState<Reaction[]>([])
+  const [reactions, setReactions] = useState<ReactionWithPost[]>([])
   const [reactionsLoading, setReactionsLoading] = useState(false)
   const [followedTags, setFollowedTags] = useState<TagFollow[]>([])
   const [followedTagsLoading, setFollowedTagsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("posts")
 
   const [authPrompt, setAuthPrompt] = useState({ open: false, message: "" })
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false)
@@ -125,7 +155,7 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
       .limit(50)
 
     if (data) {
-      setComments(data as Comment[])
+      setComments(data as CommentWithPost[])
     }
     setCommentsLoading(false)
   }, [profile.id, supabase])
@@ -152,7 +182,7 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
       .limit(50)
 
     if (data) {
-      setReactions(data as Reaction[])
+      setReactions(data as ReactionWithPost[])
     }
     setReactionsLoading(false)
   }, [profile.id, supabase])
@@ -174,6 +204,18 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
     }
     setFollowedTagsLoading(false)
   }, [profile.id, supabase])
+
+  // Handle tab changes and lazy load data
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    if (value === "comments" && comments.length === 0) {
+      fetchComments()
+    } else if (value === "reactions" && reactions.length === 0) {
+      fetchReactions()
+    } else if (value === "tags" && followedTags.length === 0) {
+      fetchFollowedTags()
+    }
+  }
 
   const titleElement = (
     <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">{profile.display_name}</h1>
@@ -214,18 +256,12 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
           </div>
         </div>
         
-        <Tabs defaultValue="posts" className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full sm:w-auto mb-4">
             <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="comments" onClick={() => !comments.length && fetchComments()}>
-              Comments
-            </TabsTrigger>
-            <TabsTrigger value="reactions" onClick={() => !reactions.length && fetchReactions()}>
-              Reactions
-            </TabsTrigger>
-            <TabsTrigger value="tags" onClick={() => !followedTags.length && fetchFollowedTags()}>
-              Followed Tags
-            </TabsTrigger>
+            <TabsTrigger value="comments">Comments</TabsTrigger>
+            <TabsTrigger value="reactions">Reactions</TabsTrigger>
+            <TabsTrigger value="tags">Followed Tags</TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts">
@@ -260,7 +296,7 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-sm text-muted-foreground">
-                              Commented on {(comment as any).posts?.show_tags?.name || "a post"}
+                              Commented on {comment.posts?.show_tags?.name || "a post"}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
@@ -284,21 +320,24 @@ export function UserProfilePage({ profile, initialPosts, showTags }: UserProfile
                 <p className="text-center text-muted-foreground">No reactions yet.</p>
               ) : (
                 reactions.map((reaction) => (
-                  <Card key={reaction.id} className="cursor-pointer hover:bg-accent/50 transition-colors"
-                    onClick={() => reaction.post_id && router.push(`/post/${reaction.post_id}`)}>
+                  <Card 
+                    key={reaction.id} 
+                    className={reaction.post_id ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""}
+                    onClick={() => reaction.post_id && router.push(`/post/${reaction.post_id}`)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex gap-3">
                         <span className="text-2xl flex-shrink-0">{reaction.reaction_types?.emoji}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-sm text-muted-foreground">
-                              Reacted to {(reaction as any).posts?.show_tags?.name || "a post"}
+                              Reacted to {reaction.posts?.show_tags?.name || "a post"}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {formatDistanceToNow(new Date(reaction.created_at), { addSuffix: true })}
                             </span>
                           </div>
-                          <p className="text-sm line-clamp-2">{(reaction as any).posts?.content}</p>
+                          <p className="text-sm line-clamp-2">{reaction.posts?.content}</p>
                         </div>
                       </div>
                     </CardContent>

@@ -3,6 +3,44 @@
  */
 
 /**
+ * Checks if the current environment is local development
+ * @returns true if running on localhost or 127.0.0.1
+ */
+function isLocalDevelopment(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.0.0.1')
+}
+
+/**
+ * Validates if a URL is safe to redirect to (same domain or subdomain)
+ * @param url - The URL to validate
+ * @returns true if the URL is safe to redirect to
+ */
+export function isSafeRedirectUrl(url: string): boolean {
+  try {
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+    const parsedUrl = new URL(url)
+    
+    // Allow localhost redirects in development
+    if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname.startsWith('127.0.0.1')) {
+      return true
+    }
+    
+    // Allow main domain and any subdomain of the root domain
+    if (parsedUrl.hostname === rootDomain || 
+        parsedUrl.hostname === `www.${rootDomain}` ||
+        parsedUrl.hostname.endsWith(`.${rootDomain}`)) {
+      return true
+    }
+    
+    return false
+  } catch {
+    // Invalid URL
+    return false
+  }
+}
+
+/**
  * Gets the main domain callback URL for OAuth flows
  * 
  * When users are on subdomains (e.g., show-name.podbridge.app), OAuth providers
@@ -17,7 +55,7 @@ export function getOAuthCallbackUrl(): string {
   // In production, always use HTTPS with the main domain
   // In development, use the current origin (localhost)
   if (typeof window !== 'undefined') {
-    if (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.0.0.1')) {
+    if (isLocalDevelopment()) {
       return `${window.location.origin}/auth/callback`
     }
     
@@ -40,11 +78,10 @@ export function getOAuthCallbackUrl(): string {
 export function getAuthRedirectUrl(): string {
   if (typeof window === 'undefined') return '/'
   
-  const currentUrl = window.location.href
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
   
   // If we're on localhost, just return the current origin
-  if (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.0.0.1')) {
+  if (isLocalDevelopment()) {
     return window.location.origin
   }
   

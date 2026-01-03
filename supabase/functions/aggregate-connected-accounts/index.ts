@@ -269,8 +269,8 @@ async function isDuplicate(
  * Returns true if content should be blocked
  */
 function shouldFilterContent(content: string): boolean {
-  // Handle empty content
-  if (!content || content.length === 0) {
+  // Handle null, undefined, or empty content
+  if (!content || typeof content !== 'string' || content.length === 0) {
     return false
   }
 
@@ -290,19 +290,36 @@ function shouldFilterContent(content: string): boolean {
   }
 
   // Check for too many URLs (more than 3 URLs indicates potential spam)
-  const urlPattern = /http[s]?:\/\/[^\s]+/gi
-  const urlMatches = content.match(urlPattern)
-  const urlCount = urlMatches ? urlMatches.length : 0
+  const urlCount = countUrls(content)
   if (urlCount > 3) {
     return true
   }
 
   // Check for excessive caps (might be shouting/spam)
-  const capsCount = (content.match(/[A-Z]/g) || []).length
-  const capsRatio = capsCount / content.length
+  const capsRatio = calculateCapsRatio(content)
   if (capsRatio > 0.5 && content.length > 20) {
     return true
   }
 
   return false
+}
+
+/**
+ * Count URLs in content
+ */
+function countUrls(content: string): number {
+  const urlPattern = /http[s]?:\/\/[^\s]+/gi
+  const urlMatches = content.match(urlPattern)
+  return urlMatches ? urlMatches.length : 0
+}
+
+/**
+ * Calculate ratio of capital letters to total letters
+ */
+function calculateCapsRatio(content: string): number {
+  if (!content || content.length === 0) {
+    return 0
+  }
+  const capsCount = (content.match(/[A-Z]/g) || []).length
+  return capsCount / content.length
 }

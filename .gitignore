@@ -25,3 +25,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# screenshots and test artifacts
+*.jpeg
+*.jpg
+*.png
+screenshot*.png
+http_*.jpeg

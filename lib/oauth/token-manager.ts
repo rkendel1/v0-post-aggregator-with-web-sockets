@@ -122,7 +122,7 @@ export async function getAllValidTokens(
       access_token,
       token_expires_at,
       scopes,
-      platforms (
+      platforms!inner (
         name,
         display_name
       )
@@ -144,8 +144,9 @@ export async function getAllValidTokens(
   // Get valid tokens for each account
   for (const account of accounts) {
     const token = await getValidAccessToken(account.id)
-    if (token && account.platforms?.name) {
-      tokens.set(account.platforms.name, token)
+    const platform = account.platforms as { name: string; display_name: string } | null
+    if (token && platform?.name) {
+      tokens.set(platform.name, token)
     }
   }
 

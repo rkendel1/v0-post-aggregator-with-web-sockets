@@ -64,7 +64,7 @@ export function parseCreatorCSV(csvContent: string): ParsedCreatorData[] {
     throw new Error('CSV must contain at least a header row and one data row')
   }
 
-  const headers = lines[0].split(',').map(h => h.trim())
+  const headers = parseCSVLine(lines[0])
   const results: ParsedCreatorData[] = []
 
   for (let i = 1; i < lines.length; i++) {
@@ -119,6 +119,11 @@ function parseCSVLine(line: string): string[] {
  * Parse a row object into structured creator data
  */
 function parseCreatorRow(row: CreatorUploadData): ParsedCreatorData {
+  // Validate required fields
+  if (!row.tag || !row.name) {
+    throw new Error('Missing required fields: tag and name')
+  }
+
   const result: ParsedCreatorData = {
     tag: row.tag.toLowerCase().trim(),
     name: row.name.trim(),

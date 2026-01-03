@@ -166,9 +166,16 @@ Subdomains must be unique. If a subdomain is already taken, you'll see a warning
 All RSS feed URLs and community link URLs must start with `http://` or `https://`. Check your URLs if you see validation errors.
 
 ### CSV Parsing Issues
-- Make sure to properly escape commas and quotes in CSV values
-- Use quotes around values containing commas
-- Double-quote any quotes within quoted values
+- **Commas in values**: Wrap the entire value in double quotes (e.g., `"Creator, Inc."`)
+- **Quotes in values**: Double any quotes within a quoted value (e.g., `"The ""Best"" Show"` for The "Best" Show)
+- **Newlines in values**: Multi-line values are not supported; keep all data on a single line per row
+- **Encoding**: Use UTF-8 encoding for special characters
+
+Example of properly escaped CSV:
+```csv
+tag,name,description
+my-show,My Great Show,"A show about ""AI"", technology, and innovation"
+```
 
 ### JSON Parsing Issues
 - Validate your JSON syntax using a JSON validator

@@ -46,6 +46,15 @@ export async function POST(request: NextRequest) {
       errors: []
     }
 
+    // Fetch all existing tags in one query for efficient duplicate checking
+    const creatorTags = creators.map(c => c.tag)
+    const { data: existingTags } = await supabase
+      .from('show_tags')
+      .select('tag')
+      .in('tag', creatorTags)
+    
+    const existingTagSet = new Set((existingTags || []).map(t => t.tag))
+
     for (let i = 0; i < creators.length; i++) {
       const creator = creators[i]
       
@@ -62,14 +71,8 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Check if tag already exists
-        const { data: existingTag } = await supabase
-          .from('show_tags')
-          .select('id')
-          .eq('tag', creator.tag)
-          .single()
-
-        if (existingTag) {
+        // Check if tag already exists using the fetched set
+        if (existingTagSet.has(creator.tag)) {
           result.errors.push({
             row: format === 'csv' ? i + 2 : i + 1,
             tag: creator.tag,

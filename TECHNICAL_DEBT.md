@@ -108,7 +108,7 @@ CREATE INDEX idx_aggregated_posts_connected_account_id ON aggregated_posts(conne
 
 ## Real-time & Performance
 
-### Subscription Memory Leaks
+### ~~Subscription Memory Leaks~~ ✅ FIXED (2026-01-03)
 
 **Issue**: Some components may not properly clean up Realtime subscriptions.
 
@@ -117,14 +117,26 @@ CREATE INDEX idx_aggregated_posts_connected_account_id ON aggregated_posts(conne
 - Multiple subscriptions for same data
 - Increased WebSocket connections
 
-**Remediation**:
-- Audit all `useEffect` hooks with subscriptions
-- Ensure all subscriptions have cleanup in return function
-- Consider subscription manager hook
+**Resolution** (2026-01-03):
+- ✅ Audited all `useEffect` hooks with subscriptions across the codebase
+- ✅ Removed unstable dependencies (like `supabase` instance) from useEffect dependency arrays
+- ✅ Converted `useState(() => createClient())` to `useRef(createClient())` to ensure stable client instances
+- ✅ Fixed `fetchComments` callback dependency in comments-section.tsx using ref pattern
+- ✅ Created `useRealtimeSubscription` custom hook for consistent subscription management
+- ✅ All subscriptions now have proper cleanup in return functions with minimal dependencies
 
-**Priority**: Medium (stability issue)
+**Files Modified**:
+- `components/post-aggregator/post-aggregator.tsx`
+- `components/post-aggregator/comments-section.tsx`
+- `components/post-aggregator/post-card.tsx`
+- `components/post-aggregator/post-detail-view.tsx`
+- `components/post-aggregator/federated-post-status.tsx`
+- `components/post-aggregator/show-tag-feed.tsx`
+- `lib/hooks/use-realtime-subscription.ts` (new)
 
-**Effort**: Medium (code audit and fixes)
+**Priority**: ~~Medium~~ RESOLVED
+
+**Effort**: ~~Medium~~ COMPLETED
 
 ---
 
@@ -597,20 +609,26 @@ CREATE INDEX idx_aggregated_posts_connected_account_id ON aggregated_posts(conne
 3. Automated Aggregation System
 4. Automated Test Suite
 
-**Medium Priority** (13 items):
+**Medium Priority** (12 items):
 - Legacy naming convention cleanup
 - Various UX and performance improvements
 - Security enhancements
 - Documentation organization
+- ~~Subscription Memory Leaks~~ ✅ FIXED (2026-01-03)
 
 **Low Priority** (8 items):
 - Performance optimizations
 - Infrastructure improvements
 - Code quality refinements
 
+### Recent Fixes
+
+**2026-01-03**:
+- ✅ **Subscription Memory Leaks** - Fixed all Realtime subscription memory leaks by using stable refs and removing unstable dependencies from useEffect hooks. Created reusable `useRealtimeSubscription` hook.
+
 ### Recommended Order
 
-1. **Phase 1**: Documentation cleanup (in progress), error handling standardization
+1. **Phase 1**: Documentation cleanup (in progress), error handling standardization, ~~subscription cleanup~~ ✅ COMPLETED
 2. **Phase 2**: OAuth and federation implementation (core features)
 3. **Phase 3**: Test suite development (quality)
 4. **Phase 4**: Performance optimizations (pagination, indexes)

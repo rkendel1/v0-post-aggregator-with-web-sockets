@@ -283,6 +283,7 @@ MIT License - Feel free to use this project for personal or commercial purposes.
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture and design
 - **[AI_RULES.md](./AI_RULES.md)** - AI-assisted development guidelines
 - **[TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md)** - Known issues and improvement areas
+- **[Realtime Subscriptions Guide](./docs/REALTIME_SUBSCRIPTIONS.md)** - Best practices for WebSocket subscriptions
 
 ### Implementation Guides
 - See `docs/guides/` for feature-specific documentation
@@ -300,7 +301,8 @@ Common issues and solutions:
 **Real-time Updates Not Working**
 - Verify Realtime is enabled for tables in Supabase
 - Check browser console for WebSocket errors
-- Ensure proper subscription cleanup in components
+- Ensure proper subscription cleanup in components (see [Realtime Subscriptions Guide](./docs/REALTIME_SUBSCRIPTIONS.md))
+- Check for memory leaks with multiple subscriptions in DevTools Network tab
 
 **Build Errors**
 - Run `npm install` to ensure all dependencies are installed

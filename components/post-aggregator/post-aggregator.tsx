@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post } from "@/lib/types"
 import { ShowTagSidebar } from "./show-tag-sidebar"
@@ -70,7 +70,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
 
   const feedTagIds = useMemo(() => feedTags.map((t) => t.id).join(","), [feedTags])
 
@@ -105,6 +105,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   // Fetch initial posts
   useEffect(() => {
     const fetchPosts = async () => {
+      const supabase = supabaseRef.current
       setIsLoadingPosts(true)
       setPosts([])
       setOffset(0)
@@ -172,11 +173,12 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     }
 
     fetchPosts()
-  }, [activeFeed, selectedFeedId, feedTagIds, supabase, user, isFeedLoading])
+  }, [activeFeed, selectedFeedId, feedTagIds, user, isFeedLoading])
 
   const loadMorePosts = useCallback(async () => {
     if (isFetchingMore || !hasMore) return
 
+    const supabase = supabaseRef.current
     setIsFetchingMore(true)
 
     let query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
@@ -212,12 +214,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       if (data.length < POSTS_PER_PAGE) setHasMore(false)
     }
     setIsFetchingMore(false)
-  }, [isFetchingMore, hasMore, offset, user, supabase, selectedFeedId, feedTagIds, activeFeed])
+  }, [isFetchingMore, hasMore, offset, user, selectedFeedId, feedTagIds, activeFeed])
 
   // Subscribe to real-time updates
   useEffect(() => {
     if (!user || activeFeed === "for-you" || !selectedFeedId) return
 
+    const supabase = supabaseRef.current
     const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
     
     // Determine the filter for real-time updates
@@ -259,13 +262,14 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [activeFeed, selectedFeedId, feedTagIds, supabase, user])
+  }, [activeFeed, selectedFeedId, feedTagIds, user])
 
   const handlePostDeleted = (postId: string) => {
     setPosts((current) => current.filter((post) => post.id !== postId))
   }
 
   const handlePostHidden = async (postId: string) => {
+    const supabase = supabaseRef.current
     if (!user) return
     setPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")

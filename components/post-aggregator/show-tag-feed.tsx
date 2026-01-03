@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { ShowTag, Post, UserProfile } from "@/lib/types"
 import { PostFeed } from "./post-feed"
@@ -49,9 +49,11 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const fetchInitialUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
@@ -62,9 +64,11 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
       setUser(session?.user ?? null)
     })
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const fetchProfile = async () => {
       if (user) {
         const { data: profileData } = await supabase.from('user_profiles').select('*').eq('id', user.id).single()
@@ -74,9 +78,10 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
       }
     }
     fetchProfile()
-  }, [user, supabase])
+  }, [user])
 
   const fetchPosts = useCallback(async (type: 'platform' | 'official') => {
+    const supabase = supabaseRef.current
     const isPlatform = type === 'platform'
     const offset = isPlatform ? platformOffset : officialOffset
     const setFetching = isPlatform ? setIsFetchingPlatform : setIsFetchingOfficial
@@ -110,7 +115,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
       }
     }
     setFetching(false)
-  }, [showTag.id, supabase, platformOffset, officialOffset])
+  }, [showTag.id, platformOffset, officialOffset])
 
   useEffect(() => {
     if (activeTab === 'official-feed' && officialPosts.length === 0) {
@@ -119,6 +124,8 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
   }, [activeTab, officialPosts.length, fetchPosts])
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const handleInsert = async (payload: any) => {
       const { data } = await supabase
         .from("posts")
@@ -145,7 +152,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [showTag.id, supabase])
+  }, [showTag.id])
 
   const handlePostDeleted = (postId: string, isPlatformPost: boolean) => {
     const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
@@ -153,6 +160,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
   }
 
   const handlePostHidden = async (postId: string, isPlatformPost: boolean) => {
+    const supabase = supabaseRef.current
     if (!user) return
     const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
     setPosts((current) => current.filter((post) => post.id !== postId))

@@ -170,17 +170,48 @@ const { data, error } = await supabase
   .from('posts')
   .insert({ content, show_tag_id, user_id })
 
-// Real-time subscription
-const channel = supabase
-  .channel('posts')
-  .on('postgres_changes',
-    { event: 'INSERT', schema: 'public', table: 'posts' },
-    (payload) => {
-      // Handle new post
-    }
-  )
-  .subscribe()
+#### Real-time Subscriptions
+
+**IMPORTANT**: Always follow best practices for Realtime subscriptions to prevent memory leaks.
+
+See [docs/REALTIME_SUBSCRIPTIONS.md](./docs/REALTIME_SUBSCRIPTIONS.md) for comprehensive guide.
+
+**Quick Reference:**
+
+```typescript
+import { useRef, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+
+// ✅ GOOD: Use useRef for stable client instance
+const supabaseRef = useRef(createClient())
+
+useEffect(() => {
+  const supabase = supabaseRef.current
+  
+  const channel = supabase
+    .channel('posts')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'posts' },
+      (payload) => {
+        // Handle new post
+      }
+    )
+    .subscribe()
+  
+  // ✅ ALWAYS cleanup subscriptions
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, []) // ✅ Minimal dependencies
 ```
+
+**Common Pitfalls to Avoid:**
+- ❌ Don't use `useState` for supabase client
+- ❌ Don't include supabase client in dependencies
+- ❌ Always include cleanup function
+- ❌ Don't include unstable callbacks in dependencies
+
+For detailed examples and troubleshooting, see the [Realtime Subscriptions Guide](./docs/REALTIME_SUBSCRIPTIONS.md).
 
 #### Server-Side (Server Components, API Routes)
 

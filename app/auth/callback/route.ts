@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const cookieStore = await cookies()
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+    
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,9 +21,14 @@ export async function GET(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
+              cookiesToSet.forEach(({ name, value, options }) => {
+                // Set domain to allow cookie sharing across subdomains
+                const cookieOptions = {
+                  ...options,
+                  domain: `.${rootDomain}`,
+                }
+                cookieStore.set(name, value, cookieOptions)
+              })
             } catch {
               // The `setAll` method was called from a Server Component.
               // This can be ignored if you have middleware refreshing

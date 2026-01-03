@@ -111,10 +111,12 @@ export function parseEpisodeContent(content: string): ParsedContentSegment[] {
 
 /**
  * Strip HTML tags from content (for RSS content that may contain HTML)
+ * This function is used to clean RSS content before parsing for timestamps/links.
+ * The output is always rendered as text in React components, not as HTML.
  */
 export function stripHtml(html: string): string {
-  // Remove HTML tags
-  let text = html.replace(/<[^>]*>/g, '')
+  // First, decode HTML entities before removing tags to preserve text content
+  let text = html
   
   // Decode common HTML entities
   const entities: Record<string, string> = {
@@ -123,12 +125,7 @@ export function stripHtml(html: string): string {
     '&gt;': '>',
     '&quot;': '"',
     '&#39;': "'",
-    '&nbsp;': ' ',
-    '<br>': '\n',
-    '<br/>': '\n',
-    '<br />': '\n',
-    '</p>': '\n\n',
-    '<p>': ''
+    '&nbsp;': ' '
   }
   
   for (const [entity, char] of Object.entries(entities)) {
@@ -136,8 +133,30 @@ export function stripHtml(html: string): string {
   }
   
   // Decode numeric entities
-  text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+  text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
   text = text.replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+  
+  // Convert common block-level tags to newlines before removing all tags
+  text = text.replace(/<br\s*\/?>/gi, '\n')
+  text = text.replace(/<\/p>/gi, '\n\n')
+  text = text.replace(/<p[^>]*>/gi, '')
+  text = text.replace(/<\/div>/gi, '\n')
+  text = text.replace(/<div[^>]*>/gi, '')
+  
+  // Remove all HTML tags (this removes any potentially malicious tags)
+  // Using a more defensive approach: remove tags in multiple passes to handle nested/malformed HTML
+  let prevText = ''
+  let iterations = 0
+  const maxIterations = 10 // Prevent infinite loops
+  
+  while (text !== prevText && iterations < maxIterations) {
+    prevText = text
+    text = text.replace(/<[^>]*>/g, '')
+    iterations++
+  }
+  
+  // Remove any remaining angle brackets that might be left over
+  text = text.replace(/[<>]/g, '')
   
   return text.trim()
 }

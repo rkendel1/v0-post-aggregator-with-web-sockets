@@ -35,7 +35,7 @@ export function parseEpisodeContent(content: string): ParsedContentSegment[] {
     const lineSegments: ParsedContentSegment[] = []
     
     // Find all matches (timestamps, URLs, hashtags) in the line
-    const matches: Array<{ type: 'timestamp' | 'link' | 'hashtag', index: number, length: number, content: string, href?: string }> = []
+    const matches: Array<{ type: 'timestamp' | 'link' | 'hashtag', index: number, length: number, content: string, href?: string, timestamp?: string }> = []
     
     // Find timestamps
     let match

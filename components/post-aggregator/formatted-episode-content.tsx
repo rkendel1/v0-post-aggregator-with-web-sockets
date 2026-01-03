@@ -7,14 +7,12 @@ import { cn } from "@/lib/utils"
 interface FormattedEpisodeContentProps {
   content: string
   className?: string
-  maxLines?: number
   isExpanded?: boolean
 }
 
 export function FormattedEpisodeContent({ 
   content, 
   className,
-  maxLines,
   isExpanded = true 
 }: FormattedEpisodeContentProps) {
   const router = useRouter()

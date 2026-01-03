@@ -50,7 +50,7 @@ export function parseEpisodeContent(content: string): ParsedContentSegment[] {
     }
     
     // Find URLs
-    timestampPattern.lastIndex = 0 // Reset regex
+    urlPattern.lastIndex = 0 // Reset regex
     while ((match = urlPattern.exec(line)) !== null) {
       matches.push({
         type: 'link',
@@ -62,7 +62,7 @@ export function parseEpisodeContent(content: string): ParsedContentSegment[] {
     }
     
     // Find hashtags
-    urlPattern.lastIndex = 0 // Reset regex
+    hashtagPattern.lastIndex = 0 // Reset regex
     while ((match = hashtagPattern.exec(line)) !== null) {
       matches.push({
         type: 'hashtag',

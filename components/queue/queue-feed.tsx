@@ -20,11 +20,11 @@ function SortablePostItem({ post, currentUser, onUnsave }: { post: Post; current
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      <div {...attributes} {...listeners} className="cursor-grab touch-none p-1 hover:bg-accent/50 rounded">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 w-full">
+      <div {...attributes} {...listeners} className="cursor-grab touch-none p-1 hover:bg-accent/50 rounded flex-shrink-0">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <QueueCard
           post={post}
           currentUser={currentUser}
@@ -92,7 +92,7 @@ export function QueueFeed({ initialPosts }: QueueFeedProps) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={posts} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2 sm:space-y-3">
+        <div className="w-full space-y-2 sm:space-y-3">
           {posts.map((post) => (
             <SortablePostItem key={post.id} post={post} currentUser={currentUser} onUnsave={handleUnsave} />
           ))}

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import toast from "react-hot-toast"
 import { GoogleIcon, DiscordIcon } from "@/components/auth/oauth-icons"
+import { getOAuthCallbackUrl, getAuthRedirectUrl } from "@/lib/auth-helpers"
 
 interface SignInFormProps {
   onSuccess?: () => void
@@ -53,8 +54,14 @@ export function SignInForm({ onSuccess, onSwitchToSignUp, redirectTo }: SignInFo
 
     setIsResettingPassword(true)
     try {
+      // Use main domain for password reset callback
+      const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+      const resetUrl = window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.0.0.1')
+        ? `${window.location.origin}/auth/reset-password`
+        : `https://${rootDomain}/auth/reset-password`
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: resetUrl,
       })
 
       if (error) {
@@ -72,10 +79,14 @@ export function SignInForm({ onSuccess, onSwitchToSignUp, redirectTo }: SignInFo
   const handleOAuthSignIn = async (provider: "google" | "discord") => {
     setIsLoading(true)
     try {
+      // Get the subdomain URL to redirect back to after auth
+      const originUrl = getAuthRedirectUrl()
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+          // Always use main domain for OAuth callback to avoid redirect URI mismatch
+          redirectTo: redirectTo || `${getOAuthCallbackUrl()}?next=${encodeURIComponent(originUrl)}`,
         },
       })
 

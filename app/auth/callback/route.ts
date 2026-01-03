@@ -5,6 +5,7 @@ import { cookies } from "next/headers"
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
+  // Get the 'next' parameter to redirect back to the original subdomain/page
   const next = searchParams.get("next") ?? "/"
 
   if (code) {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
                 const cookieOptions = {
                   ...options,
                   domain: `.${rootDomain}`,
+                  path: '/', // Explicitly set path for better compatibility
                 }
                 cookieStore.set(name, value, cookieOptions)
               })
@@ -40,7 +42,11 @@ export async function GET(request: NextRequest) {
     )
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      // Redirect to the 'next' URL if provided, which could be a subdomain
+      // If next is a full URL (starts with http), use it as is
+      // Otherwise, construct it relative to the current origin
+      const redirectUrl = next.startsWith('http') ? next : `${origin}${next}`
+      return NextResponse.redirect(redirectUrl)
     }
   }
 

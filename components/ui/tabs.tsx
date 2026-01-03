@@ -28,8 +28,14 @@ const TabsTrigger = React.forwardRef<
 >(({ className, value, ...props }, ref) => {
   const triggerRef = React.useRef<HTMLButtonElement>(null)
   
-  // Merge refs
-  React.useImperativeHandle(ref, () => triggerRef.current!)
+  // Properly merge refs - handle null case
+  React.useImperativeHandle(ref, () => {
+    if (!triggerRef.current) {
+      // Return a dummy element that satisfies the type but won't be used
+      return document.createElement('button')
+    }
+    return triggerRef.current
+  }, [])
 
   // Use MutationObserver to watch for state changes
   React.useEffect(() => {

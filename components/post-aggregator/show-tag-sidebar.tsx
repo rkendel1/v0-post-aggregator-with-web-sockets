@@ -70,7 +70,7 @@ export function ShowTagSidebar({
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold text-foreground text-sm">My Feed</h2>
+            <h2 className="font-semibold text-foreground text-sm">MY feed</h2>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={onOpenManager} title="Manage Feed">
             <ListPlus className="h-4 w-4" />

@@ -142,6 +142,19 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         return
       }
 
+      // If "All Feeds" is selected, check if user has any followed tags
+      if (selectedFeedId === "all") {
+        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
+        if (tagIds.length === 0) {
+          // User has no followed tags - show empty feed
+          setPosts([])
+          setOffset(0)
+          setHasMore(false)
+          setIsLoadingPosts(false)
+          return
+        }
+      }
+
       let hiddenPostIds: string[] = []
       const { data: hiddenPosts } = await supabase.from("hidden_posts").select("post_id").eq("user_id", user.id)
       if (hiddenPosts) hiddenPostIds = hiddenPosts.map((p) => p.post_id)
@@ -149,11 +162,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       const query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
-        if (tagIds.length > 0) {
-          query.in("show_tag_id", tagIds)
-        }
-        // If user has no followed tags, show all posts (no filter applied)
+        const tagIds = feedTagIds?.split(",").filter(id => id) || []
+        query.in("show_tag_id", tagIds)
       } else {
         query.eq("show_tag_id", selectedFeedId)
       }
@@ -195,9 +205,16 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         return
       }
 
+      // If "All Feeds" is selected, check if user has any followed tags
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
-        if (tagIds.length > 0) query.in("show_tag_id", tagIds)
+        if (tagIds.length === 0) {
+          // User has no followed tags - no more posts to load
+          setIsFetchingMore(false)
+          setHasMore(false)
+          return
+        }
+        query.in("show_tag_id", tagIds)
       } else if (selectedFeedId) {
         query.eq("show_tag_id", selectedFeedId)
       }

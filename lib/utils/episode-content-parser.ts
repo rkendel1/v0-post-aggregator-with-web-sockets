@@ -10,6 +10,16 @@ export interface ParsedContentSegment {
   timestamp?: string
 }
 
+// Pre-compile entity patterns at module level for better performance
+const HTML_ENTITY_PATTERNS = [
+  { pattern: /&amp;/gi, replacement: '&' },
+  { pattern: /&lt;/gi, replacement: '<' },
+  { pattern: /&gt;/gi, replacement: '>' },
+  { pattern: /&quot;/gi, replacement: '"' },
+  { pattern: /&#39;/gi, replacement: "'" },
+  { pattern: /&nbsp;/gi, replacement: ' ' }
+]
+
 /**
  * Parse episode content to identify timestamps, links, and hashtags
  * Timestamps are in formats like: 00:00, 00:00:00, [00:00], (00:00)
@@ -118,23 +128,8 @@ export function stripHtml(html: string): string {
   // First, decode HTML entities before removing tags to preserve text content
   let text = html
   
-  // Decode common HTML entities
-  const entities: Record<string, string> = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#39;': "'",
-    '&nbsp;': ' '
-  }
-  
-  // Pre-compile regex patterns for better performance
-  const entityPatterns = Object.entries(entities).map(([entity, char]) => ({
-    pattern: new RegExp(entity, 'gi'),
-    replacement: char
-  }))
-  
-  for (const { pattern, replacement } of entityPatterns) {
+  // Decode common HTML entities using pre-compiled patterns
+  for (const { pattern, replacement } of HTML_ENTITY_PATTERNS) {
     text = text.replace(pattern, replacement)
   }
   

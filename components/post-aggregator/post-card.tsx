@@ -250,7 +250,6 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                     style={{
                       maxHeight: !isExpanded && showExpandButton ? `${MOBILE_MAX_HEIGHT_PX}px` : undefined,
                       overflow: !isExpanded && showExpandButton ? 'hidden' : 'visible',
-                      wordBreak: 'break-word',
                       overflowWrap: 'anywhere'
                     }}
                   >

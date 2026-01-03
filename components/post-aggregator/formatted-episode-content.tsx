@@ -28,7 +28,6 @@ export function FormattedEpisodeContent({
         className
       )}
       style={{
-        wordBreak: 'break-word',
         overflowWrap: 'anywhere'
       }}
     >

@@ -28,8 +28,7 @@ export function FormattedEpisodeContent({
   return (
     <div 
       className={cn(
-        "text-sm leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere",
-        !isExpanded && maxLines && `line-clamp-${maxLines}`,
+        "text-sm leading-relaxed whitespace-pre-wrap break-words",
         className
       )}
       style={{

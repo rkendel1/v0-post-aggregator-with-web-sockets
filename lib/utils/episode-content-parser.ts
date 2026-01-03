@@ -90,7 +90,7 @@ export function parseEpisodeContent(content: string): ParsedContentSegment[] {
         type: m.type,
         content: m.content,
         href: m.href,
-        timestamp: m.type === 'timestamp' ? (m as any).timestamp : undefined
+        timestamp: m.timestamp
       })
       
       lastIndex = m.index + m.length

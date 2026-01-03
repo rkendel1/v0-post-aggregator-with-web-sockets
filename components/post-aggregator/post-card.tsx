@@ -246,8 +246,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
                   <div 
                     ref={contentRef}
                     className={cn(
-                      "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200 break-words",
-                      !isExpanded && showExpandButton && "sm:max-h-none"
+                      "text-sm leading-relaxed whitespace-pre-wrap transition-all duration-200 break-words"
                     )}
                     style={{
                       maxHeight: !isExpanded && showExpandButton ? `${MOBILE_MAX_HEIGHT_PX}px` : undefined,

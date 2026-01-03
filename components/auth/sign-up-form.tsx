@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import toast from "react-hot-toast"
 import { GoogleIcon, DiscordIcon } from "@/components/auth/oauth-icons"
+import { getOAuthCallbackUrl, getAuthRedirectUrl } from "@/lib/auth-helpers"
 
 interface SignUpFormProps {
   onSuccess?: () => void
@@ -38,11 +39,15 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn, redirectTo }: SignUpFo
     setIsLoading(true)
 
     try {
+      // Get the subdomain URL to redirect back to after email verification
+      const originUrl = getAuthRedirectUrl()
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+          // Always use main domain for email confirmation callback
+          emailRedirectTo: redirectTo || `${getOAuthCallbackUrl()}?next=${encodeURIComponent(originUrl)}`,
         },
       })
 
@@ -62,10 +67,14 @@ export function SignUpForm({ onSuccess, onSwitchToSignIn, redirectTo }: SignUpFo
   const handleOAuthSignUp = async (provider: "google" | "discord") => {
     setIsLoading(true)
     try {
+      // Get the subdomain URL to redirect back to after auth
+      const originUrl = getAuthRedirectUrl()
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+          // Always use main domain for OAuth callback to avoid redirect URI mismatch
+          redirectTo: redirectTo || `${getOAuthCallbackUrl()}?next=${encodeURIComponent(originUrl)}`,
         },
       })
 

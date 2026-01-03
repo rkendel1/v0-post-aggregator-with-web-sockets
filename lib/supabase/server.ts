@@ -15,6 +15,7 @@ export function createClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
+            path: '/', // Explicitly set path for better compatibility
           }
           cookieStore.set({ name, value, ...cookieOptions })
         } catch (error) {
@@ -29,6 +30,7 @@ export function createClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
+            path: '/', // Explicitly set path for better compatibility
           }
           cookieStore.set({ name, value: "", ...cookieOptions })
         } catch (error) {

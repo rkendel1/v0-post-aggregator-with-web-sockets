@@ -28,6 +28,7 @@ export function createClient() {
             const cookieOptions: CookieOptions = {
               ...options,
               domain: `.${rootDomain}`,
+              path: '/', // Explicitly set path for better compatibility
             }
             
             // Build cookie string

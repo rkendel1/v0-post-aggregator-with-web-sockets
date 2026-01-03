@@ -49,6 +49,7 @@ export async function middleware(request: NextRequest) {
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
+            path: '/', // Explicitly set path for better compatibility
           }
           request.cookies.set({ name, value, ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })
@@ -60,6 +61,7 @@ export async function middleware(request: NextRequest) {
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
+            path: '/', // Explicitly set path for better compatibility
           }
           request.cookies.set({ name, value: '', ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })

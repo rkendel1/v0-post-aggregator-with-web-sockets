@@ -1,13 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { ConnectedAccount, Platform } from "@/lib/types"
-import { Check, X, RefreshCw, Link2, Trash2 } from "lucide-react"
+import { Check, X, RefreshCw, Link2, Trash2, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 
 interface ConnectedAccountsManagerProps {
   connectedAccounts: ConnectedAccount[]
@@ -21,44 +22,62 @@ export function ConnectedAccountsManager({
   const [accounts, setAccounts] = useState(initialAccounts)
   const [isConnecting, setIsConnecting] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [supabase] = useState(() => createClient())
+
+  // Handle OAuth callback results
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    const platform = searchParams.get('platform')
+
+    if (success === 'connected' && platform) {
+      toast.success(`Successfully connected to ${platform}`)
+      router.refresh()
+    } else if (error) {
+      const errorMessages: Record<string, string> = {
+        oauth_failed: 'Authorization failed. Please try again.',
+        missing_params: 'Invalid OAuth response. Please try again.',
+        invalid_state: 'Security validation failed. Please try again.',
+        config_error: 'This platform is not configured yet.',
+        token_exchange_failed: 'Failed to exchange authorization code.',
+        user_info_failed: 'Failed to fetch user information.',
+        storage_failed: 'Failed to store account information.',
+        callback_failed: 'An unexpected error occurred.',
+      }
+      toast.error(errorMessages[error] || 'Failed to connect account')
+    }
+  }, [searchParams, router])
 
   const handleConnect = async (platform: Platform) => {
     setIsConnecting(platform.id)
-    // TODO: Implement OAuth flow for each platform
-    // For now, we'll create a mock connection
-    const mockUsername = `user_${Math.random().toString(36).substring(7)}`
-
-    const { data, error } = await supabase
-      .from("connected_accounts")
-      .insert({
-        platform_id: platform.id,
-        platform_user_id: mockUsername,
-        platform_username: mockUsername,
-        is_active: true,
-      })
-      .select(`
-        *,
-        platforms (*)
-      `)
-      .single()
-
-    if (!error && data) {
-      setAccounts([...accounts, data as ConnectedAccount])
+    
+    try {
+      // Redirect to OAuth authorization endpoint
+      window.location.href = `/api/oauth/${platform.name}/authorize`
+    } catch (error) {
+      console.error('Error initiating OAuth:', error)
+      toast.error('Failed to start connection process')
+      setIsConnecting(null)
     }
-
-    setIsConnecting(null)
-    router.refresh()
   }
 
   const handleDisconnect = async (accountId: string) => {
-    const { error } = await supabase.from("connected_accounts").delete().eq("id", accountId)
+    try {
+      const { error } = await supabase.from("connected_accounts").delete().eq("id", accountId)
 
-    if (!error) {
-      setAccounts(accounts.filter((acc) => acc.id !== accountId))
+      if (!error) {
+        setAccounts(accounts.filter((acc) => acc.id !== accountId))
+        toast.success("Account disconnected successfully")
+      } else {
+        toast.error("Failed to disconnect account")
+      }
+
+      router.refresh()
+    } catch (error) {
+      console.error('Error disconnecting account:', error)
+      toast.error("An error occurred while disconnecting")
     }
-
-    router.refresh()
   }
 
   const handleToggleActive = async (account: ConnectedAccount) => {

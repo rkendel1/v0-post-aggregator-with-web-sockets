@@ -365,12 +365,30 @@ ORDER BY sr.last_fetched_at DESC;
 
 ## Security Considerations
 
-1. **Always verify webhook signatures** in production
-2. **Rate limit** the webhook endpoint to prevent abuse
-3. **Sanitize content** before storing in database
-4. **Use service role key** only in server-side code (edge functions)
-5. **Rotate CRON_SECRET** periodically
-6. **Monitor aggregation logs** for suspicious activity
+### Critical Security Items
+
+1. **⚠️ WEBHOOK SIGNATURE VERIFICATION**: The webhook endpoint currently accepts all requests without verification. This MUST be implemented before production use:
+   - Implement platform-specific signature verification in `/app/api/webhooks/route.ts`
+   - Store webhook secrets in environment variables
+   - See TODO comments in the code for implementation guidance
+
+2. **⚠️ RSS FEED ACCESS CONTROL**: The current RLS policies allow any authenticated user to create/update show RSS feeds. For production:
+   - Implement admin-only access control
+   - Add an `is_admin` field to user_profiles
+   - Update RLS policies to check admin status
+   - See TODO comments in `scripts/015_add_rss_feeds_tables.sql`
+
+### Best Practices
+
+3. **Rate limit** the webhook endpoint to prevent abuse
+4. **Sanitize content** before storing in database (partially implemented)
+5. **Use service role key** only in server-side code (edge functions, not client)
+6. **Rotate CRON_SECRET** periodically (every 90 days recommended)
+7. **Monitor aggregation logs** for suspicious activity
+8. **Validate input** from external sources before processing
+9. **Use HTTPS only** for webhook endpoints
+10. **Set up alerts** for failed aggregations or unusual patterns
+
 
 ## API Reference
 
@@ -436,3 +454,6 @@ Receives webhook events from external platforms.
   }
 }
 ```
+
+**⚠️ SECURITY WARNING**: The current webhook implementation accepts all requests without signature verification. This is suitable for development but **MUST** be fixed before production deployment. See the TODO comments in `/app/api/webhooks/route.ts` for implementation guidance.
+

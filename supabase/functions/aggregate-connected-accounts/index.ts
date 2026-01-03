@@ -194,17 +194,20 @@ serve(async (req: Request) => {
 
 /**
  * Aggregate posts from an RSS feed
+ * TODO: Implement RSS feed aggregation for connected accounts
+ * Currently, RSS feeds are handled by the poll-all-feeds function
  */
 async function aggregateRssFeed(
   supabase: any,
   account: any
 ): Promise<{ found: number; created: number }> {
-  // This would require the connected_account to have RSS feed URL stored
-  // For now, this is a placeholder implementation
-  // In a real implementation, you'd need to store RSS URLs in connected_accounts
-  // or link them to user_rss_feeds table
+  // This function is a placeholder for future RSS aggregation via connected accounts
+  // The current RSS polling is handled by the poll-all-feeds edge function
+  // which uses the show_rss_feeds and user_rss_feeds tables
   
-  console.log(`RSS aggregation for account ${account.id} - not yet fully implemented`)
+  console.log(`RSS aggregation for connected account ${account.id} - not yet implemented`)
+  console.log(`RSS feeds are currently processed by the poll-all-feeds function`)
+  
   return { found: 0, created: 0 }
 }
 
@@ -266,30 +269,37 @@ async function isDuplicate(
  * Returns true if content should be blocked
  */
 function shouldFilterContent(content: string): boolean {
+  // Handle empty content
+  if (!content || content.length === 0) {
+    return false
+  }
+
   // Basic spam detection patterns
   const spamPatterns = [
     /\b(buy now|click here|limited time|act now)\b/gi,
     /\b(viagra|cialis|pharmacy)\b/gi,
     /\b(casino|gambling|poker)\b/gi,
     /\b(weight loss|lose weight)\b/gi,
-    /http[s]?:\/\/[^\s]+/gi, // Too many URLs might indicate spam
   ]
 
-  let urlCount = 0
+  // Check spam patterns (excluding URL pattern which is handled separately)
   for (const pattern of spamPatterns) {
-    const matches = content.match(pattern)
-    if (matches) {
-      if (pattern.source.includes('http')) {
-        urlCount = matches.length
-        if (urlCount > 3) return true // Block if more than 3 URLs
-      } else {
-        return true // Block if matches other spam patterns
-      }
+    if (pattern.test(content)) {
+      return true
     }
   }
 
+  // Check for too many URLs (more than 3 URLs indicates potential spam)
+  const urlPattern = /http[s]?:\/\/[^\s]+/gi
+  const urlMatches = content.match(urlPattern)
+  const urlCount = urlMatches ? urlMatches.length : 0
+  if (urlCount > 3) {
+    return true
+  }
+
   // Check for excessive caps (might be shouting/spam)
-  const capsRatio = (content.match(/[A-Z]/g) || []).length / content.length
+  const capsCount = (content.match(/[A-Z]/g) || []).length
+  const capsRatio = capsCount / content.length
   if (capsRatio > 0.5 && content.length > 20) {
     return true
   }

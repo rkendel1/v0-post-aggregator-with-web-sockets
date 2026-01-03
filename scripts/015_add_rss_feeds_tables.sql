@@ -50,13 +50,30 @@ create policy "Anyone can view show RSS feeds"
   on public.show_rss_feeds for select
   using (true);
 
+-- Only allow authenticated users to create show RSS feeds
+-- In production, consider adding role-based checks or admin-only access
 create policy "Authenticated users can create show RSS feeds"
   on public.show_rss_feeds for insert
   with check (auth.role() = 'authenticated');
 
+-- Only allow authenticated users to update show RSS feeds  
+-- In production, consider restricting to feed creators or admins
 create policy "Authenticated users can update show RSS feeds"
   on public.show_rss_feeds for update
   using (auth.role() = 'authenticated');
+
+-- TODO: For production, replace the above policies with admin-only access:
+-- create policy "Only admins can create show RSS feeds"
+--   on public.show_rss_feeds for insert
+--   with check (
+--     auth.role() = 'authenticated' 
+--     AND EXISTS (
+--       SELECT 1 FROM user_profiles 
+--       WHERE id = auth.uid() 
+--       AND is_admin = true
+--     )
+--   );
+
 
 -- RLS Policies for user_rss_feeds (private to user)
 create policy "Users can view their own RSS feeds"

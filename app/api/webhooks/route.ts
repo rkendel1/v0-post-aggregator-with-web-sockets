@@ -114,19 +114,36 @@ async function verifyWebhookSignature(
 
 function verifyRedditSignature(signature: string | null, body: any): boolean {
   // TODO: Implement Reddit webhook signature verification
-  // For now, accept all in development
+  // Reddit uses HMAC-SHA256 with a secret key
+  // See: https://www.reddit.com/dev/api#section_webhooks
+  
+  // For production, implement proper verification:
+  // const secret = process.env.REDDIT_WEBHOOK_SECRET
+  // const hmac = crypto.createHmac('sha256', secret)
+  // const digest = hmac.update(JSON.stringify(body)).digest('hex')
+  // return signature === digest
+  
+  // SECURITY WARNING: Accepting all webhooks in development mode
+  console.warn('Reddit webhook signature verification not implemented - accepting all')
   return true
 }
 
 function verifyDiscordSignature(signature: string | null, body: any): boolean {
   // TODO: Implement Discord webhook signature verification
-  // For now, accept all in development
+  // Discord uses Ed25519 signature verification
+  // See: https://discord.com/developers/docs/resources/webhook
+  
+  // SECURITY WARNING: Accepting all webhooks in development mode
+  console.warn('Discord webhook signature verification not implemented - accepting all')
   return true
 }
 
 function verifyMastodonSignature(signature: string | null, body: any): boolean {
   // TODO: Implement Mastodon webhook signature verification
-  // For now, accept all in development
+  // Mastodon uses HTTP signatures (https://docs.joinmastodon.org/spec/webhooks/)
+  
+  // SECURITY WARNING: Accepting all webhooks in development mode
+  console.warn('Mastodon webhook signature verification not implemented - accepting all')
   return true
 }
 

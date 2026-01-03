@@ -89,12 +89,13 @@ A real-time podcast aggregator platform that allows users to follow show and epi
 ## Future Improvements
 
 ### Phase 1: Enhanced Aggregation
-- [ ] **Automated Polling**: Background jobs to fetch posts from connected accounts
-- [ ] **API Integration**: Direct API connections to podcast platforms/social media
-- [ ] **Webhook Support**: Real-time ingestion from supported platforms
-- [ ] **Duplicate Detection**: Smart deduplication of cross-posted content
-- [ ] **Content Filtering**: Spam detection and content moderation tools
+- [x] **Automated Polling**: Background jobs to fetch posts from RSS feeds and connected accounts
+- [x] **Webhook Support**: REST API endpoint for real-time ingestion from supported platforms
+- [x] **Duplicate Detection**: Smart deduplication using external GUID and content similarity
+- [x] **Content Filtering**: Basic spam detection and content moderation
+- [ ] **API Integration**: Direct API connections to podcast platforms/social media (Twitter, Reddit APIs)
 - [ ] **Media Support**: Images, videos, and rich media in posts
+- [ ] **Advanced ML-based filtering**: Machine learning models for better spam detection
 
 ### Phase 2: Advanced Federation
 - [ ] **Bidirectional Sync**: Sync reactions and comments back to origin platforms
@@ -214,11 +215,15 @@ scripts/011_add_episode_slugs_and_discord.sql
 scripts/012_add_test_discord_links.sql
 scripts/013_add_is_saved_column.sql
 scripts/014_fix_user_profiles_foreign_keys.sql
+scripts/015_add_rss_feeds_tables.sql
+scripts/016_add_aggregated_posts_sync.sql
 ```
 
 **Important**: Run scripts in numerical order.
 
 For detailed setup instructions, see **[DEVELOPMENT.md](./DEVELOPMENT.md)**.
+
+For automated aggregation setup, see **[docs/AUTOMATED_AGGREGATION.md](./docs/AUTOMATED_AGGREGATION.md)**.
 
 ### Key Concepts
 
@@ -284,6 +289,7 @@ MIT License - Feel free to use this project for personal or commercial purposes.
 - **[AI_RULES.md](./AI_RULES.md)** - AI-assisted development guidelines
 - **[TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md)** - Known issues and improvement areas
 - **[Realtime Subscriptions Guide](./docs/REALTIME_SUBSCRIPTIONS.md)** - Best practices for WebSocket subscriptions
+- **[Automated Aggregation Guide](./docs/AUTOMATED_AGGREGATION.md)** - Setup and usage of automated post aggregation
 
 ### Implementation Guides
 - See `docs/guides/` for feature-specific documentation

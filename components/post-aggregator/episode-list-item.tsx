@@ -52,8 +52,8 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
 
   return (
     <AccordionItem value={episode.id} className="border rounded-lg overflow-hidden">
-      <AccordionTrigger className="p-3 hover:bg-accent/50 transition-colors hover:no-underline data-[state=open]:bg-accent/50">
-        <div className="flex items-center gap-4 overflow-hidden w-full">
+      <AccordionTrigger className="px-2 sm:px-3 py-3 hover:bg-accent/50 transition-colors hover:no-underline data-[state=open]:bg-accent/50">
+        <div className="flex items-center gap-2 sm:gap-4 overflow-hidden w-full min-w-0">
           <Button variant="outline" size="icon" onClick={handlePlayClick} disabled={!episode.audio_url} className="flex-shrink-0">
             {isCurrentlyPlaying && isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </Button>
@@ -61,15 +61,15 @@ export function EpisodeListItem({ episode, showTagSlug, discordServerUrl }: Epis
             <AvatarImage src={episode.image_url || episode.author_avatar || undefined} />
             <AvatarFallback>{episode.author_name.slice(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-          <div className="overflow-hidden text-left">
-            <p className="font-medium truncate" title={title}>{title}</p>
-            <p className="text-sm text-muted-foreground">
+          <div className="overflow-hidden text-left min-w-0 flex-1">
+            <p className="font-medium truncate text-sm sm:text-base" title={title}>{title}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {format(new Date(episode.created_at), "MMMM d, yyyy")}
             </p>
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent className="p-4 bg-accent/20">
+      <AccordionContent className="px-2 sm:px-4 py-4 bg-accent/20">
         <div className="space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
             <SavePostButton postId={episode.id} />

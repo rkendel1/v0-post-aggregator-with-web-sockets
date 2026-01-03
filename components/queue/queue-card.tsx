@@ -60,7 +60,7 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
   }
 
   return (
-    <Card className="rounded-lg border overflow-hidden">
+    <Card className="w-full rounded-lg border overflow-hidden">
       {/* Compact view - always visible */}
       <div 
         className="flex items-center gap-2 p-2 sm:p-3 cursor-pointer hover:bg-accent/50 transition-colors"

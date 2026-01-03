@@ -56,6 +56,9 @@ For current, authoritative documentation, see the root directory:
 **...test authentication flows**
 → See [guides/AUTH_TESTING_GUIDE.md](./guides/AUTH_TESTING_GUIDE.md)
 
+**...bulk upload creator shows**
+→ See [BULK_UPLOAD_GUIDE.md](./BULK_UPLOAD_GUIDE.md)
+
 **...know about known issues**
 → See [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md)
 

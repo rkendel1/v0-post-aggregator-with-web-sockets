@@ -12,7 +12,7 @@ The authentication issue occurred because:
 
 2. **Cross-Subdomain Cookie Issues**: While cookies were being set with `domain: .podbridge.app`, they lacked the explicit `path: '/'` attribute, which could cause compatibility issues in some browsers.
 
-3. **Environment Variable Inconsistency** (Fixed Jan 2026): Server-side Supabase client creation in `lib/supabase/server.ts` and `middleware.ts` was using `SUPABASE_URL` and `SUPABASE_ANON_KEY`, while client-side code used `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. When server-only env vars weren't set, server-side session validation failed, causing re-login prompts.
+3. **Environment Variable Inconsistency**: Server-side Supabase client creation in `lib/supabase/server.ts` and `middleware.ts` was using `SUPABASE_URL` and `SUPABASE_ANON_KEY`, while client-side code used `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. When server-only env vars weren't set, server-side session validation failed, causing re-login prompts.
 
 ## Solution
 
@@ -80,7 +80,7 @@ Added explicit `path: '/'` to all cookie operations in:
 
 This ensures cookies work correctly across all subdomains.
 
-#### 6. Environment Variable Consistency (Jan 2026)
+#### 6. Environment Variable Consistency
 
 Fixed environment variable inconsistency that was causing re-login prompts:
 

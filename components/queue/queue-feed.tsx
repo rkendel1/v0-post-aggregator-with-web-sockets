@@ -7,7 +7,7 @@ import { User } from "@supabase/supabase-js"
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core"
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { PostCard } from "@/components/post-aggregator/post-card"
+import { QueueCard } from "./queue-card"
 import { GripVertical } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -21,17 +21,14 @@ function SortablePostItem({ post, currentUser, onUnsave }: { post: Post; current
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2">
-      <div {...attributes} {...listeners} className="cursor-grab touch-none p-2">
+      <div {...attributes} {...listeners} className="cursor-grab touch-none p-1 hover:bg-accent/50 rounded">
         <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
       <div className="flex-1">
-        <PostCard
+        <QueueCard
           post={post}
           currentUser={currentUser}
-          onPostDeleted={() => {}}
-          onPostHidden={() => {}}
-          onInteractionAttempt={() => {}}
-          onPostUnsaved={onUnsave}
+          onRemove={onUnsave}
         />
       </div>
     </div>
@@ -95,7 +92,7 @@ export function QueueFeed({ initialPosts }: QueueFeedProps) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={posts} strategy={verticalListSortingStrategy}>
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-3">
           {posts.map((post) => (
             <SortablePostItem key={post.id} post={post} currentUser={currentUser} onUnsave={handleUnsave} />
           ))}

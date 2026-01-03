@@ -45,11 +45,14 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: CookieOptions) {
           // Set domain to allow cookie sharing across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: true, // Required for cross-subdomain in production
           }
           request.cookies.set({ name, value, ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })
@@ -57,11 +60,14 @@ export async function middleware(request: NextRequest) {
         },
         remove(name: string, options: CookieOptions) {
           // Set domain to allow cookie removal across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: true, // Required for cross-subdomain in production
           }
           request.cookies.set({ name, value: '', ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })

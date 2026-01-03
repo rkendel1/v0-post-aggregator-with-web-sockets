@@ -12,10 +12,13 @@ export function createClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
       set(name: string, value: string, options: CookieOptions) {
         try {
           // Set domain to allow cookie sharing across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: true, // Required for cross-subdomain in production
           }
           cookieStore.set({ name, value, ...cookieOptions })
         } catch (error) {
@@ -27,10 +30,13 @@ export function createClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
       remove(name: string, options: CookieOptions) {
         try {
           // Set domain to allow cookie removal across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: true, // Required for cross-subdomain in production
           }
           cookieStore.set({ name, value: "", ...cookieOptions })
         } catch (error) {

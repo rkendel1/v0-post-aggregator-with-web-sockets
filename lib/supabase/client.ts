@@ -25,10 +25,14 @@ export function createClient() {
           
           cookiesToSet.forEach(({ name, value, options }) => {
             // Set domain to allow cookie sharing across subdomains
+            // Set sameSite and secure for cross-subdomain compatibility
+            const isProduction = typeof window !== 'undefined' && window.location.protocol === 'https:'
             const cookieOptions: CookieOptions = {
               ...options,
               domain: `.${rootDomain}`,
               path: '/', // Explicitly set path for better compatibility
+              sameSite: 'lax', // Required for cross-subdomain cookies
+              secure: isProduction, // Required for cross-subdomain in production
             }
             
             // Build cookie string

@@ -30,10 +30,13 @@ export async function GET(request: NextRequest) {
             // Collect cookies to set them on the response later
             cookieList.forEach(({ name, value, options }) => {
               // Set domain to allow cookie sharing across subdomains
+              // Set sameSite and secure for cross-subdomain compatibility
               const cookieOptions: CookieOptions = {
                 ...options,
                 domain: `.${rootDomain}`,
                 path: '/', // Explicitly set path for better compatibility
+                sameSite: 'lax' as const, // Required for cross-subdomain cookies
+                secure: true, // Required for cross-subdomain in production
               }
               cookiesToSet.push({ name, value, options: cookieOptions })
               // Also set on cookieStore for server-side availability (e.g., in middleware)

@@ -51,6 +51,7 @@ export interface UploadResult {
     row: number
     tag: string
     error: string
+    severity?: 'error' | 'warning'
   }>
 }
 
@@ -82,7 +83,7 @@ export function parseCreatorCSV(csvContent: string): ParsedCreatorData[] {
 }
 
 /**
- * Parse a single CSV line handling quoted values
+ * Parse a single CSV line handling quoted values and escaped quotes
  */
 function parseCSVLine(line: string): string[] {
   const values: string[] = []
@@ -91,8 +92,17 @@ function parseCSVLine(line: string): string[] {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
+    const nextChar = i + 1 < line.length ? line[i + 1] : null
+    
     if (char === '"') {
-      inQuotes = !inQuotes
+      // Check for escaped quote (double quotes)
+      if (inQuotes && nextChar === '"') {
+        current += '"'
+        i++ // Skip the next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes
+      }
     } else if (char === ',' && !inQuotes) {
       values.push(current)
       current = ''
@@ -102,7 +112,7 @@ function parseCSVLine(line: string): string[] {
   }
   values.push(current)
 
-  return values.map(v => v.replace(/^"|"$/g, ''))
+  return values
 }
 
 /**

@@ -53,9 +53,10 @@ export async function POST(request: NextRequest) {
       const validationErrors = validateCreatorData(creator)
       if (validationErrors.length > 0) {
         result.errors.push({
-          row: i + 2, // +2 for header row and 0-indexing
+          row: format === 'csv' ? i + 2 : i + 1, // +2 for CSV header, +1 for JSON array index
           tag: creator.tag,
-          error: validationErrors.join(', ')
+          error: validationErrors.join(', '),
+          severity: 'error'
         })
         continue
       }
@@ -70,9 +71,10 @@ export async function POST(request: NextRequest) {
 
         if (existingTag) {
           result.errors.push({
-            row: i + 2,
+            row: format === 'csv' ? i + 2 : i + 1,
             tag: creator.tag,
-            error: 'Tag already exists'
+            error: 'Tag already exists',
+            severity: 'error'
           })
           continue
         }
@@ -104,9 +106,10 @@ export async function POST(request: NextRequest) {
           if (subdomainError) {
             // Don't fail the entire creator, just log the error
             result.errors.push({
-              row: i + 2,
+              row: format === 'csv' ? i + 2 : i + 1,
               tag: creator.tag,
-              error: `Warning: Failed to create subdomain: ${subdomainError.message}`
+              error: `Failed to create subdomain: ${subdomainError.message}`,
+              severity: 'warning'
             })
           }
         }
@@ -125,9 +128,10 @@ export async function POST(request: NextRequest) {
 
           if (feedsError) {
             result.errors.push({
-              row: i + 2,
+              row: format === 'csv' ? i + 2 : i + 1,
               tag: creator.tag,
-              error: `Warning: Failed to create RSS feeds: ${feedsError.message}`
+              error: `Failed to create RSS feeds: ${feedsError.message}`,
+              severity: 'warning'
             })
           }
         }
@@ -149,9 +153,10 @@ export async function POST(request: NextRequest) {
 
           if (linksError) {
             result.errors.push({
-              row: i + 2,
+              row: format === 'csv' ? i + 2 : i + 1,
               tag: creator.tag,
-              error: `Warning: Failed to create community links: ${linksError.message}`
+              error: `Failed to create community links: ${linksError.message}`,
+              severity: 'warning'
             })
           }
         }
@@ -159,9 +164,10 @@ export async function POST(request: NextRequest) {
         result.created++
       } catch (error) {
         result.errors.push({
-          row: i + 2,
+          row: format === 'csv' ? i + 2 : i + 1,
           tag: creator.tag,
-          error: error instanceof Error ? error.message : 'Unknown error occurred'
+          error: error instanceof Error ? error.message : 'Unknown error occurred',
+          severity: 'error'
         })
       }
     }

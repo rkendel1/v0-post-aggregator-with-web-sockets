@@ -71,7 +71,7 @@ export function BulkUploadCreators() {
       setUploadResult({
         success: false,
         created: 0,
-        errors: [{ row: 0, tag: "", error: error instanceof Error ? error.message : "Unknown error" }],
+        errors: [{ row: 0, tag: "", error: error instanceof Error ? error.message : "Unknown error", severity: 'error' }],
       })
     } finally {
       setIsUploading(false)
@@ -200,7 +200,7 @@ export function BulkUploadCreators() {
                 <Label>Errors and Warnings:</Label>
                 <div className="border rounded-md p-4 max-h-96 overflow-y-auto space-y-2">
                   {uploadResult.errors.map((error, index) => (
-                    <Alert key={index} variant={error.error.startsWith("Warning") ? "default" : "destructive"}>
+                    <Alert key={index} variant={error.severity === 'error' ? "destructive" : "default"}>
                       <AlertCircle className="h-4 w-4" />
                       <AlertTitle>
                         Row {error.row} {error.tag && `(${error.tag})`}

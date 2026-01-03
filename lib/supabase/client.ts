@@ -31,7 +31,7 @@ export function createClient() {
               ...options,
               domain: `.${rootDomain}`,
               path: '/', // Explicitly set path for better compatibility
-              sameSite: 'lax', // Required for cross-subdomain cookies
+              sameSite: 'lax' as const, // Required for cross-subdomain cookies
               secure: isProduction, // Required for cross-subdomain in production
             }
             

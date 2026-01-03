@@ -43,7 +43,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   const [showExpandButton, setShowExpandButton] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
   const router = useRouter()
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
@@ -62,6 +62,8 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
   }, [post.content])
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const reactionChannel = supabase
       .channel(`reaction_counts:post_id=eq.${post.id}`)
       .on<ReactionCount>(
@@ -93,7 +95,7 @@ export function PostCard({ post, currentUser, onPostDeleted, onPostHidden, onInt
       supabase.removeChannel(reactionChannel)
       supabase.removeChannel(commentChannel)
     }
-  }, [post.id, supabase])
+  }, [post.id])
 
   const handleShare = () => {
     const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`

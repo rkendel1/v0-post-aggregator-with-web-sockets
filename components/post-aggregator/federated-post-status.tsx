@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { FederatedPost } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
@@ -15,9 +15,11 @@ interface FederatedPostStatusProps {
 export function FederatedPostStatus({ postId }: FederatedPostStatusProps) {
   const [federatedPosts, setFederatedPosts] = useState<FederatedPost[]>([])
   const [isOpen, setIsOpen] = useState(false)
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const fetchFederatedPosts = async () => {
       const { data } = await supabase
         .from("federated_posts")
@@ -57,7 +59,7 @@ export function FederatedPostStatus({ postId }: FederatedPostStatusProps) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [postId, supabase])
+  }, [postId])
 
   if (federatedPosts.length === 0) return null
 

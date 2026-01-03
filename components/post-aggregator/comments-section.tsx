@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { Comment, ReactionCount } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -22,10 +22,11 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
   const router = useRouter()
 
   const fetchComments = useCallback(async () => {
+    const supabase = supabaseRef.current
     const { data } = await supabase
       .from("comments")
       .select(
@@ -59,7 +60,13 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
       )
       setComments(commentsWithReplies)
     }
-  }, [postId, supabase])
+  }, [postId])
+
+  // Ref to store the latest fetchComments to avoid re-subscriptions
+  const fetchCommentsRef = useRef(fetchComments)
+  useEffect(() => {
+    fetchCommentsRef.current = fetchComments
+  }, [fetchComments])
 
   useEffect(() => {
     fetchComments()
@@ -67,13 +74,15 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
 
   // Subscribe to real-time updates
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const commentsChannel = supabase
       .channel(`public:comments:post_id=eq.${postId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` },
         () => {
-          fetchComments()
+          fetchCommentsRef.current()
         },
       )
       .subscribe()
@@ -90,7 +99,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
         (payload) => {
           const record = payload.new as Partial<ReactionCount>
           if (record.comment_id) {
-            fetchComments()
+            fetchCommentsRef.current()
           }
         },
       )
@@ -100,11 +109,12 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
       supabase.removeChannel(commentsChannel)
       supabase.removeChannel(reactionsChannel)
     }
-  }, [postId, supabase, fetchComments])
+  }, [postId])
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return
 
+    const supabase = supabaseRef.current
     setIsSubmitting(true)
     const {
       data: { user },
@@ -131,6 +141,7 @@ export function CommentsSection({ postId }: CommentsSectionProps) {
   const handleSubmitReply = async (parentCommentId: string) => {
     if (!replyContent.trim()) return
 
+    const supabase = supabaseRef.current
     setIsSubmitting(true)
     const {
       data: { user },

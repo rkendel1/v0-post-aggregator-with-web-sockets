@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import type { Post, ReactionCount, CommentCount } from "@/lib/types"
 import { User } from "@supabase/supabase-js"
 import { Card } from "@/components/ui/card"
@@ -29,7 +29,7 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
   const [reactionCounts, setReactionCounts] = useState<ReactionCount[]>(post.reaction_counts || [])
   const [commentCount, setCommentCount] = useState<number>(post.comment_counts?.count || 0)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
-  const [supabase] = useState(() => createClient())
+  const supabaseRef = useRef(createClient())
   const router = useRouter()
 
   const timeAgo = formatDistanceToNow(new Date(post.created_at), {
@@ -40,6 +40,8 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
   const isCurrentlyPlaying = currentTrack?.id === post.id && isPlaying
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    
     const reactionChannel = supabase
       .channel(`reaction_counts:post_id=eq.${post.id}`)
       .on<ReactionCount>(
@@ -71,7 +73,7 @@ export function PostDetailView({ post, currentUser }: PostDetailViewProps) {
       supabase.removeChannel(reactionChannel)
       supabase.removeChannel(commentChannel)
     }
-  }, [post.id, supabase])
+  }, [post.id])
 
   const handleShare = () => {
     const postUrl = post.external_url || `${window.location.origin}/post/${post.id}`

@@ -162,7 +162,7 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
       const query = supabase.from("posts").select(POST_SELECT_QUERY).order("created_at", { ascending: false })
 
       if (selectedFeedId === "all") {
-        const tagIds = feedTagIds!.split(",").filter(id => id)
+        const tagIds = feedTagIds?.split(",").filter(id => id) || []
         query.in("show_tag_id", tagIds)
       } else {
         query.eq("show_tag_id", selectedFeedId)

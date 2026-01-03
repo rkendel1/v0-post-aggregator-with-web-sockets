@@ -152,8 +152,11 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
         const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
         if (tagIds.length > 0) {
           query.in("show_tag_id", tagIds)
+        } else {
+          // User has no followed tags - show empty feed (no posts)
+          // Use an impossible condition to return no results
+          query.eq("id", "00000000-0000-0000-0000-000000000000")
         }
-        // If user has no followed tags, show all posts (no filter applied)
       } else {
         query.eq("show_tag_id", selectedFeedId)
       }
@@ -197,7 +200,13 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
 
       if (selectedFeedId === "all") {
         const tagIds = feedTagIds ? feedTagIds.split(",").filter(id => id) : []
-        if (tagIds.length > 0) query.in("show_tag_id", tagIds)
+        if (tagIds.length > 0) {
+          query.in("show_tag_id", tagIds)
+        } else {
+          // User has no followed tags - show empty feed (no posts)
+          // Use an impossible condition to return no results
+          query.eq("id", "00000000-0000-0000-0000-000000000000")
+        }
       } else if (selectedFeedId) {
         query.eq("show_tag_id", selectedFeedId)
       }

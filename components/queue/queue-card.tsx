@@ -21,6 +21,7 @@ interface QueueCardProps {
 
 export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer()
   const router = useRouter()
   const isCurrentlyPlaying = currentTrack?.id === post.id && isPlaying
@@ -67,16 +68,12 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
       >
         {/* Thumbnail - smaller on mobile */}
         <div className="flex-shrink-0">
-          {post.image_url ? (
+          {post.image_url && !imageError ? (
             <img
               src={post.image_url}
               alt={post.content.substring(0, 50)}
               className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded"
-              onError={(e) => {
-                e.currentTarget.style.display = "none"
-                const avatar = e.currentTarget.nextElementSibling as HTMLElement
-                if (avatar) avatar.style.display = "flex"
-              }}
+              onError={() => setImageError(true)}
             />
           ) : (
             <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
@@ -139,13 +136,13 @@ export function QueueCard({ post, currentUser, onRemove }: QueueCardProps) {
           </div>
 
           {/* Full image if available */}
-          {post.image_url && (
+          {post.image_url && !imageError && (
             <div className="rounded-lg border overflow-hidden">
               <img
                 src={post.image_url}
                 alt={post.content.substring(0, 50)}
                 className="w-full object-cover"
-                onError={(e) => (e.currentTarget.style.display = "none")}
+                onError={() => setImageError(true)}
               />
             </div>
           )}

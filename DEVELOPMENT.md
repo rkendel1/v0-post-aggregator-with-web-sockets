@@ -310,8 +310,8 @@ Fix linting errors before committing.
 ### Manual Testing
 
 See testing guides:
-- [MANUAL_TESTING_GUIDE.md](./MANUAL_TESTING_GUIDE.md) - Saved posts testing
-- [AUTH_TESTING_GUIDE.md](./AUTH_TESTING_GUIDE.md) - Authentication flow testing
+- [docs/guides/MANUAL_TESTING_GUIDE.md](./docs/guides/MANUAL_TESTING_GUIDE.md) - Saved posts testing
+- [docs/guides/AUTH_TESTING_GUIDE.md](./docs/guides/AUTH_TESTING_GUIDE.md) - Authentication flow testing
 
 ### Key Test Scenarios
 

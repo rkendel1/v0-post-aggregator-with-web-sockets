@@ -239,9 +239,12 @@ Posts can be published to multiple platforms with status tracking:
 
 ## Contributing
 
-We welcome contributions! To get started:
+We welcome contributions! Please see **[CONTRIBUTING.md](./CONTRIBUTING.md)** for detailed guidelines.
+
+**Quick start for contributors:**
 
 1. **Read the docs**:
+   - [CONTRIBUTING.md](./CONTRIBUTING.md) - Contribution guidelines
    - [DEVELOPMENT.md](./DEVELOPMENT.md) - Development setup and guidelines
    - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
    - [AI_RULES.md](./AI_RULES.md) - Coding standards and library usage

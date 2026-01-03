@@ -11,7 +11,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js"
  * 
  * @param channelName - Unique name for the channel
  * @param callback - Function to set up the subscription on the channel
- * @param deps - Dependencies array that triggers re-subscription when changed
+ * @param deps - Dependencies array that triggers re-subscription when changed (must be an array)
  * @param enabled - Optional flag to enable/disable the subscription (default: true)
  * 
  * @example
@@ -30,7 +30,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js"
 export function useRealtimeSubscription(
   channelName: string,
   callback: (channel: RealtimeChannel) => RealtimeChannel,
-  deps: React.DependencyList = [],
+  deps: React.DependencyList,
   enabled: boolean = true
 ) {
   const supabaseRef = useRef(createClient())
@@ -53,6 +53,8 @@ export function useRealtimeSubscription(
         channelRef.current = null
       }
     }
+    // The deps array is spread here intentionally to allow dynamic dependencies
+    // This is safe because the deps parameter is required to be an array
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channelName, enabled, ...deps])
 }

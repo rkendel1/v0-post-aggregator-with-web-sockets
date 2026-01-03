@@ -269,8 +269,8 @@ export function PostAggregator({ initialShowTags }: PostAggregatorProps) {
   }
 
   const handlePostHidden = async (postId: string) => {
-    if (!user) return
     const supabase = supabaseRef.current
+    if (!user) return
     setPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")
     await supabase.from("hidden_posts").insert({ user_id: user.id, post_id: postId })

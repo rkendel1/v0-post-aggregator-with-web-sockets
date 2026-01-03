@@ -160,8 +160,8 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
   }
 
   const handlePostHidden = async (postId: string, isPlatformPost: boolean) => {
-    if (!user) return
     const supabase = supabaseRef.current
+    if (!user) return
     const setPosts = isPlatformPost ? setPlatformPosts : setOfficialPosts
     setPosts((current) => current.filter((post) => post.id !== postId))
     toast.success("Post hidden.")

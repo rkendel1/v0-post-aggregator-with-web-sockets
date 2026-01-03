@@ -86,6 +86,13 @@ A real-time podcast aggregator platform that allows users to follow show and epi
 - **Federated Posts**: Cross-platform post tracking
 - **Aggregated Posts**: Inbound posts from external platforms
 
+#### Admin Features
+- **Tag Management**: Create, edit, and delete show tags
+- **Bulk Upload**: Load multiple creators at once via CSV/JSON
+- **RSS Feed Management**: Configure feeds for automated content aggregation
+- **Community Links**: Set up Discord, Telegram, and other community platforms
+- **Subdomain Mapping**: Custom branded subdomains for each show
+
 ## Future Improvements
 
 ### Phase 1: Enhanced Aggregation
@@ -224,6 +231,8 @@ scripts/016_add_aggregated_posts_sync.sql
 For detailed setup instructions, see **[DEVELOPMENT.md](./DEVELOPMENT.md)**.
 
 For automated aggregation setup, see **[docs/AUTOMATED_AGGREGATION.md](./docs/AUTOMATED_AGGREGATION.md)**.
+
+For bulk creator upload, see **[docs/BULK_UPLOAD_GUIDE.md](./docs/BULK_UPLOAD_GUIDE.md)**.
 
 ### Key Concepts
 

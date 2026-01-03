@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Bookmark, BookmarkCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/contexts/user-context"
+import toast from "react-hot-toast"
 
 interface SavePostButtonProps {
   postId: string
@@ -42,7 +43,10 @@ export function SavePostButton({ postId, className, onToggle, showText = true }:
   }, [postId, supabase, user])
 
   const handleToggleSave = async () => {
-    if (!user) return
+    if (!user) {
+      toast.error("Please sign in to save posts")
+      return
+    }
 
     setIsLoading(true)
 

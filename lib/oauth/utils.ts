@@ -24,9 +24,8 @@ export function generatePKCE(): { codeVerifier: string; codeChallenge: string } 
   const codeVerifier = randomBytes(32).toString('base64url')
   
   // For S256 challenge method
-  const crypto = require('crypto')
-  const codeChallenge = crypto
-    .createHash('sha256')
+  const { createHash } = require('crypto')
+  const codeChallenge = createHash('sha256')
     .update(codeVerifier)
     .digest('base64url')
   
@@ -44,8 +43,12 @@ export function encryptToken(token: string): string {
     throw new Error('OAUTH_ENCRYPTION_KEY environment variable is not set')
   }
   
-  // Ensure key is 32 bytes (256 bits)
-  const key = Buffer.from(encryptionKey.padEnd(32, '0').slice(0, 32))
+  // Ensure key is exactly 32 bytes (256 bits)
+  if (encryptionKey.length < 32) {
+    throw new Error('OAUTH_ENCRYPTION_KEY must be at least 32 characters long. Generate with: openssl rand -base64 32')
+  }
+  
+  const key = Buffer.from(encryptionKey.slice(0, 32))
   const iv = randomBytes(16)
   
   const cipher = createCipheriv('aes-256-gcm', key, iv)
@@ -74,8 +77,12 @@ export function decryptToken(encryptedToken: string): string {
     throw new Error('OAUTH_ENCRYPTION_KEY environment variable is not set')
   }
   
-  // Ensure key is 32 bytes (256 bits)
-  const key = Buffer.from(encryptionKey.padEnd(32, '0').slice(0, 32))
+  // Ensure key is exactly 32 bytes (256 bits)
+  if (encryptionKey.length < 32) {
+    throw new Error('OAUTH_ENCRYPTION_KEY must be at least 32 characters long. Generate with: openssl rand -base64 32')
+  }
+  
+  const key = Buffer.from(encryptionKey.slice(0, 32))
   
   const { iv, authTag, data } = JSON.parse(encryptedToken)
   

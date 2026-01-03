@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { getOAuthConfig } from '@/lib/oauth/config'
+import { getOAuthConfig, type OAuthConfig } from '@/lib/oauth/config'
 import { validateOAuthState, encryptToken, calculateTokenExpiry } from '@/lib/oauth/utils'
 import type { OAuthState } from '@/lib/oauth/utils'
 
@@ -166,7 +166,7 @@ export async function GET(
  */
 async function exchangeCodeForTokens(
   code: string,
-  config: any,
+  config: OAuthConfig,
   platform: string,
   codeVerifier?: string
 ): Promise<any> {
@@ -247,6 +247,11 @@ async function fetchPlatformUserInfo(
     // Map platform-specific response to standard format
     switch (platform) {
       case 'twitter':
+        // Twitter API v2 returns data in a nested structure
+        if (!data.data || !data.data.id || !data.data.username) {
+          console.error('Invalid Twitter API response structure:', data)
+          return null
+        }
         return { id: data.data.id, username: data.data.username }
       case 'reddit':
         return { id: data.id, username: data.name }

@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { getOAuthConfig } from '@/lib/oauth/config'
+import { getOAuthConfig, type OAuthConfig } from '@/lib/oauth/config'
 import { encryptToken, decryptToken, calculateTokenExpiry } from '@/lib/oauth/utils'
 
 export async function POST(request: NextRequest) {
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
  */
 async function refreshAccessToken(
   refreshToken: string,
-  config: any,
+  config: OAuthConfig,
   platform: string
 ): Promise<any> {
   const body = new URLSearchParams({

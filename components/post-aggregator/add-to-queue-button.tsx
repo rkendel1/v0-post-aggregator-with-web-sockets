@@ -43,7 +43,10 @@ export function AddToQueueButton({ postId, className, onToggle, showText = true 
   }, [postId, supabase, user])
 
   const handleToggleQueue = async () => {
-    if (!user) return
+    if (!user) {
+      toast.error("Please sign in to add to queue")
+      return
+    }
 
     setIsLoading(true)
 

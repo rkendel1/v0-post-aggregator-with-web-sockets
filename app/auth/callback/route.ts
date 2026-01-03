@@ -3,6 +3,13 @@ import { NextResponse, type NextRequest } from "next/server"
 import { cookies } from "next/headers"
 import { isSafeRedirectUrl } from "@/lib/auth-helpers"
 
+/**
+ * OAuth callback handler
+ * 
+ * ⚠️ WARNING: DO NOT MODIFY COOKIE SETTINGS WITHOUT READING docs/COOKIE_SETTINGS.md
+ * Cookie settings are critical for cross-subdomain authentication and have been fixed multiple times.
+ * Changing cookie settings WILL break user authentication across subdomains.
+ */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get("code")
@@ -27,13 +34,20 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll()
           },
           setAll(cookieList) {
+            // ⚠️ DO NOT MODIFY: These cookie settings are critical for cross-subdomain auth
+            // See docs/COOKIE_SETTINGS.md for details. These have been fixed multiple times.
             // Collect cookies to set them on the response later
             cookieList.forEach(({ name, value, options }) => {
               // Set domain to allow cookie sharing across subdomains
+              // Set sameSite and secure for cross-subdomain compatibility
+              // In development (localhost), secure should be false; in production (HTTPS), it should be true
+              const isProduction = process.env.NODE_ENV === 'production'
               const cookieOptions: CookieOptions = {
                 ...options,
                 domain: `.${rootDomain}`,
                 path: '/', // Explicitly set path for better compatibility
+                sameSite: 'lax' as const, // Required for cross-subdomain cookies
+                secure: isProduction, // Required for cross-subdomain in production
               }
               cookiesToSet.push({ name, value, options: cookieOptions })
               // Also set on cookieStore for server-side availability (e.g., in middleware)

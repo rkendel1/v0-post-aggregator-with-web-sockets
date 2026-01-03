@@ -6,6 +6,18 @@ This document outlines the technical stack, core concepts, and mandatory library
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Development guide
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture
 - **[TECHNICAL_DEBT.md](./TECHNICAL_DEBT.md)** - Known issues
+- **[docs/COOKIE_SETTINGS.md](./docs/COOKIE_SETTINGS.md)** - ⚠️ CRITICAL: Cookie configuration rules
+
+## ⚠️ CRITICAL RULES - DO NOT VIOLATE
+
+### Cookie Settings - NEVER MODIFY
+**DO NOT modify cookie settings in these files without reading [docs/COOKIE_SETTINGS.md](./docs/COOKIE_SETTINGS.md):**
+- `lib/supabase/client.ts`
+- `lib/supabase/server.ts`
+- `middleware.ts`
+- `app/auth/callback/route.ts`
+
+**These settings are critical for cross-subdomain authentication and have been fixed multiple times.** Changing them WILL break user authentication across the main domain and subdomains. If you see cookie-related code with warning comments, **DO NOT TOUCH IT**.
 
 ## Application Overview
 

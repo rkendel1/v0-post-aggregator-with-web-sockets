@@ -25,6 +25,10 @@ const ROOT_LEVEL_ROUTES = ['/queue', '/saved', '/settings', '/admin', '/auth', '
  * - Root-level routes (queue, settings, etc.) are NOT rewritten
  * - Cookies are shared across subdomains for authentication
  * - localhost and www are treated as main domain
+ * 
+ * ⚠️ WARNING: DO NOT MODIFY COOKIE SETTINGS WITHOUT READING docs/COOKIE_SETTINGS.md
+ * Cookie settings are critical for cross-subdomain authentication and have been fixed multiple times.
+ * Changing cookie settings WILL break user authentication across subdomains.
  */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -44,24 +48,38 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          // ⚠️ DO NOT MODIFY: These cookie settings are critical for cross-subdomain auth
+          // See docs/COOKIE_SETTINGS.md for details. These have been fixed multiple times.
           // Set domain to allow cookie sharing across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
+          // In development (localhost), secure should be false; in production (HTTPS), it should be true
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+          const isProduction = process.env.NODE_ENV === 'production'
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: isProduction, // Required for cross-subdomain in production
           }
           request.cookies.set({ name, value, ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })
           response.cookies.set({ name, value, ...cookieOptions })
         },
         remove(name: string, options: CookieOptions) {
+          // ⚠️ DO NOT MODIFY: These cookie settings are critical for cross-subdomain auth
+          // See docs/COOKIE_SETTINGS.md for details. These have been fixed multiple times.
           // Set domain to allow cookie removal across subdomains
+          // Set sameSite and secure for cross-subdomain compatibility
+          // In development (localhost), secure should be false; in production (HTTPS), it should be true
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
+          const isProduction = process.env.NODE_ENV === 'production'
           const cookieOptions = {
             ...options,
             domain: `.${rootDomain}`,
             path: '/', // Explicitly set path for better compatibility
+            sameSite: 'lax' as const, // Required for cross-subdomain cookies
+            secure: isProduction, // Required for cross-subdomain in production
           }
           request.cookies.set({ name, value: '', ...cookieOptions })
           response = NextResponse.next({ request: { headers: request.headers } })

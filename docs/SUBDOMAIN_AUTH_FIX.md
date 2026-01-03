@@ -80,7 +80,34 @@ Added explicit `path: '/'` to all cookie operations in:
 
 This ensures cookies work correctly across all subdomains.
 
-#### 6. Environment Variable Consistency
+#### 6. Cookie Security Attributes
+
+Added explicit `sameSite` and `secure` attributes to all cookie operations for proper cross-subdomain authentication:
+
+**Updated in all cookie handlers:**
+```typescript
+const cookieOptions = {
+  ...options,
+  domain: `.${rootDomain}`,
+  path: '/',
+  sameSite: 'lax' as const, // Required for cross-subdomain cookies
+  secure: true, // Required for cross-subdomain in production (HTTPS)
+}
+```
+
+**Why this matters:**
+- Modern browsers (especially Chrome) require explicit `sameSite` attribute for cross-subdomain cookies
+- Without `sameSite: 'lax'`, browsers may block or restrict cookie sharing between subdomains
+- The `secure: true` flag is required for cookies with cross-domain scope in production (HTTPS)
+- In client-side code, `secure` is dynamically set based on protocol to support localhost development
+
+**Files updated:**
+- `lib/supabase/client.ts` - Client-side cookie handling
+- `lib/supabase/server.ts` - Server-side cookie handling
+- `middleware.ts` - Middleware cookie handling
+- `app/auth/callback/route.ts` - OAuth callback cookie handling
+
+#### 7. Environment Variable Consistency
 
 Fixed environment variable inconsistency that was causing re-login prompts:
 
@@ -169,8 +196,9 @@ Replace `<show-slug>` with actual show tags from your database:
 2. **Cookie Security**: Cookies are set with:
    - `domain: .podbridge.app` - Works across all subdomains
    - `path: /` - Accessible from all paths
+   - `sameSite: lax` - Required for cross-subdomain cookie sharing in modern browsers
    - `secure: true` - HTTPS only (in production)
-   - `sameSite` - CSRF protection
+   - CSRF protection via `sameSite` attribute
 
 3. **CodeQL Analysis**: Passed with 0 security vulnerabilities detected.
 

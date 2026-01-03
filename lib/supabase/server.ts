@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 export function createClient(cookieStore: Awaited<ReturnType<typeof cookies>>) {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'podbridge.app'
   
-  return createServerClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, {
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value

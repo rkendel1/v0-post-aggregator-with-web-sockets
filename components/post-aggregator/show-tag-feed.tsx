@@ -178,10 +178,10 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
 
   // Build the title element with hashtag, badge, and RSS button
   const titleElement = (
-    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
-      <span>#{showTag.tag}</span>
-      {showTag.claimed_by_user_id && <span title="Verified Page"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
-      <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link">
+    <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+      <span className="truncate">#{showTag.tag}</span>
+      {showTag.claimed_by_user_id && <span title="Verified Page" className="flex-shrink-0"><BadgeCheck className="h-5 w-5 text-blue-500" /></span>}
+      <Button variant="ghost" size="icon-sm" onClick={handleCopyRssLink} title="Copy RSS Feed Link" className="hidden md:inline-flex flex-shrink-0">
         <Rss className="h-4 w-4 text-muted-foreground" />
       </Button>
     </h1>
@@ -203,7 +203,7 @@ export function ShowTagFeed({ showTag, initialPlatformPosts, showTags }: ShowTag
     <AppLayoutClient
       showTags={showTags}
       pageTitle={titleElement}
-      pageSubtitle={showTag.name}
+      pageSubtitle={<span className="hidden md:inline">{showTag.name}</span>}
       pageActions={headerActions}
     >
       <Toaster position="bottom-right" />

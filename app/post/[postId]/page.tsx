@@ -10,9 +10,10 @@ import { PostDetailView } from "@/components/post-aggregator/post-detail-view"
 import { MobileNav } from "@/components/post-aggregator/mobile-nav"
 import { Logo } from "@/components/logo"
 
-export default async function PostDetailPage({ params }: { params: { postId: string } }) {
+export default async function PostDetailPage({ params }: { params: Promise<{ postId: string }> }) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
+  const { postId } = await params
 
   const {
     data: { user },
@@ -30,7 +31,7 @@ export default async function PostDetailPage({ params }: { params: { postId: str
       user_profiles (*)
     `,
     )
-    .eq("id", params.postId)
+    .eq("id", postId)
     .single()
 
   if (error || !postData) {

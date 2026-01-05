@@ -13,10 +13,10 @@ const POST_SELECT_QUERY = `
   user_profiles (*)
 `
 
-export default async function ProfilePage({ params }: { params: { username: string } }) {
+export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const cookieStore = await cookies()
   const supabase = createClient(cookieStore)
-  const { username } = params
+  const { username } = await params
 
   // Fetch the profile, case-insensitive
   const { data: profile } = await supabase
